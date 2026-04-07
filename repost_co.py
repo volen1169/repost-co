@@ -1210,6 +1210,54 @@ def _can_view_customer_data():
 def _can_edit_data():
     return st.session_state.get("user_role", "") in ["admin", "manager", "staff"]
 
+
+def _can_delete_data():
+    return st.session_state.get("user_role", "") in ["admin", "manager"]
+
+
+def _normalize_person_name(value: str) -> str:
+    value = str(value or "").strip().lower()
+    value = re.sub(r"[._-]+", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value
+
+
+def _get_current_user_salesperson_keys() -> set[str]:
+    keys = set()
+
+    user_name = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
+    user_email = str(st.session_state.get("user_email") or _get_user_email() or "").strip().lower()
+
+    if user_name:
+        keys.add(_normalize_person_name(user_name))
+
+    if user_email and "@" in user_email:
+        local = user_email.split("@", 1)[0].strip()
+        if local:
+            keys.add(_normalize_person_name(local))
+            keys.add(_normalize_person_name(local.replace(".", " ")))
+            keys.add(_normalize_person_name(local.replace(".", "")))
+
+    return {k for k in keys if k}
+
+
+def _filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
+    if df_in is None or df_in.empty:
+        return df_in
+
+    if st.session_state.get("user_role", "") != "staff":
+        return df_in
+
+    if "Salesperson" not in df_in.columns:
+        return df_in.iloc[0:0].copy()
+
+    user_keys = _get_current_user_salesperson_keys()
+    if not user_keys:
+        return df_in.iloc[0:0].copy()
+
+    salesperson_norm = df_in["Salesperson"].astype(str).apply(_normalize_person_name)
+    return df_in[salesperson_norm.isin(user_keys)].copy()
+
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
@@ -1995,6 +2043,10 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
+    df = _filter_df_for_current_user(df)
+    if st.session_state.get("user_role") == "staff":
+        st.info("🔒 บัญชีพนักงานจะแสดงเฉพาะข้อมูลลูกค้าที่ Salesperson ตรงกับชื่อผู้ใช้ของตัวเอง")
+
     with st.expander("🔍 ตัวกรองข้อมูล", expanded=True):
         f1, f2, f3, f4 = st.columns(4)
         sel_reg = f1.selectbox("ภูมิภาค", ["ทั้งหมด"] + sorted(df["Region_TH"].dropna().astype(str).unique().tolist()))
@@ -2674,6 +2726,10 @@ else:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
+    df = _filter_df_for_current_user(df)
+    if st.session_state.get("user_role") == "staff":
+        st.info("🔒 บัญชีพนักงานจะแสดงและแก้ไขได้เฉพาะข้อมูลลูกค้าที่เป็นชื่อของตัวเองเท่านั้น")
+
     tab_edit, tab_add = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่"])
     GRADE_COLOR = {"A": "#16a34a", "A-": "#22c55e", "B": "#2563eb", "B-": "#60a5fa",
                    "C": "#d97706", "C-": "#f59e0b", "F": "#dc2626"}
@@ -2707,10 +2763,17 @@ else:
                       type="primary" if st.session_state.edit_mode == "edit" else "secondary",
                       use_container_width=True):
             st.session_state.edit_mode = "edit"; st.session_state.confirm_delete = False; st.rerun()
+        delete_disabled = not _can_delete_data()
         if sc3.button("🗑️ ลบ",
                       type="primary" if st.session_state.edit_mode == "delete" else "secondary",
-                      use_container_width=True):
+                      use_container_width=True,
+                      disabled=delete_disabled):
             st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        if delete_disabled:
+            st.caption("🔒 ปุ่มลบใช้ได้เฉพาะ Admin และหัวหน้าแผนก")
+            if st.session_state.edit_mode == "delete":
+                st.session_state.edit_mode = "edit"
+                st.session_state.confirm_delete = False
 
         mask   = (df["Customer Name"].str.contains(srch2, case=False, na=False).values
                   if srch2 else [True] * len(df))
@@ -2801,7 +2864,11 @@ else:
                             st.markdown("##### ✏️ แก้ไขข้อมูล")
                             ef1, ef2, ef3 = st.columns([3, 3, 1.5])
                             new_name  = ef1.text_input("🏢 Customer Name", value=name)
-                            new_sp    = ef2.text_input("👤 Salesperson",   value=sp)
+                            new_sp    = ef2.text_input(
+                                "👤 Salesperson",
+                                value=sp,
+                                disabled=(st.session_state.get("user_role") == "staff")
+                            )
                             gopts     = ["", "A", "A-", "B", "B-", "C", "C-", "F"]
                             new_grade = ef3.selectbox("⭐ Grade", gopts,
                                                       index=gopts.index(grade) if grade in gopts else 0)
@@ -2868,7 +2935,7 @@ else:
                                 _commit_save(f"บันทึก '{new_name}'")
                                 st.rerun()
 
-            if st.session_state.edit_mode == "delete":
+            if st.session_state.edit_mode == "delete" and _can_delete_data():
                 sel_idxs  = [orig_idx[i] for i, v in enumerate(st.session_state.del_checks) if v]
                 sel_count = len(sel_idxs)
                 sel_names = [_s(subset.iloc[i].get("Customer Name", ""))
@@ -2906,7 +2973,8 @@ else:
         with st.form("form_add", clear_on_submit=True):
             r1c1, r1c2 = st.columns(2)
             n_name = r1c1.text_input("Customer Name *")
-            n_sp   = r1c2.text_input("Salesperson")
+            default_staff_sp = st.session_state.get("user_name") if st.session_state.get("user_role") == "staff" else ""
+            n_sp   = r1c2.text_input("Salesperson", value=default_staff_sp, disabled=(st.session_state.get("user_role") == "staff"))
             r2c1, r2c2, r2c3 = st.columns(3)
             n_ind   = r2c1.text_input("Industry")
             n_grade = r2c2.selectbox("Grade", ["", "A", "A-", "B", "B-", "C", "C-", "F"])
