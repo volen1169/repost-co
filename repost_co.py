@@ -622,6 +622,33 @@ def parse_address(address: str):
     return sub_district, district, province, region_en
 
 
+def extract_plus_code_and_address(value: str):
+    s = str(value or "").strip()
+    if not s:
+        return "", ""
+    s = re.sub(r"\s+", " ", s).strip()
+    m = re.search(r'([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3})', s, re.IGNORECASE)
+    if not m:
+        return "", s
+    code = m.group(1).upper()
+    remainder = (s[:m.start()] + " " + s[m.end():]).strip(" ,;-\t")
+    remainder = re.sub(r"\s+", " ", remainder).strip()
+    return code, remainder
+
+
+def clean_plus_code(value: str) -> str:
+    code, _ = extract_plus_code_and_address(value)
+    return code
+
+
+def merge_address_parts(address: str, plus_code_value: str) -> str:
+    addr = str(address or "").strip()
+    _, plus_tail = extract_plus_code_and_address(plus_code_value)
+    if addr:
+        return addr
+    return plus_tail
+
+
 def build_df_from_original(xl):
     import numpy as np
     if "All Customer" in xl:
@@ -640,13 +667,10 @@ def build_df_from_original(xl):
         raw["Colourant"] = ""
         raw["Address"] = raw["Address"].astype(str).str.replace(r"\n.*", "", regex=True).str.strip()
 
-        def clean_plus(v):
-            if pd.isna(v) or not str(v).strip(): return ""
-            s = str(v).strip()
-            m = re.search(r'[A-Z0-9]{4,6}[+][A-Z0-9]{2,3}(?:\s+\S+)?', s)
-            return m.group(0).strip() if m else s[:30]
-
-        raw["Plus_Code"] = raw["Plus_Code"].apply(clean_plus)
+        raw["Plus_Code_Raw"] = raw["Plus_Code"].astype(str).fillna("")
+        raw["Plus_Code"] = raw["Plus_Code_Raw"].apply(clean_plus_code)
+        raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code_Raw", "")), axis=1)
+        raw = raw.drop(columns=["Plus_Code_Raw"])
         raw["Budget_kg"] = pd.to_numeric(raw.get("Budget_kg", 0), errors="coerce").fillna(0).astype(int)
         for _col in ["Actual (kg/year)", "Actual_kg", "Actual kg", "Actual"]:
             if _col in raw.columns:
@@ -683,6 +707,12 @@ def build_df_from_original(xl):
         raw["Salesperson"] = [s.strip() for s in salespersons]
         raw["Colourant"] = [s.strip() for s in colourants]
         raw = raw.drop(columns=["col3", "col4"])
+        if "Plus_Code" not in raw.columns:
+            raw["Plus_Code"] = ""
+        raw["Plus_Code_Raw"] = raw["Plus_Code"].astype(str).fillna("")
+        raw["Plus_Code"] = raw["Plus_Code_Raw"].apply(clean_plus_code)
+        raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code_Raw", "")), axis=1)
+        raw = raw.drop(columns=["Plus_Code_Raw"])
     else:
         raise ValueError("ไม่พบ sheet 'All Customer' หรือ 'Original' ในไฟล์")
 
@@ -704,6 +734,7 @@ def build_df_from_original(xl):
     else:
         df["Sales/Year"] = pd.to_numeric(df["Sales/Year"], errors="coerce").fillna(0)
     if "Plus_Code"   not in df.columns: df["Plus_Code"]   = ""
+    df["Plus_Code"] = df["Plus_Code"].apply(clean_plus_code)
     if "Budget_kg"   not in df.columns: df["Budget_kg"]   = 0
     if "Actual_kg"   not in df.columns: df["Actual_kg"]   = 0
     if "LastYear_kg" not in df.columns: df["LastYear_kg"] = 0
@@ -793,7 +824,7 @@ def _olc_recover(short_code: str, ref_lat: float, ref_lng: float):
     return best
 
 def plus_code_to_coords(code: str, ref_lat: float = 13.6776, ref_lng: float = 100.6262):
-    s = str(code or "").strip()
+    s = clean_plus_code(code)
     if not s or "+" not in s:
         return None
     before = s.split("+", 1)[0]
@@ -1438,9 +1469,17 @@ if uploaded:
                                        "Business type": "Industry"})
             for col in TEMPLATE_COLS:
                 if col not in raw.columns: raw[col] = ""
+            if "Plus_Code" in raw.columns:
+                raw["Plus_Code"] = raw["Plus_Code"].apply(clean_plus_code)
+            else:
+                raw["Plus_Code"] = ""
+            if "Address" not in raw.columns:
+                raw["Address"] = ""
+            raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code", "")), axis=1)
             def _enrich(row):
+                addr_for_parse = merge_address_parts(row.get("Address", ""), row.get("Plus_Code", ""))
                 if pd.notna(row.get("Province")) and str(row.get("Province")).strip(): return row
-                sub, dis, prov, reg = parse_address(str(row.get("Address", "")))
+                sub, dis, prov, reg = parse_address(str(addr_for_parse))
                 if not str(row.get("Sub-district", "")).strip(): row["Sub-district"] = sub
                 if not str(row.get("District", "")).strip():     row["District"] = dis
                 if not str(row.get("Province", "")).strip():     row["Province"] = prov
@@ -2553,22 +2592,29 @@ else:
                             saved = st.form_submit_button("💾 บันทึก", type="primary",
                                                            use_container_width=True)
                             if saved:
+                                clean_pc = clean_plus_code(new_pc)
+                                merged_addr = merge_address_parts(new_addr, new_pc)
                                 st.session_state.df.at[orig_i, "Customer Name"] = new_name
                                 st.session_state.df.at[orig_i, "Salesperson"]   = new_sp
                                 st.session_state.df.at[orig_i, "Industry"]      = new_ind
                                 st.session_state.df.at[orig_i, "Grade"]         = new_grade
                                 st.session_state.df.at[orig_i, "Sales/Year"]    = new_sales
-                                st.session_state.df.at[orig_i, "Plus_Code"]     = new_pc.strip()
+                                st.session_state.df.at[orig_i, "Plus_Code"]     = clean_pc
                                 st.session_state.df.at[orig_i, "Budget_kg"]     = new_bkg
                                 st.session_state.df.at[orig_i, "Actual_kg"]     = new_act
                                 st.session_state.df.at[orig_i, "LastYear_kg"]   = new_ly
-                                st.session_state.df.at[orig_i, "Address"]       = new_addr
-                                if new_addr.strip():
-                                    _sub, _dis, _prov, _reg = parse_address(new_addr)
+                                st.session_state.df.at[orig_i, "Address"]       = merged_addr
+                                if merged_addr.strip():
+                                    _sub, _dis, _prov, _reg = parse_address(merged_addr)
                                     st.session_state.df.at[orig_i, "Sub-district"] = _sub
                                     st.session_state.df.at[orig_i, "District"]     = _dis
                                     st.session_state.df.at[orig_i, "Province"]     = _prov
                                     st.session_state.df.at[orig_i, "Region"]       = _reg
+                                else:
+                                    st.session_state.df.at[orig_i, "Sub-district"] = ""
+                                    st.session_state.df.at[orig_i, "District"]     = ""
+                                    st.session_state.df.at[orig_i, "Province"]     = ""
+                                    st.session_state.df.at[orig_i, "Region"]       = "Unknown"
                                 st.session_state.df["Region_TH"] = (
                                     st.session_state.df["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ"))
                                 st.session_state.editing_idx = None
@@ -2633,11 +2679,13 @@ else:
             if not n_name.strip():
                 st.error("กรุณากรอก Customer Name")
             else:
-                auto_sub, auto_dis, auto_prov, auto_reg = parse_address(n_addr)
+                clean_pc = clean_plus_code(n_pc)
+                merged_addr = merge_address_parts(n_addr, n_pc)
+                auto_sub, auto_dis, auto_prov, auto_reg = parse_address(merged_addr)
                 new_row = {
                     "Customer Name": n_name.strip(), "Salesperson": n_sp,
                     "Industry": n_ind, "Grade": n_grade, "Sales/Year": n_sales,
-                    "Plus_Code": n_pc.strip(), "Address": n_addr,
+                    "Plus_Code": clean_pc, "Address": merged_addr,
                     "Sub-district": n_sub or auto_sub, "District": n_dis or auto_dis,
                     "Province": n_prov or auto_prov, "Region": n_reg or auto_reg,
                     "Budget_kg": 0, "Actual_kg": 0, "LastYear_kg": 0,
