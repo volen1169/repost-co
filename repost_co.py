@@ -63,13 +63,22 @@ GRAPH_BASE       = "https://graph.microsoft.com/v1.0"
 
 DEPARTMENTS = ["CA", "CO", "PH", "PL", "PO", "SF"]
 
+DEPARTMENT_LABELS = {
+    "CA": "Care Solutions",
+    "CO": "Colourant Solutions",
+    "PH": "Personalcare & Homecare",
+    "PL": "Petroleum&Lubricant Solutions",
+    "PO": "Polymer Solutions",
+    "SF": "Surface Solutions",
+}
+
 DEPT_GROUPS = {
     "CA": "OPT Care Solutions",
-    "CO": "OPT Color Solutions",
-    "PH": "OPT Pharma Solutions",
-    "PL": "OPT Plastic Solutions",
-    "PO": "OPT Polyolefin Solutions",
-    "SF": "OPT Specialty Food Solutions",
+    "CO": "OPT Colourant Solutions",
+    "PH": "OPT Personalcare & Homecare",
+    "PL": "OPT Petroleum&Lubricant Solutions",
+    "PO": "OPT Polymer Solutions",
+    "SF": "OPT Surface Solutions",
 }
 
 ADMIN_EMAILS = {
@@ -876,9 +885,13 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
 # ═══════════════════════════════════════════════════════════════════════════════
 # UI Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
+def _dept_label(dept_code: str | None) -> str:
+    code = str(dept_code or "").strip()
+    return DEPARTMENT_LABELS.get(code, code)
+
 def _role_label():
     role = st.session_state.get("user_role", "")
-    dept = st.session_state.get("dept", "")
+    dept = _dept_label(st.session_state.get("dept", ""))
     if role == "admin":
         return "👑 Admin (ทุกแผนก)"
     elif role == "manager":
@@ -1132,17 +1145,18 @@ if auth_ready:
     if st.session_state.get("user_role") == "admin":
         switch = st.sidebar.selectbox("เลือกแผนก", DEPARTMENTS,
                                       index=DEPARTMENTS.index(st.session_state.dept) if st.session_state.dept in DEPARTMENTS else 0,
-                                      key="dept_switch_auth")
+                                      key="dept_switch_auth",
+                                      format_func=lambda x: DEPARTMENT_LABELS.get(x, x))
         if switch != st.session_state.dept:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
-        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.caption("สิทธิ์ Admin: ดูได้ทุกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         if _can_view_dashboard():
             st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Dashboard ได้เฉพาะแผนกตัวเอง")
         else:
@@ -1172,7 +1186,7 @@ else:
             else:
                 st.sidebar.warning("กรุณาเลือกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.info(f"สิทธิ์: {_role_label()}")
         if st.session_state.is_admin:
             switch = st.sidebar.selectbox("สลับแผนก", DEPARTMENTS,
