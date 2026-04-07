@@ -31,6 +31,7 @@ import requests
 import traceback
 import json
 import os
+import textwrap
 import msal
 from datetime import datetime
 
@@ -798,7 +799,7 @@ EMPTY_DF = pd.DataFrame(columns=TEMPLATE_COLS + [
 for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
                ("is_admin", False), ("user_role", "staff"), ("user_email", ""), ("user_name", ""),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
-               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))]:
+               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")), ("last_menu_logged", "")]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
@@ -827,6 +828,179 @@ def _can_view_customer_data():
 def _can_edit_data():
     return st.session_state.get("user_role", "") in ["admin", "manager", "staff"]
 
+def render_login_page(auth_ready: bool):
+    st.markdown(textwrap.dedent("""
+    <style>
+    .stApp {
+        background:
+            radial-gradient(circle at 12% 18%, rgba(147, 197, 253, 0.34) 0%, transparent 24%),
+            radial-gradient(circle at 85% 16%, rgba(191, 219, 254, 0.30) 0%, transparent 26%),
+            radial-gradient(circle at 72% 78%, rgba(125, 211, 252, 0.22) 0%, transparent 28%),
+            linear-gradient(135deg, #dbeafe 0%, #bfdbfe 38%, #93c5fd 100%);
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    .block-container {
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.8rem !important;
+        max-width: 1320px !important;
+    }
+    .login-shell { position: relative; min-height: calc(100vh - 1rem); }
+    .login-orb {
+        position: fixed; border-radius: 999px; filter: blur(56px); opacity: 0.45;
+        pointer-events: none; z-index: 0; animation: floatOrb 11s ease-in-out infinite;
+    }
+    .login-orb.orb1 { width: 250px; height: 250px; left: 4%; top: 10%; background: rgba(96, 165, 250, 0.45); }
+    .login-orb.orb2 { width: 320px; height: 320px; right: 6%; top: 16%; background: rgba(125, 211, 252, 0.35); animation-delay: 2s; }
+    .login-orb.orb3 { width: 300px; height: 300px; left: 26%; bottom: 4%; background: rgba(191, 219, 254, 0.42); animation-delay: 4s; }
+    @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(14px, -18px) scale(1.05); }
+        100% { transform: translate(0, 0) scale(1); }
+    }
+    .glass-card {
+        position: relative; z-index: 1;
+        background: rgba(255,255,255,0.28);
+        border: 1px solid rgba(255,255,255,0.46);
+        box-shadow: 0 18px 60px rgba(30, 64, 175, 0.16);
+        border-radius: 28px;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        padding: 28px;
+    }
+    .brand-row { display:flex; gap:18px; align-items:center; margin-bottom: 14px; }
+    .brand-logo {
+        width: 78px; height: 78px; border-radius: 22px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size: 34px; font-weight: 800;
+        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+    }
+    .brand-eyebrow { color: #1d4ed8; font-weight: 800; letter-spacing: .12em; font-size: 12px; text-transform: uppercase; }
+    .brand-title { color: #0f172a; font-size: 34px; line-height: 1.05; font-weight: 800; margin: 2px 0 0 0; }
+    .brand-sub { color: #334155; font-size: 15px; line-height: 1.75; margin-top: 8px; }
+    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top:22px; }
+    .feature-item { border-radius: 20px; padding: 16px 14px; background: rgba(255,255,255,0.34); border: 1px solid rgba(255,255,255,0.52); min-height:112px; }
+    .feature-icon { font-size:24px; margin-bottom:8px; }
+    .feature-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
+    .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
+    .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
+    .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
+    .section-chip { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius:999px; background: rgba(37,99,235,0.10); border: 1px solid rgba(37,99,235,0.20); color:#1d4ed8; font-size:12px; font-weight:800; margin-bottom:16px; }
+    .hint-box { margin-top:14px; border-radius:16px; padding:14px; background: rgba(255,255,255,0.38); border:1px solid rgba(255,255,255,0.52); color:#334155; font-size:12.5px; line-height:1.65; }
+    .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
+    .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
+    .ms-login-link {
+        display:block; text-align:center; padding:12px 16px; border-radius:14px; text-decoration:none; font-weight:800;
+        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.2);
+        box-shadow: 0 10px 22px rgba(37,99,235,0.18);
+    }
+    .ms-login-link:hover { filter: brightness(1.03); }
+    .loading-overlay {
+        display:none; position: fixed; inset:0; background: rgba(219, 234, 254, 0.72); backdrop-filter: blur(8px);
+        z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+    }
+    .loading-overlay.show { display:flex; }
+    .loading-spinner {
+        width:54px; height:54px; border-radius:999px; border:5px solid rgba(37,99,235,0.18); border-top-color:#2563eb;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color:#1e3a8a; font-weight:800; font-size:15px; }
+    @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:28px; } }
+    </style>
+    <div class="loading-overlay" id="login-loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
+    </div>
+    <script>
+    function showLoginLoading(){
+        const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
+        if(el){ el.classList.add('show'); }
+    }
+    </script>
+    <div class="login-shell">
+        <div class="login-orb orb1"></div>
+        <div class="login-orb orb2"></div>
+        <div class="login-orb orb3"></div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    left, right = st.columns([1.35, 1])
+    with left:
+        st.markdown(textwrap.dedent("""
+        <div class="glass-card">
+            <div class="brand-row">
+                <div class="brand-logo">📊</div>
+                <div>
+                    <div class="brand-eyebrow">Optimal Group Platform</div>
+                    <div class="brand-title">Sales Territory Dashboard</div>
+                    <div class="brand-sub">ระบบบริหารข้อมูลลูกค้า แผนที่ Budget การเข้าถึงข้อมูล และการส่งออกไฟล์ สำหรับทีมงานในแต่ละแผนกของบริษัท</div>
+                </div>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Dashboard</div><div class="feature-text">ดูภาพรวมยอดขาย ลูกค้า และ Insight แยกตามแผนก</div></div>
+                <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-title">แผนที่</div><div class="feature-text">ดูหมุดลูกค้า เส้นทาง และข้อมูล Plus Code</div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">Budget</div><div class="feature-text">เปรียบเทียบ Budget และ Actual พร้อมวิเคราะห์ Gap</div></div>
+                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint</div><div class="feature-text">โหลดและบันทึกไฟล์แยกตามแผนกจาก SharePoint</div></div>
+                <div class="feature-item"><div class="feature-icon">🔐</div><div class="feature-title">สิทธิ์</div><div class="feature-text">ควบคุมการเข้าถึงตาม Microsoft 365, Group และ Role</div></div>
+                <div class="feature-item"><div class="feature-icon">📤</div><div class="feature-title">Export</div><div class="feature-text">ส่งออก Template, ข้อมูลลูกค้า และ Audit Log ได้ทันที</div></div>
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+
+    with right:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-chip">🔐 Secure Access Portal</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-panel-sub">ใช้ Microsoft 365 เป็นหลัก และมี fallback สำหรับงานภายในเมื่อจำเป็น</div>', unsafe_allow_html=True)
+        st.markdown('#### Microsoft 365')
+        if auth_ready:
+            login_url = _build_login_url()
+            st.markdown(
+                f"""
+                <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
+                    🔵 Sign in with Microsoft 365
+                </a>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.caption('ใช้บัญชีองค์กรเพื่อตรวจสอบสิทธิ์และดึงกลุ่มแผนกอัตโนมัติ')
+        else:
+            st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
+            st.caption('ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI')
+
+        st.markdown('---')
+        st.markdown('#### Fallback Login')
+        with st.form('fallback_login_form', clear_on_submit=False):
+            sel_dept = st.selectbox('🏢 เลือกแผนก', [''] + DEPARTMENTS, key='login_dept_main')
+            admin_pw = st.text_input('🔑 รหัส Admin (ถ้ามี)', type='password', key='login_admin_pw_main')
+            submitted = st.form_submit_button('เข้าสู่ระบบด้วยแผนก', use_container_width=True)
+        if submitted:
+            if sel_dept:
+                st.session_state.dept = sel_dept
+                st.session_state.is_admin = (admin_pw == ADMIN_PASSWORD and admin_pw.strip() != '')
+                st.session_state.user_role = 'admin' if st.session_state.is_admin else 'manager'
+                st.session_state.user_name = 'Local User'
+                st.session_state.user_email = ''
+                st.session_state.sp_file = None
+                st.session_state.df = EMPTY_DF
+                append_audit_log('login_fallback', f'fallback login to {sel_dept}', sel_dept)
+                st.rerun()
+            else:
+                st.warning('กรุณาเลือกแผนกก่อนเข้าสู่ระบบ')
+        st.markdown(textwrap.dedent("""
+        <div class="hint-box">
+            <b>สิทธิ์การใช้งาน</b><br>
+            • Admin: ดูได้ทุกแผนก<br>
+            • Manager: ดู Dashboard และข้อมูลของแผนกตนเอง<br>
+            • Staff: ดูข้อมูลและแก้ไขได้ตามแผนกตัวเอง<br>
+            • Fallback: ใช้งานภายในเมื่อ Microsoft 365 ยังไม่พร้อม
+        </div>
+        </div>
+        <div class="login-footer">
+            Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+        </div>
+        """), unsafe_allow_html=True)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -834,31 +1008,8 @@ auth_ready = _auth_configured()
 _complete_login_from_query()
 is_logged_in = _session_logged_in()
 
-if auth_ready and not is_logged_in:
-    st.title("🔐 Sales Territory Dashboard")
-    st.markdown("### เข้าสู่ระบบด้วย Microsoft 365")
-    st.info("ระบบนี้กำหนดสิทธิ์ตามบัญชีงานและแผนกของผู้ใช้")
-    c1, c2, c3 = st.columns([1, 1.4, 1])
-    with c2:
-        login_url = _build_login_url()
-        st.markdown(
-    f"""
-    <a href="{login_url}" target="_self" style="
-        display:block;
-        text-align:center;
-        padding:12px 16px;
-        border-radius:14px;
-        text-decoration:none;
-        font-weight:700;
-        background:#2563eb;
-        color:white;
-    ">
-        🔵 Sign in with Microsoft 365
-    </a>
-    """,
-    unsafe_allow_html=True
-)
-    st.caption("สิทธิ์การใช้งาน: Admin ดูได้ทุกแผนก • หัวหน้าแผนกดู Dashboard ได้เฉพาะแผนกตัวเอง • ลูกทีมดูข้อมูลลูกค้าและแก้ไขข้อมูล")
+if not st.session_state.dept and not (auth_ready and is_logged_in):
+    render_login_page(auth_ready)
     st.stop()
 
 if auth_ready and is_logged_in and not _user_email_allowed():
@@ -880,10 +1031,7 @@ if auth_ready and is_logged_in:
         st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
         st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
         with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
-            st.write({
-                "email": st.session_state.user_email,
-                "groups": user_groups,
-            })
+            st.write({"email": st.session_state.user_email, "groups": user_groups})
         if st.button("🚪 Log out"):
             _auth_logout()
         st.stop()
@@ -918,6 +1066,9 @@ if _can_view_dashboard():
     allowed_menus.insert(0, "📊 Dashboard")
 
 menu = st.sidebar.radio("", allowed_menus, label_visibility="collapsed")
+if st.session_state.get("last_menu_logged") != menu:
+    append_audit_log("page_view", menu, st.session_state.get("dept") or "")
+    st.session_state["last_menu_logged"] = menu
 st.sidebar.divider()
 
 st.sidebar.subheader("🔐 บัญชีผู้ใช้งาน")
