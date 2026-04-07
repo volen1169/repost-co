@@ -859,12 +859,15 @@ def render_login_page(auth_ready: bool):
     }
     .glass-card {
         position: relative; z-index: 1;
-        background: rgba(255,255,255,0.28);
-        border: 1px solid rgba(255,255,255,0.46);
-        box-shadow: 0 18px 60px rgba(30, 64, 175, 0.16);
-        border-radius: 30px;
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0.18));
+        border: 1px solid rgba(255,255,255,0.55);
+        box-shadow:
+            0 20px 60px rgba(15, 23, 42, 0.12),
+            inset 0 1px 0 rgba(255,255,255,0.55),
+            inset 0 -1px 0 rgba(255,255,255,0.10);
+        border-radius: 32px;
+        backdrop-filter: blur(24px) saturate(140%);
+        -webkit-backdrop-filter: blur(24px) saturate(140%);
         padding: 30px 32px;
     }
     .brand-row { display:flex; gap:18px; align-items:center; margin-bottom: 14px; }
@@ -881,29 +884,90 @@ def render_login_page(auth_ready: bool):
     .feature-icon { font-size:26px; margin-bottom:10px; }
     .feature-title { color:#0f172a; font-size:17px; font-weight:800; margin-bottom:6px; }
     .feature-text { color:#475569; font-size:13.5px; line-height:1.65; }
-    .login-right-panel { padding: 18px 6px 0 6px; }
-    .login-right-panel-card { background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.42); border-radius: 28px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 18px 50px rgba(30,64,175,0.12); padding: 26px 26px 24px 26px; }
-    .login-panel-title { color:#0f172a; font-size:32px; font-weight:900; margin-bottom:10px; }
+    .login-right-panel { padding: 8px 6px 0 6px; }
+    .login-panel-title { color:#0f172a; font-size:32px; font-weight:900; margin: 0 0 10px 0; }
     .login-panel-sub { color:#334155; font-size:15px; line-height:1.7; margin-bottom:20px; max-width: 560px; }
     .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
     .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
     .ms-login-link {
-        display:block; text-align:center; padding:15px 18px; border-radius:16px; text-decoration:none; font-weight:800;
-        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.18);
-        box-shadow: 0 12px 26px rgba(37,99,235,0.22); font-size: 18px;
+        display:block;
+        text-align:center;
+        padding:16px 20px;
+        border-radius:18px;
+        text-decoration:none !important;
+        font-weight:800;
+        background: linear-gradient(135deg, #2563eb, #3b82f6 55%, #60a5fa 100%);
+        color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,0.28);
+        box-shadow:
+            0 14px 28px rgba(37,99,235,0.24),
+            inset 0 1px 0 rgba(255,255,255,0.28);
+        font-size: 18px;
+        transition: transform .22s ease, box-shadow .22s ease, filter .22s ease, background .22s ease;
+        position: relative;
+        overflow: hidden;
     }
-    .ms-login-link:hover { filter: brightness(1.03); }
+    .ms-login-link::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.22) 45%, transparent 70%);
+        transform: translateX(-120%);
+        transition: transform .6s ease;
+    }
+    .ms-login-link:hover {
+        filter: brightness(1.04);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow:
+            0 20px 34px rgba(37,99,235,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.34);
+    }
+    .ms-login-link:hover::before {
+        transform: translateX(120%);
+    }
+    .ms-login-link:active {
+        transform: translateY(0) scale(0.995);
+    }
+    .ms-login-link:visited,
+    .ms-login-link:focus,
+    .ms-login-link:focus-visible {
+        color: #ffffff !important;
+        text-decoration: none !important;
+        outline: none;
+    }
     .loading-overlay {
-        display:none; position: fixed; inset:0; background: rgba(219, 234, 254, 0.72); backdrop-filter: blur(8px);
-        z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(219, 234, 254, 0.52);
+        backdrop-filter: blur(14px) saturate(135%);
+        -webkit-backdrop-filter: blur(14px) saturate(135%);
+        z-index: 99999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        gap:14px;
+        transition: opacity .28s ease, visibility .28s ease;
     }
-    .loading-overlay.show { display:flex; }
+    .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
     .loading-spinner {
-        width:54px; height:54px; border-radius:999px; border:5px solid rgba(37,99,235,0.18); border-top-color:#2563eb;
-        animation: spin 1s linear infinite;
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        border: 5px solid rgba(37,99,235,0.16);
+        border-top-color: #2563eb;
+        animation: spin 0.9s linear infinite;
+        box-shadow: 0 8px 24px rgba(37,99,235,0.16);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color:#1e3a8a; font-weight:800; font-size:15px; }
+    .loading-text { color:#1e3a8a; font-weight:800; font-size:16px; letter-spacing: .01em; }
     @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:28px; } }
     
@@ -960,7 +1024,7 @@ function showLoginLoading(){
         """), unsafe_allow_html=True)
 
     with right:
-        st.markdown('<div class="login-right-panel"><div class="login-right-panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="login-right-panel">', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อกำหนดสิทธิ์และแผนกอัตโนมัติจากบัญชีองค์กร</div>', unsafe_allow_html=True)
         st.markdown('### Microsoft 365')
@@ -969,7 +1033,7 @@ function showLoginLoading(){
             st.markdown(
                 f"""
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    🔵 Sign in with Microsoft 365
+                    🔐 Sign in with Microsoft 365
                 </a>
                 """,
                 unsafe_allow_html=True,
@@ -979,7 +1043,6 @@ function showLoginLoading(){
             st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
             st.caption('ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI')
         st.markdown(textwrap.dedent("""
-        </div></div>
         <div class="login-footer">
             Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
         </div>
