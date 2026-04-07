@@ -82,15 +82,15 @@ DEPT_GROUPS = {
 }
 
 ADMIN_EMAILS = {
-    "it@optimal.co.th",
-    "itsuppor1t@poonyaruk.co.th",
-    "ratchaphruek.r@optimal.co.th",
+    "Teerapat.Po@optimal.co.th",
+    "itsupport@poonyaruk.co.th",
+    "IT_Network@poonyaruk.co.th",
 }
 
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "itsupport@poonyaruk.co.th":"CO",
+    "Pornphavit.Bu@optimal.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
