@@ -862,7 +862,7 @@ def render_login_page(auth_ready: bool):
         background: rgba(255,255,255,0.28);
         border: 1px solid rgba(255,255,255,0.46);
         box-shadow: 0 18px 60px rgba(30, 64, 175, 0.16);
-        border-radius: 28px;
+        border-radius: 30px;
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
         padding: 28px;
@@ -883,8 +883,6 @@ def render_login_page(auth_ready: bool):
     .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
     .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
     .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
-    .section-chip { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius:999px; background: rgba(37,99,235,0.10); border: 1px solid rgba(37,99,235,0.20); color:#1d4ed8; font-size:12px; font-weight:800; margin-bottom:16px; }
-    .hint-box { margin-top:14px; border-radius:16px; padding:14px; background: rgba(255,255,255,0.38); border:1px solid rgba(255,255,255,0.52); color:#334155; font-size:12.5px; line-height:1.65; }
     .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
     .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
     .ms-login-link {
@@ -906,7 +904,19 @@ def render_login_page(auth_ready: bool):
     .loading-text { color:#1e3a8a; font-weight:800; font-size:15px; }
     @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:28px; } }
-    </style>
+    
+[data-testid="stAppViewBlockContainer"], .block-container {
+    padding-top: 0.15rem !important;
+    padding-bottom: 0 !important;
+}
+div[data-testid="column"] {
+    padding-top: 0 !important;
+}
+.glass-card {
+    margin-top: 0 !important;
+}
+
+</style>
     <div class="loading-overlay" id="login-loading-overlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
@@ -949,7 +959,6 @@ def render_login_page(auth_ready: bool):
 
     with right:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-chip">🔐 Secure Access Portal</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-sub">ใช้ Microsoft 365 เป็นหลัก และมี fallback สำหรับงานภายในเมื่อจำเป็น</div>', unsafe_allow_html=True)
         st.markdown('#### Microsoft 365')
@@ -991,7 +1000,7 @@ def render_login_page(auth_ready: bool):
         <div class="hint-box">
             <b>สิทธิ์การใช้งาน</b><br>
             • Admin: ดูได้ทุกแผนก<br>
-            • Manager: ดู Dashboard และข้อมูลของแผนกตนเอง<br>
+            
             • Staff: ดูข้อมูลและแก้ไขได้ตามแผนกตัวเอง<br>
             • Fallback: ใช้งานภายในเมื่อ Microsoft 365 ยังไม่พร้อม
         </div>
