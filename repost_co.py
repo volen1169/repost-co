@@ -840,11 +840,11 @@ def render_login_page(auth_ready: bool):
     }
     [data-testid="stHeader"] { background: transparent; }
     .block-container {
-        padding-top: 0.4rem !important;
-        padding-bottom: 0.8rem !important;
+        padding-top: 0.05rem !important;
+        padding-bottom: 0.2rem !important;
         max-width: 1320px !important;
     }
-    .login-shell { position: relative; min-height: calc(100vh - 1rem); }
+    .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
         position: fixed; border-radius: 999px; filter: blur(56px); opacity: 0.45;
         pointer-events: none; z-index: 0; animation: floatOrb 11s ease-in-out infinite;
@@ -881,6 +881,7 @@ def render_login_page(auth_ready: bool):
     .feature-icon { font-size:24px; margin-bottom:8px; }
     .feature-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
     .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
+    .login-right-panel { padding: 10px 2px 0 2px; }
     .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
     .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
     .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
@@ -958,9 +959,9 @@ function showLoginLoading(){
         """), unsafe_allow_html=True)
 
     with right:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown('<div class="login-right-panel">', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-panel-sub">ใช้ Microsoft 365 เป็นหลัก และมี fallback สำหรับงานภายในเมื่อจำเป็น</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อกำหนดสิทธิ์และแผนกอัตโนมัติจากบัญชีองค์กร</div>', unsafe_allow_html=True)
         st.markdown('#### Microsoft 365')
         if auth_ready:
             login_url = _build_login_url()
@@ -976,35 +977,7 @@ function showLoginLoading(){
         else:
             st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
             st.caption('ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI')
-
-        st.markdown('---')
-        st.markdown('#### Fallback Login')
-        with st.form('fallback_login_form', clear_on_submit=False):
-            sel_dept = st.selectbox('🏢 เลือกแผนก', [''] + DEPARTMENTS, key='login_dept_main')
-            admin_pw = st.text_input('🔑 รหัส Admin (ถ้ามี)', type='password', key='login_admin_pw_main')
-            submitted = st.form_submit_button('เข้าสู่ระบบด้วยแผนก', use_container_width=True)
-        if submitted:
-            if sel_dept:
-                st.session_state.dept = sel_dept
-                st.session_state.is_admin = (admin_pw == ADMIN_PASSWORD and admin_pw.strip() != '')
-                st.session_state.user_role = 'admin' if st.session_state.is_admin else 'manager'
-                st.session_state.user_name = 'Local User'
-                st.session_state.user_email = ''
-                st.session_state.sp_file = None
-                st.session_state.df = EMPTY_DF
-                append_audit_log('login_fallback', f'fallback login to {sel_dept}', sel_dept)
-                st.rerun()
-            else:
-                st.warning('กรุณาเลือกแผนกก่อนเข้าสู่ระบบ')
         st.markdown(textwrap.dedent("""
-        <div class="hint-box">
-            <b>สิทธิ์การใช้งาน</b><br>
-            • Admin: ดูได้ทุกแผนก<br>
-            
-            • Staff: ดูข้อมูลและแก้ไขได้ตามแผนกตัวเอง<br>
-            • Fallback: ใช้งานภายในเมื่อ Microsoft 365 ยังไม่พร้อม
-        </div>
-        </div>
         <div class="login-footer">
             Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
         </div>
