@@ -235,64 +235,70 @@ CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
 OIDC_SCOPES = ["User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
-AUTH_COOKIE_NAME = "sales_auth_user"
 AUTH_COOKIE_DAYS = 7
+AUTH_COOKIE_PREFIX = "salesdash_"
 
 
+def _js_escape(v: str) -> str:
+    return str(v or "").replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
 
-def _set_login_cookie(email: str):
-    safe_email = str(email or "").replace("\\", "\\\\").replace("'", "\\'")
+def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False):
+    email_js = _js_escape(email)
+    name_js = _js_escape(name)
+    role_js = _js_escape(role)
+    dept_js = _js_escape(dept)
+    is_admin_js = "1" if is_admin else "0"
     components.html(
         f"""
         <script>
         (function() {{
             var d = new Date();
             d.setTime(d.getTime() + ({AUTH_COOKIE_DAYS}*24*60*60*1000));
-            document.cookie = "{AUTH_COOKIE_NAME}=" + encodeURIComponent('{safe_email}') + "; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+            var expires = "; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+            document.cookie = "{AUTH_COOKIE_PREFIX}email=" + encodeURIComponent('{email_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}name=" + encodeURIComponent('{name_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}role=" + encodeURIComponent('{role_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}dept=" + encodeURIComponent('{dept_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}is_admin=" + encodeURIComponent('{is_admin_js}') + expires;
         }})();
         </script>
         """,
         height=0,
     )
 
-def _clear_login_cookie():
-    components.html(
-        f"""
-        <script>
-        document.cookie = "{AUTH_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
-        </script>
-        """,
-        height=0,
-    )
-
-def _read_login_cookie():
+def _clear_auth_cookies():
     components.html(
         f"""
         <script>
         (function() {{
-            const match = document.cookie.match(new RegExp('(?:^|; )' + '{AUTH_COOKIE_NAME}' + '=([^;]*)'));
-            const value = match ? decodeURIComponent(match[1]) : "";
-            const url = new URL(window.location.href);
-            if (value && !url.searchParams.get("cookie_email")) {{
-                url.searchParams.set("cookie_email", value);
-                window.history.replaceState({{}}, "", url.toString());
-            }}
+            var names = ["email","name","role","dept","is_admin"];
+            names.forEach(function(n) {{
+                document.cookie = "{AUTH_COOKIE_PREFIX}" + n + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
+            }});
         }})();
         </script>
         """,
         height=0,
     )
 
-def _restore_session_from_cookie():
+def _restore_session_from_cookies():
     try:
-        _read_login_cookie()
-        qp = st.query_params
-        cookie_email = str(qp.get("cookie_email", "") or "").strip().lower()
-        if cookie_email and not st.session_state.get("auth_user"):
-            st.session_state["auth_user"] = {
-                "email": cookie_email,
-                "name": cookie_email.split("@")[0] if "@" in cookie_email else cookie_email or "Microsoft 365 User",
-            }
+        cookies = st.context.cookies
+        email = str(cookies.get(f"{AUTH_COOKIE_PREFIX}email", "") or "").strip().lower()
+        if not email or st.session_state.get("auth_user"):
+            return
+        name = str(cookies.get(f"{AUTH_COOKIE_PREFIX}name", "") or "").strip() or (email.split("@")[0] if "@" in email else email)
+        role = str(cookies.get(f"{AUTH_COOKIE_PREFIX}role", "") or "").strip()
+        dept = str(cookies.get(f"{AUTH_COOKIE_PREFIX}dept", "") or "").strip()
+        is_admin_raw = str(cookies.get(f"{AUTH_COOKIE_PREFIX}is_admin", "") or "").strip()
+        st.session_state["auth_user"] = {"email": email, "name": name}
+        st.session_state["user_email"] = email
+        st.session_state["user_name"] = name
+        if role:
+            st.session_state["user_role"] = role
+        if dept:
+            st.session_state["dept"] = dept
+        st.session_state["is_admin"] = is_admin_raw in ("1", "true", "True", "yes", "on")
     except Exception:
         pass
 
@@ -313,7 +319,7 @@ def _auth_logout():
     for k in ["auth_user", "auth_access_token", "auth_id_token_claims", "oauth_state"]:
         if k in st.session_state:
             del st.session_state[k]
-    _clear_login_cookie()
+    _clear_auth_cookies()
     try:
         st.query_params.clear()
     except Exception:
@@ -371,7 +377,7 @@ def _complete_login_from_query():
         "email": email,
         "name": name,
     }
-    _set_login_cookie(email)
+    _set_auth_cookies(email=email, name=name)
     try:
         st.query_params.clear()
     except Exception:
@@ -947,9 +953,13 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
 # ═══════════════════════════════════════════════════════════════════════════════
 # UI Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
+def _dept_label(dept_code: str | None) -> str:
+    code = str(dept_code or "").strip()
+    return DEPARTMENT_LABELS.get(code, code)
+
 def _role_label():
     role = st.session_state.get("user_role", "")
-    dept = st.session_state.get("dept", "")
+    dept = _dept_label(st.session_state.get("dept", ""))
     if role == "admin":
         return "👑 Admin (ทุกแผนก)"
     elif role == "manager":
@@ -1145,8 +1155,13 @@ if auth_ready and is_logged_in and not _user_email_allowed():
 if auth_ready and is_logged_in:
     st.session_state.user_email = _get_user_email()
     st.session_state.user_name = _get_user_name()
-    user_groups = _get_user_groups()
-    resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+    if st.session_state.get("auth_access_token"):
+        user_groups = _get_user_groups()
+        resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+    else:
+        user_groups = []
+        resolved_role = st.session_state.get("user_role")
+        resolved_dept = st.session_state.get("dept")
 
     if not resolved_role:
         st.title("⛔ ไม่มีสิทธิ์เข้าใช้งาน")
@@ -1160,6 +1175,13 @@ if auth_ready and is_logged_in:
 
     st.session_state.user_role = resolved_role
     st.session_state.is_admin = (resolved_role == "admin")
+    _set_auth_cookies(
+        email=st.session_state.get("user_email", ""),
+        name=st.session_state.get("user_name", ""),
+        role=resolved_role,
+        dept=(resolved_dept or st.session_state.get("dept") or ""),
+        is_admin=(resolved_role == "admin"),
+    )
 
     target_dept = st.session_state.dept
     if resolved_role == "admin":
@@ -1203,17 +1225,18 @@ if auth_ready:
     if st.session_state.get("user_role") == "admin":
         switch = st.sidebar.selectbox("เลือกแผนก", DEPARTMENTS,
                                       index=DEPARTMENTS.index(st.session_state.dept) if st.session_state.dept in DEPARTMENTS else 0,
-                                      key="dept_switch_auth")
+                                      key="dept_switch_auth",
+                                      format_func=lambda x: DEPARTMENT_LABELS.get(x, x))
         if switch != st.session_state.dept:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
-        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.caption("สิทธิ์ Admin: ดูได้ทุกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         if _can_view_dashboard():
             st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Dashboard ได้เฉพาะแผนกตัวเอง")
         else:
@@ -1243,7 +1266,7 @@ else:
             else:
                 st.sidebar.warning("กรุณาเลือกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.info(f"สิทธิ์: {_role_label()}")
         if st.session_state.is_admin:
             switch = st.sidebar.selectbox("สลับแผนก", DEPARTMENTS,
