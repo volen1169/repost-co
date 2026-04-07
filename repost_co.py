@@ -1928,6 +1928,19 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         else:
             map_query = f"{name} Thailand"
 
+        address_full = safe(row.get("Address", ""))
+        region_raw = str(row.get("Region", "") or "").strip()
+        if plus_code != "—" and len(plus_code) >= 6:
+            _ref_lat, _ref_lng = resolve_reference_latlng(
+                "" if prov == "—" else prov,
+                region_raw,
+                "" if address_full == "—" else address_full,
+            )
+            _coords = plus_code_to_coords(plus_code, ref_lat=_ref_lat, ref_lng=_ref_lng)
+        else:
+            _coords = None
+        coords_js = f"[{float(_coords[0]):.7f},{float(_coords[1]):.7f}]" if _coords else "null"
+
         loc_parts_html = []
         for lbl, txt in locations:
             icon = LOC_ICONS.get(lbl, "📌")
@@ -1946,7 +1959,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
             n_js  = name.replace("'", "`").replace('"', "`")
             btn_label = f"🗺️ {lbl}" if lbl else "🗺️ ดูแผนที่"
             btn = (f"<button onclick=\"event.stopPropagation();"
-                   f"showMap('{q_loc}','{n_js}{(' - '+lbl) if lbl else ''}',event)\" "
+                   f"showMap('{q_loc}','{n_js}{(' - '+lbl) if lbl else ''}',event,true,{coords_js})\" "
                    f"style='margin-top:4px;font-size:10px;background:#2563eb;color:#fff;"
                    f"border:none;border-radius:6px;padding:2px 9px;cursor:pointer'>{btn_label}</button>")
             loc_parts_html.append(
@@ -1965,7 +1978,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         if has_loc:
             q_enc   = urllib.parse.quote(map_query)
             name_js = name.replace("'", "`")
-            tr_attr = f"onclick=\"showMap('{q_enc}','{name_js}',event)\" class='clickable'"
+            tr_attr = f"onclick=\"showMap('{q_enc}','{name_js}',event,true,{coords_js})\" class='clickable'"
             co_html = f"<div class='co has-map'>📍 {name}</div>"
         else:
             tr_attr = "class='no-map'"
