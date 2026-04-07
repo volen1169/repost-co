@@ -946,7 +946,10 @@ EMPTY_DF = pd.DataFrame(columns=TEMPLATE_COLS + [
 for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
                ("is_admin", False), ("user_role", "staff"), ("user_email", ""), ("user_name", ""),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
-               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")), ("last_menu_logged", "")]:
+               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+               ("last_menu_logged", ""),
+               ("sp_file_last_modified", ""),
+               ("sp_file_etag", "")]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
@@ -1197,6 +1200,8 @@ if auth_ready and is_logged_in:
         st.session_state.dept = target_dept
         st.session_state.sp_file = None
         st.session_state.df = EMPTY_DF
+        st.session_state.sp_file_last_modified = ""
+        st.session_state.sp_file_etag = ""
         append_audit_log("login_role_resolved", f"m365 role={resolved_role} dept={target_dept}", target_dept or "")
         st.rerun()
 
@@ -1234,6 +1239,8 @@ if auth_ready:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
+            st.session_state.sp_file_last_modified = ""
+            st.session_state.sp_file_etag = ""
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
         st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
@@ -1304,28 +1311,82 @@ if st.session_state.dept:
 
             chosen = st.sidebar.selectbox("ไฟล์ใน SharePoint", fnames, index=default_idx, key="file_sel")
 
+            selected_meta = next((f for f in files if f["name"] == chosen), {})
+            selected_modified = str(selected_meta.get("lastModifiedDateTime", "") or "")
+            selected_etag = str(selected_meta.get("eTag", "") or "")
+
+            prev_file = str(st.session_state.get("sp_file") or "")
+            prev_modified = str(st.session_state.get("sp_file_last_modified") or "")
+            prev_etag = str(st.session_state.get("sp_file_etag") or "")
+
+            file_changed = prev_file != chosen
+            version_changed = (
+                (selected_modified and selected_modified != prev_modified)
+                or (selected_etag and selected_etag != prev_etag)
+            )
+
+            df_current = st.session_state.get("df")
             auto_load_needed = (
-                st.session_state.sp_file != chosen
-                or st.session_state.df is None
-                or st.session_state.df.empty
+                file_changed
+                or version_changed
+                or df_current is None
+                or df_current.empty
             )
 
             if auto_load_needed:
+                reason = []
+                if file_changed:
+                    reason.append("file_changed")
+                if version_changed:
+                    reason.append("version_changed")
+                if df_current is None:
+                    reason.append("df_none")
+                elif getattr(df_current, "empty", False):
+                    reason.append("df_empty")
+
                 st.session_state.sp_file = chosen
                 st.session_state.df = sp_load(st.session_state.dept, chosen)
+                st.session_state.sp_file_last_modified = selected_modified
+                st.session_state.sp_file_etag = selected_etag
                 st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                append_audit_log("load_sharepoint", f"auto-load {chosen}", st.session_state.dept)
+
+                append_audit_log(
+                    "load_sharepoint",
+                    f"auto-load {chosen} | reason={','.join(reason) if reason else 'unknown'} | modified={selected_modified}",
+                    st.session_state.dept
+                )
                 st.rerun()
 
-            if st.sidebar.button("🔄 รีโหลดไฟล์", use_container_width=True):
-                st.session_state.df = sp_load(st.session_state.dept, chosen)
-                st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                append_audit_log("reload_sharepoint", chosen, st.session_state.dept)
-                st.rerun()
+            c1, c2 = st.sidebar.columns(2)
+
+            with c1:
+                if st.button("🔄 รีโหลดไฟล์", use_container_width=True):
+                    st.session_state.df = sp_load(st.session_state.dept, chosen)
+                    st.session_state.sp_file = chosen
+                    st.session_state.sp_file_last_modified = selected_modified
+                    st.session_state.sp_file_etag = selected_etag
+                    st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    append_audit_log("reload_sharepoint", chosen, st.session_state.dept)
+                    st.rerun()
+
+            with c2:
+                if st.button("🧹 Force Refresh", use_container_width=True):
+                    st.session_state.df = EMPTY_DF
+                    st.session_state.sp_file = chosen
+                    st.session_state.sp_file_last_modified = ""
+                    st.session_state.sp_file_etag = ""
+                    st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    append_audit_log("force_refresh_prepare", chosen, st.session_state.dept)
+                    st.rerun()
 
             if st.session_state.sp_file:
-                st.sidebar.caption(f"✅ โหลดแล้วอัตโนมัติ: **{st.session_state.sp_file}**  "
-                                   f"({len(st.session_state.df):,} ราย)")
+                st.sidebar.caption(
+                    f"✅ โหลดแล้ว: **{st.session_state.sp_file}** ({len(st.session_state.df):,} ราย)"
+                )
+                if selected_modified:
+                    st.sidebar.caption(f"🕒 SharePoint modified: {selected_modified}")
+                st.sidebar.caption(f"🕒 App refresh: {st.session_state.last_refresh}")
+
         else:
             st.sidebar.info(f"ไม่พบไฟล์ในโฟลเดอร์ {st.session_state.dept}")
     except Exception as e:
