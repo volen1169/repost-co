@@ -64,11 +64,11 @@ DEPARTMENTS = ["CA", "CO", "PH", "PL", "PO", "SF"]
 
 DEPT_GROUPS = {
     "CA": "OPT Care Solutions",
-    "CO": "OPT Colourant Solutions",
-    "PH": "OPT Personalcare & Homecare",
-    "PL": "OPT Petroleum&Lubricant Solutions",
-    "PO": "OPT Polymer Solutions",
-    "SF": "OPT Surface Solutions",
+    "CO": "OPT Color Solutions",
+    "PH": "OPT Pharma Solutions",
+    "PL": "OPT Plastic Solutions",
+    "PO": "OPT Polyolefin Solutions",
+    "SF": "OPT Specialty Food Solutions",
 }
 
 ADMIN_EMAILS = {
@@ -306,7 +306,7 @@ def _complete_login_from_query():
         pass
 
 def _get_allowed_email_domains() -> list:
-    raw = os.getenv("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th")
+    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
     return [x.strip().lower() for x in str(raw).split(",") if x.strip()]
 
 def _get_user_email() -> str:
@@ -319,9 +319,15 @@ def _user_email_allowed() -> bool:
     email = _get_user_email()
     if not email:
         return False
+
+    admin_emails = {e.strip().lower() for e in ADMIN_EMAILS}
+    if email in admin_emails:
+        return True
+
     domains = _get_allowed_email_domains()
     if not domains:
         return True
+
     return any(email.endswith("@" + d) for d in domains)
 
 def _get_user_groups() -> list[str]:
