@@ -841,7 +841,23 @@ if auth_ready and not is_logged_in:
     c1, c2, c3 = st.columns([1, 1.4, 1])
     with c2:
         login_url = _build_login_url()
-        st.link_button("🔵 Login with Microsoft 365", login_url, use_container_width=True)
+        st.markdown(
+    f"""
+    <a href="{login_url}" target="_self" style="
+        display:block;
+        text-align:center;
+        padding:12px 16px;
+        border-radius:14px;
+        text-decoration:none;
+        font-weight:700;
+        background:#2563eb;
+        color:white;
+    ">
+        🔵 Sign in with Microsoft 365
+    </a>
+    """,
+    unsafe_allow_html=True
+)
     st.caption("สิทธิ์การใช้งาน: Admin ดูได้ทุกแผนก • หัวหน้าแผนกดู Dashboard ได้เฉพาะแผนกตัวเอง • ลูกทีมดูข้อมูลลูกค้าและแก้ไขข้อมูล")
     st.stop()
 
