@@ -90,6 +90,7 @@ ADMIN_EMAILS = {
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
+    "itsuppor1t@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
