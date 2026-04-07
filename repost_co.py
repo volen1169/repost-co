@@ -83,7 +83,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
+    "itsupport1@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
