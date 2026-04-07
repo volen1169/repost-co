@@ -1026,7 +1026,10 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
                ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                ("last_menu_logged", ""),
                ("sp_file_last_modified", ""),
-               ("sp_file_etag", "")]:
+               ("sp_file_etag", ""),
+               ("live_sync_enabled", True),
+               ("live_sync_interval", 60),
+               ("is_dirty", False)]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
@@ -1055,6 +1058,87 @@ def _can_view_dashboard():
 
 def _can_view_customer_data():
     return st.session_state.get("user_role", "") in ["admin", "manager", "staff"]
+
+
+
+def render_live_sync_autorefresh(enabled: bool, interval_sec: int = 60):
+    if not enabled:
+        return
+    interval_ms = max(15, int(interval_sec)) * 1000
+    components.html(f"""
+    <script>
+    (function() {{
+        if (window.__salesdash_live_sync_timer__) return;
+        window.__salesdash_live_sync_timer__ = true;
+        setTimeout(function() {{
+            try {{ window.parent.location.reload(); }} catch (e) {{ window.location.reload(); }}
+        }}, {interval_ms});
+    }})();
+    </script>
+    """, height=0)
+
+
+def grade_weight(g: str) -> int:
+    return {"A": 40, "A-": 34, "B": 26, "B-": 20, "C": 12, "C-": 8, "F": 3}.get(str(g or "").strip(), 0)
+
+
+def build_ai_recommendations(df_in: pd.DataFrame, origin_lat: float, origin_lng: float) -> pd.DataFrame:
+    if df_in is None or df_in.empty:
+        return pd.DataFrame()
+    work = df_in.copy()
+    for c in ["Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg"]:
+        work[c] = pd.to_numeric(work.get(c, 0), errors="coerce").fillna(0)
+    work["Gap_kg"] = (work["Budget_kg"] - work["Actual_kg"]).clip(lower=0)
+    work["Achievement_pct"] = work.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
+    lats, lngs, dists, reasons = [], [], [], []
+    for _, row in work.iterrows():
+        province = str(row.get("Province", "") or "").strip()
+        region = str(row.get("Region", "") or "").strip()
+        address = str(row.get("Address", "") or "").strip()
+        plus_code = str(row.get("Plus_Code", "") or "").strip()
+        ref_lat, ref_lng = resolve_reference_latlng(province, region, address)
+        coords = plus_code_to_coords(plus_code, ref_lat=ref_lat, ref_lng=ref_lng) if plus_code else None
+        if coords:
+            lat, lng = float(coords[0]), float(coords[1])
+            dist = (((lat-origin_lat)**2 + (lng-origin_lng)**2) ** 0.5) * 111
+        else:
+            lat, lng, dist = None, None, 9999
+        lats.append(lat); lngs.append(lng); dists.append(dist)
+        why = []
+        if grade_weight(row.get("Grade", "")) >= 34: why.append("เกรดสูง")
+        if float(row.get("Gap_kg", 0) or 0) > 0: why.append("gap สูง")
+        if float(row.get("Achievement_pct", 0) or 0) < 50: why.append("achievement ต่ำ")
+        if dist < 80: why.append("ใกล้เส้นทาง")
+        reasons.append(", ".join(why[:3]) if why else "โอกาสทั่วไป")
+    work["Latitude"] = lats
+    work["Longitude"] = lngs
+    work["Distance_km"] = dists
+    work["GradeScore"] = work["Grade"].apply(grade_weight)
+    work["GapScore"] = work["Gap_kg"].rank(pct=True).fillna(0) * 30
+    work["SalesScore"] = work["Sales/Year"].rank(pct=True).fillna(0) * 15
+    work["AchPenalty"] = (100 - work["Achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 20
+    work["DistanceScore"] = work["Distance_km"].apply(lambda d: 15 if d <= 40 else 10 if d <= 100 else 6 if d <= 180 else 2 if d < 9999 else 0)
+    work["AI_Score"] = (work["GradeScore"] + work["GapScore"] + work["SalesScore"] + work["AchPenalty"] + work["DistanceScore"]).round(1)
+    work["AI_Reason"] = reasons
+    return work.sort_values(["AI_Score", "Gap_kg", "Sales/Year"], ascending=[False, False, False])
+
+
+def build_google_maps_route_link(origin_label: str, stops: list[tuple[float, float]]) -> str:
+    import urllib.parse
+    origin = urllib.parse.quote(origin_label)
+    if not stops:
+        return f"https://www.google.com/maps/dir/?api=1&origin={origin}"
+    if len(stops) == 1:
+        lat, lng = stops[0]
+        dest = urllib.parse.quote(f"{lat},{lng}")
+        return f"https://www.google.com/maps/dir/?api=1&origin={origin}&destination={dest}&travelmode=driving"
+    dest = urllib.parse.quote(f"{stops[-1][0]},{stops[-1][1]}")
+    waypoints = "|".join(f"{lat},{lng}" for lat, lng in stops[:-1][:8])
+    wp = urllib.parse.quote(waypoints) if waypoints else ""
+    url = f"https://www.google.com/maps/dir/?api=1&origin={origin}&destination={dest}&travelmode=driving"
+    if wp:
+        url += f"&waypoints={wp}"
+    return url
 
 def _can_edit_data():
     return st.session_state.get("user_role", "") in ["admin", "manager", "staff"]
@@ -1471,6 +1555,13 @@ if st.session_state.dept:
         with st.sidebar.expander("🔍 รายละเอียด error (คลิกเพื่อดู)"):
             st.code(traceback.format_exc())
 
+live_sync_enabled = st.sidebar.toggle("🔄 Live Sync SharePoint", value=st.session_state.get("live_sync_enabled", True))
+st.session_state["live_sync_enabled"] = live_sync_enabled
+live_sync_interval = st.sidebar.selectbox("ช่วงเวลา sync (วินาที)", [15, 30, 60, 120], index=[15,30,60,120].index(st.session_state.get("live_sync_interval", 60)) if st.session_state.get("live_sync_interval", 60) in [15,30,60,120] else 2)
+st.session_state["live_sync_interval"] = int(live_sync_interval)
+if live_sync_enabled:
+    st.sidebar.caption(f"Live sync ทุก {live_sync_interval} วินาที เมื่อไม่ได้อยู่ระหว่างแก้ไข")
+
 st.sidebar.download_button(
     "⬇️ ดาวน์โหลด Template (.xlsx)",
     data=make_template(),
@@ -1543,6 +1634,9 @@ if uploaded:
         st.sidebar.success(f"✅ โหลดสำเร็จ ({len(st.session_state.df):,} ราย)")
     except Exception as e:
         st.sidebar.error(f"❌ {e}")
+
+if st.session_state.get("live_sync_enabled") and not st.session_state.get("editing_idx") and menu != "✏️ แก้ไข / เพิ่มข้อมูล":
+    render_live_sync_autorefresh(True, int(st.session_state.get("live_sync_interval", 60)))
 
 df = st.session_state.df
 
@@ -1928,19 +2022,6 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         else:
             map_query = f"{name} Thailand"
 
-        address_full = safe(row.get("Address", ""))
-        region_raw = str(row.get("Region", "") or "").strip()
-        if plus_code != "—" and len(plus_code) >= 6:
-            _ref_lat, _ref_lng = resolve_reference_latlng(
-                "" if prov == "—" else prov,
-                region_raw,
-                "" if address_full == "—" else address_full,
-            )
-            _coords = plus_code_to_coords(plus_code, ref_lat=_ref_lat, ref_lng=_ref_lng)
-        else:
-            _coords = None
-        coords_js = f"[{float(_coords[0]):.7f},{float(_coords[1]):.7f}]" if _coords else "null"
-
         loc_parts_html = []
         for lbl, txt in locations:
             icon = LOC_ICONS.get(lbl, "📌")
@@ -1959,7 +2040,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
             n_js  = name.replace("'", "`").replace('"', "`")
             btn_label = f"🗺️ {lbl}" if lbl else "🗺️ ดูแผนที่"
             btn = (f"<button onclick=\"event.stopPropagation();"
-                   f"showMap('{q_loc}','{n_js}{(' - '+lbl) if lbl else ''}',event,true,{coords_js})\" "
+                   f"showMap('{q_loc}','{n_js}{(' - '+lbl) if lbl else ''}',event,true,{prefetched_js})\" "
                    f"style='margin-top:4px;font-size:10px;background:#2563eb;color:#fff;"
                    f"border:none;border-radius:6px;padding:2px 9px;cursor:pointer'>{btn_label}</button>")
             loc_parts_html.append(
@@ -1978,7 +2059,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         if has_loc:
             q_enc   = urllib.parse.quote(map_query)
             name_js = name.replace("'", "`")
-            tr_attr = f"onclick=\"showMap('{q_enc}','{name_js}',event,true,{coords_js})\" class='clickable'"
+            tr_attr = f"onclick=\"showMap('{q_enc}','{name_js}',event,true,{prefetched_js})\" class='clickable'"
             co_html = f"<div class='co has-map'>📍 {name}</div>"
         else:
             tr_attr = "class='no-map'"
@@ -2023,6 +2104,50 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
     map_points_json, map_points_no_coords_json = build_map_points(
         flt, ref_lat=ORIGIN_LAT_FIXED, ref_lng=ORIGIN_LNG_FIXED
     )
+
+
+    st.subheader("🚀 Sales Planning & AI Recommendations")
+    ai_df = build_ai_recommendations(flt, ORIGIN_LAT_FIXED, ORIGIN_LNG_FIXED)
+    ai_top = ai_df.head(20).copy()
+    plan1, plan2, plan3 = st.columns([1.1, 1.1, 1.8])
+    salesperson_filter = plan1.selectbox("เลือก Salesperson สำหรับแผนเข้า", ["ทั้งหมด"] + sorted([x for x in ai_df.get("Salesperson", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()]))
+    province_filter = plan2.selectbox("เลือกจังหวัดเป้าหมาย", ["ทั้งหมด"] + sorted([x for x in ai_df.get("Province", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()]))
+    visit_day = plan3.date_input("วางแผนเข้าพบวันที่", value=datetime.now().date())
+    ai_view = ai_df.copy()
+    if salesperson_filter != "ทั้งหมด":
+        ai_view = ai_view[ai_view["Salesperson"].astype(str) == salesperson_filter]
+    if province_filter != "ทั้งหมด":
+        ai_view = ai_view[ai_view["Province"].astype(str) == province_filter]
+    suggested_names = ai_view.head(8)["Customer Name"].astype(str).tolist()
+    selected_targets = st.multiselect("ลูกค้าที่แนะนำให้เข้าในทริปนี้", suggested_names, default=suggested_names[:5])
+    plan_df = ai_view[ai_view["Customer Name"].astype(str).isin(selected_targets)].copy()
+    if not plan_df.empty:
+        plan_df = plan_df.sort_values(["Province", "Distance_km", "AI_Score"], ascending=[True, True, False])
+        stops = [(float(r["Latitude"]), float(r["Longitude"])) for _, r in plan_df.iterrows() if pd.notna(r.get("Latitude")) and pd.notna(r.get("Longitude"))]
+        route_link = build_google_maps_route_link(f"{ORIGIN_PLUS_SHORT} Bangkok Thailand", stops)
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        kpi1.metric("ลูกค้าในแผน", f"{len(plan_df):,} ราย")
+        kpi2.metric("ยอดขายรวมเป้าหมาย", f"฿{plan_df['Sales/Year'].sum()/1e6:,.1f}M")
+        kpi3.metric("Gap รวม", f"{int(plan_df['Gap_kg'].sum()):,} kg")
+        kpi4.metric("คะแนน AI เฉลี่ย", f"{plan_df['AI_Score'].mean():.1f}")
+        st.markdown(f"**แผนเข้าเยี่ยมวันที่ {visit_day.strftime('%d/%m/%Y')}** — [เปิดเส้นทางใน Google Maps]({route_link})")
+        show_plan = plan_df[[c for c in ["Customer Name","Salesperson","Province","Grade","AI_Score","AI_Reason","Distance_km","Gap_kg","Achievement_pct"] if c in plan_df.columns]].copy()
+        if "Distance_km" in show_plan.columns:
+            show_plan["Distance_km"] = show_plan["Distance_km"].apply(lambda v: f"{v:,.1f} km" if pd.notna(v) and v < 9999 else "—")
+        if "Gap_kg" in show_plan.columns:
+            show_plan["Gap_kg"] = show_plan["Gap_kg"].apply(lambda v: f"{int(v):,}")
+        if "Achievement_pct" in show_plan.columns:
+            show_plan["Achievement_pct"] = show_plan["Achievement_pct"].apply(lambda v: f"{v:.1f}%")
+        st.dataframe(show_plan, use_container_width=True, hide_index=True)
+    with st.expander("ดู Top AI Recommendations", expanded=False):
+        ai_show = ai_top[[c for c in ["Customer Name","Salesperson","Province","Grade","AI_Score","AI_Reason","Gap_kg","Achievement_pct","Sales/Year"] if c in ai_top.columns]].copy()
+        if "Gap_kg" in ai_show.columns:
+            ai_show["Gap_kg"] = ai_show["Gap_kg"].apply(lambda v: f"{int(v):,}")
+        if "Achievement_pct" in ai_show.columns:
+            ai_show["Achievement_pct"] = ai_show["Achievement_pct"].apply(lambda v: f"{v:.1f}%")
+        if "Sales/Year" in ai_show.columns:
+            ai_show["Sales/Year"] = ai_show["Sales/Year"].apply(lambda v: f"฿{float(v):,.0f}")
+        st.dataframe(ai_show, use_container_width=True, hide_index=True)
 
     map_ui1, map_ui2, map_ui3 = st.columns([1.2, 1.2, 2])
     default_view = map_ui1.selectbox("🗺️ Map View", ["Cluster", "Heatmap", "Hybrid"], index=2)
