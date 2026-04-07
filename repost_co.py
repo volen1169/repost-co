@@ -756,6 +756,75 @@ def append_audit_log(action: str, detail: str = "", dept: str = ""):
     except Exception:
         pass
 
+
+def sp_upload_bytes(content_bytes: bytes, remote_path: str, content_type: str = "application/octet-stream") -> bool:
+    try:
+        h = _gh()
+        h["Content-Type"] = content_type
+        sid, did = _get_site_drive()
+        safe_path = remote_path.strip("/").replace(" ", "%20")
+        url = GRAPH_BASE + "/sites/" + sid + "/drives/" + did + "/root:/" + safe_path + ":/content"
+        r = requests.put(url, headers=h, data=content_bytes, timeout=45)
+        if r.status_code in (200, 201):
+            return True
+        st.error("SharePoint upload failed HTTP " + str(r.status_code) + ": " + r.text[:250])
+        return False
+    except Exception as exc:
+        st.error("sp_upload_bytes error: " + str(exc))
+        return False
+
+def push_audit_log_to_sharepoint() -> bool:
+    log_path = "sales_dashboard_audit_log.csv"
+    if not os.path.exists(log_path):
+        st.warning("ยังไม่มี audit log ในเครื่องให้ส่งขึ้น SharePoint")
+        return False
+    try:
+        with open(log_path, "rb") as f:
+            data = f.read()
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dept = (st.session_state.get("dept") or "ALL").strip()
+        remote_path = f"Logs/{dept}/sales_dashboard_audit_log_{stamp}.csv"
+        ok = sp_upload_bytes(data, remote_path, "text/csv")
+        if ok:
+            append_audit_log("push_audit_log_sharepoint", remote_path, dept)
+            st.success("✅ ส่ง audit log ขึ้น SharePoint สำเร็จ")
+        return ok
+    except Exception as exc:
+        st.error("push_audit_log_to_sharepoint error: " + str(exc))
+        return False
+
+def build_executive_report_df(df_in: pd.DataFrame) -> pd.DataFrame:
+    rep = df_in.copy()
+    rep["Sales/Year"] = pd.to_numeric(rep.get("Sales/Year", 0), errors="coerce").fillna(0)
+    rep["Budget_kg"] = pd.to_numeric(rep.get("Budget_kg", 0), errors="coerce").fillna(0)
+    rep["Actual_kg"] = pd.to_numeric(rep.get("Actual_kg", 0), errors="coerce").fillna(0)
+    rep["LastYear_kg"] = pd.to_numeric(rep.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    rep["gap_kg"] = (rep["Budget_kg"] - rep["Actual_kg"]).clip(lower=0)
+    rep["achievement_pct"] = rep.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
+    rep["yoy_pct"] = rep.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
+    rep["opportunity_score"] = (
+        rep["gap_kg"].rank(pct=True).fillna(0) * 45
+        + (100 - rep["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
+        + rep["Sales/Year"].rank(pct=True).fillna(0) * 20
+    ).round(1)
+    cols = [
+        "Customer Name", "Salesperson", "Industry", "Province", "Region_TH", "Grade",
+        "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "gap_kg",
+        "achievement_pct", "yoy_pct", "opportunity_score", "Plus_Code"
+    ]
+    for c in cols:
+        if c not in rep.columns:
+            rep[c] = ""
+    return rep[cols].sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=[False, False, False])
+
+def to_excel_bytes_multi(sheets: dict[str, pd.DataFrame]) -> bytes:
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        for sheet_name, df_sheet in sheets.items():
+            clean_name = re.sub(r"[:\\/?*\[\]]", "_", str(sheet_name))[:31]
+            df_sheet.to_excel(writer, index=False, sheet_name=clean_name)
+    return buf.getvalue()
+
 def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: float = 100.6262):
     map_points = []
     map_points_no_coords = []
@@ -842,7 +911,7 @@ def render_login_page(auth_ready: bool):
     .block-container {
         padding-top: 0.05rem !important;
         padding-bottom: 0.2rem !important;
-        max-width: 1480px !important;
+        max-width: 1320px !important;
     }
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
@@ -859,16 +928,13 @@ def render_login_page(auth_ready: bool):
     }
     .glass-card {
         position: relative; z-index: 1;
-        background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0.18));
-        border: 1px solid rgba(255,255,255,0.55);
-        box-shadow:
-            0 20px 60px rgba(15, 23, 42, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.55),
-            inset 0 -1px 0 rgba(255,255,255,0.10);
-        border-radius: 32px;
-        backdrop-filter: blur(24px) saturate(140%);
-        -webkit-backdrop-filter: blur(24px) saturate(140%);
-        padding: 30px 32px;
+        background: rgba(255,255,255,0.28);
+        border: 1px solid rgba(255,255,255,0.46);
+        box-shadow: 0 18px 60px rgba(30, 64, 175, 0.16);
+        border-radius: 30px;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        padding: 28px;
     }
     .brand-row { display:flex; gap:18px; align-items:center; margin-bottom: 14px; }
     .brand-logo {
@@ -877,97 +943,35 @@ def render_login_page(auth_ready: bool):
         box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
     }
     .brand-eyebrow { color: #1d4ed8; font-weight: 800; letter-spacing: .12em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #0f172a; font-size: 38px; line-height: 1.02; font-weight: 900; margin: 2px 0 0 0; }
-    .brand-sub { color: #334155; font-size: 16px; line-height: 1.8; margin-top: 10px; }
-    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px; margin-top:24px; }
-    .feature-item { border-radius: 22px; padding: 18px 16px; background: rgba(255,255,255,0.38); border: 1px solid rgba(255,255,255,0.55); min-height:124px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.28); }
-    .feature-icon { font-size:26px; margin-bottom:10px; }
-    .feature-title { color:#0f172a; font-size:17px; font-weight:800; margin-bottom:6px; }
-    .feature-text { color:#475569; font-size:13.5px; line-height:1.65; }
-    .login-right-panel { padding: 8px 6px 0 6px; }
-    .login-panel-title { color:#0f172a; font-size:32px; font-weight:900; margin: 0 0 10px 0; }
-    .login-panel-sub { color:#334155; font-size:15px; line-height:1.7; margin-bottom:20px; max-width: 560px; }
+    .brand-title { color: #0f172a; font-size: 34px; line-height: 1.05; font-weight: 800; margin: 2px 0 0 0; }
+    .brand-sub { color: #334155; font-size: 15px; line-height: 1.75; margin-top: 8px; }
+    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top:22px; }
+    .feature-item { border-radius: 20px; padding: 16px 14px; background: rgba(255,255,255,0.34); border: 1px solid rgba(255,255,255,0.52); min-height:112px; }
+    .feature-icon { font-size:24px; margin-bottom:8px; }
+    .feature-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
+    .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
+    .login-right-panel { padding: 10px 2px 0 2px; }
+    .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
+    .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
     .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
     .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
     .ms-login-link {
-        display:block;
-        text-align:center;
-        padding:16px 20px;
-        border-radius:18px;
-        text-decoration:none !important;
-        font-weight:800;
-        background: linear-gradient(135deg, #2563eb, #3b82f6 55%, #60a5fa 100%);
-        color: #ffffff !important;
-        border: 1px solid rgba(255,255,255,0.28);
-        box-shadow:
-            0 14px 28px rgba(37,99,235,0.24),
-            inset 0 1px 0 rgba(255,255,255,0.28);
-        font-size: 18px;
-        transition: transform .22s ease, box-shadow .22s ease, filter .22s ease, background .22s ease;
-        position: relative;
-        overflow: hidden;
+        display:block; text-align:center; padding:12px 16px; border-radius:14px; text-decoration:none; font-weight:800;
+        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.2);
+        box-shadow: 0 10px 22px rgba(37,99,235,0.18);
     }
-    .ms-login-link::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.22) 45%, transparent 70%);
-        transform: translateX(-120%);
-        transition: transform .6s ease;
-    }
-    .ms-login-link:hover {
-        filter: brightness(1.04);
-        transform: translateY(-2px) scale(1.01);
-        box-shadow:
-            0 20px 34px rgba(37,99,235,0.28),
-            inset 0 1px 0 rgba(255,255,255,0.34);
-    }
-    .ms-login-link:hover::before {
-        transform: translateX(120%);
-    }
-    .ms-login-link:active {
-        transform: translateY(0) scale(0.995);
-    }
-    .ms-login-link:visited,
-    .ms-login-link:focus,
-    .ms-login-link:focus-visible {
-        color: #ffffff !important;
-        text-decoration: none !important;
-        outline: none;
-    }
+    .ms-login-link:hover { filter: brightness(1.03); }
     .loading-overlay {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(219, 234, 254, 0.52);
-        backdrop-filter: blur(14px) saturate(135%);
-        -webkit-backdrop-filter: blur(14px) saturate(135%);
-        z-index: 99999;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        flex-direction:column;
-        gap:14px;
-        transition: opacity .28s ease, visibility .28s ease;
+        display:none; position: fixed; inset:0; background: rgba(219, 234, 254, 0.72); backdrop-filter: blur(8px);
+        z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
     }
-    .loading-overlay.show {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-    }
+    .loading-overlay.show { display:flex; }
     .loading-spinner {
-        width: 56px;
-        height: 56px;
-        border-radius: 999px;
-        border: 5px solid rgba(37,99,235,0.16);
-        border-top-color: #2563eb;
-        animation: spin 0.9s linear infinite;
-        box-shadow: 0 8px 24px rgba(37,99,235,0.16);
+        width:54px; height:54px; border-radius:999px; border:5px solid rgba(37,99,235,0.18); border-top-color:#2563eb;
+        animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color:#1e3a8a; font-weight:800; font-size:16px; letter-spacing: .01em; }
+    .loading-text { color:#1e3a8a; font-weight:800; font-size:15px; }
     @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:28px; } }
     
@@ -1000,7 +1004,7 @@ function showLoginLoading(){
 </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.9, 0.9], gap="large")
+    left, right = st.columns([1.35, 1])
     with left:
         st.markdown(textwrap.dedent("""
         <div class="glass-card">
@@ -1027,13 +1031,13 @@ function showLoginLoading(){
         st.markdown('<div class="login-right-panel">', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อกำหนดสิทธิ์และแผนกอัตโนมัติจากบัญชีองค์กร</div>', unsafe_allow_html=True)
-        st.markdown('### Microsoft 365')
+        st.markdown('#### Microsoft 365')
         if auth_ready:
             login_url = _build_login_url()
             st.markdown(
                 f"""
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    🔐 Sign in with Microsoft 365
+                    🔵 Sign in with Microsoft 365
                 </a>
                 """,
                 unsafe_allow_html=True,
@@ -1108,7 +1112,7 @@ st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
 st.sidebar.title("📂 เมนูหลัก")
 
 role_label = _role_label()
-allowed_menus = ["🏢 ข้อมูลบริษัทลูกค้า", "✏️ แก้ไข / เพิ่มข้อมูล"]
+allowed_menus = ["🏢 ข้อมูลบริษัทลูกค้า", "🧠 Executive Report", "✏️ แก้ไข / เพิ่มข้อมูล"]
 if _can_view_dashboard():
     allowed_menus.insert(0, "📊 Dashboard")
 
@@ -1251,6 +1255,8 @@ with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
         try:
             _audit_df = pd.read_csv("sales_dashboard_audit_log.csv")
             st.write(f"**Audit rows:** {len(_audit_df):,}")
+            if st.button("☁️ Push Audit Log to SharePoint", use_container_width=True):
+                push_audit_log_to_sharepoint()
             st.download_button(
                 "⬇️ Download Audit Log",
                 data=_audit_df.to_csv(index=False, encoding="utf-8-sig"),
@@ -1591,6 +1597,22 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
     sc3.metric("📊 เฉลี่ย/บริษัท",
                f"฿{(flt['Sales/Year'].sum()/len(flt)/1e6 if len(flt) else 0):,.2f} M")
     sc4.metric("📦 Budget รวม (kg/yr)",    f"{int(flt.get('Budget_kg', pd.Series(0)).sum()):,} kg")
+    cex1, cex2 = st.columns([1,1])
+    with cex1:
+        st.download_button(
+            "⬇️ Export Current Customer List (.csv)",
+            data=flt.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"customer_list_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with cex2:
+        if st.button("☁️ Upload Current Customer Export to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/customer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            ok = sp_upload_bytes(flt.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig"), remote_path, "text/csv")
+            if ok:
+                append_audit_log("upload_customer_export", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Customer Export ขึ้น SharePoint สำเร็จ")
     st.markdown("---")
 
     import urllib.parse
@@ -2074,6 +2096,129 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
     c2.download_button("⬇️ Excel", data=to_excel_bytes(export_df),
                        file_name="customers.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+elif menu == "🧠 Executive Report":
+    _scroll_top()
+    st.title("🧠 Executive Report Center")
+
+    if df.empty or "Customer Name" not in df.columns:
+        st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
+        st.stop()
+
+    rep = build_executive_report_df(df)
+    st.caption("สรุปผู้บริหารสำหรับการประชุม, export, และส่งรายงานต่อ")
+
+    k1, k2, k3, k4 = st.columns(4)
+    total_sales = float(pd.to_numeric(rep["Sales/Year"], errors="coerce").fillna(0).sum())
+    total_budget = float(pd.to_numeric(rep["Budget_kg"], errors="coerce").fillna(0).sum())
+    total_actual = float(pd.to_numeric(rep["Actual_kg"], errors="coerce").fillna(0).sum())
+    avg_ach = float(pd.to_numeric(rep["achievement_pct"], errors="coerce").fillna(0).mean()) if len(rep) else 0
+    k1.metric("💰 Total Sales", f"฿{total_sales/1e6:,.1f} M")
+    k2.metric("🎯 Budget รวม", f"{int(total_budget):,} kg")
+    k3.metric("✅ Actual รวม", f"{int(total_actual):,} kg")
+    k4.metric("📈 Avg Achievement", f"{avg_ach:,.1f}%")
+
+    c1, c2 = st.columns([1.1, 1])
+    with c1:
+        top_rep = rep.head(15).copy()
+        st.markdown("**🎯 Top Opportunity Accounts**")
+        show = top_rep[["Customer Name", "Salesperson", "Industry", "Province", "gap_kg", "achievement_pct", "opportunity_score"]].copy()
+        show["gap_kg"] = show["gap_kg"].apply(lambda v: f"{int(v):,} kg")
+        show["achievement_pct"] = show["achievement_pct"].apply(lambda v: f"{v:.1f}%")
+        show["opportunity_score"] = show["opportunity_score"].apply(lambda v: f"{v:.1f}")
+        st.dataframe(show.rename(columns={"gap_kg": "Gap", "achievement_pct": "Achievement", "opportunity_score": "Score"}), use_container_width=True, hide_index=True, height=430)
+
+    with c2:
+        by_sp = rep.groupby("Salesperson", dropna=False).agg(
+            total_sales=("Sales/Year", "sum"),
+            total_gap=("gap_kg", "sum"),
+            avg_achievement=("achievement_pct", "mean"),
+            customers=("Customer Name", "count")
+        ).reset_index().sort_values("total_sales", ascending=False)
+        st.markdown("**👤 Salesperson Performance**")
+        fig_sp = px.bar(
+            by_sp.head(12),
+            x="Salesperson",
+            y="total_sales",
+            text=by_sp.head(12)["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
+            color="avg_achievement",
+            color_continuous_scale="Blues",
+            labels={"total_sales": "Total Sales", "avg_achievement": "Avg Achievement %"}
+        )
+        fig_sp.update_traces(textposition="outside")
+        fig_sp.update_layout(height=430, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig_sp, use_container_width=True)
+
+    r1, r2, r3 = st.columns(3)
+    region_summary = rep.groupby("Region_TH", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        sales=("Sales/Year", "sum"),
+        budget=("Budget_kg", "sum"),
+        actual=("Actual_kg", "sum")
+    ).reset_index().sort_values("sales", ascending=False)
+    industry_summary = rep.groupby("Industry", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        sales=("Sales/Year", "sum")
+    ).reset_index().sort_values("sales", ascending=False)
+    province_summary = rep.groupby("Province", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        sales=("Sales/Year", "sum")
+    ).reset_index().sort_values("sales", ascending=False)
+
+    with r1:
+        st.markdown("**🗺️ Region Summary**")
+        st.dataframe(region_summary, use_container_width=True, hide_index=True, height=280)
+    with r2:
+        st.markdown("**🏭 Industry Summary**")
+        st.dataframe(industry_summary.head(15), use_container_width=True, hide_index=True, height=280)
+    with r3:
+        st.markdown("**📍 Province Summary**")
+        st.dataframe(province_summary.head(15), use_container_width=True, hide_index=True, height=280)
+
+    st.divider()
+    st.subheader("📦 Export + Report")
+    report_xlsx = to_excel_bytes_multi({
+        "Executive Report": rep,
+        "Region Summary": region_summary,
+        "Industry Summary": industry_summary,
+        "Province Summary": province_summary,
+    })
+    cexp1, cexp2, cexp3 = st.columns(3)
+    with cexp1:
+        st.download_button(
+            "⬇️ Download Executive Excel",
+            data=report_xlsx,
+            file_name=f"executive_report_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with cexp2:
+        st.download_button(
+            "⬇️ Download Executive CSV",
+            data=rep.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"executive_report_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with cexp3:
+        if st.button("☁️ Upload Executive Report to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/executive_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_executive_report", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Executive Report ขึ้น SharePoint สำเร็จ")
+
+    st.divider()
+    st.subheader("🧭 Smart Customer Map Export")
+    map_export = rep[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score"]].copy()
+    st.download_button(
+        "⬇️ Download Map Customer List",
+        data=map_export.to_csv(index=False, encoding="utf-8-sig"),
+        file_name=f"customer_map_export_{st.session_state.get('dept') or 'ALL'}.csv",
+        mime="text/csv",
+        use_container_width=False,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 3 – EDIT / ADD
