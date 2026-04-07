@@ -842,7 +842,7 @@ def render_login_page(auth_ready: bool):
     .block-container {
         padding-top: 0.05rem !important;
         padding-bottom: 0.2rem !important;
-        max-width: 1320px !important;
+        max-width: 1480px !important;
     }
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
@@ -865,7 +865,7 @@ def render_login_page(auth_ready: bool):
         border-radius: 30px;
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
-        padding: 28px;
+        padding: 30px 32px;
     }
     .brand-row { display:flex; gap:18px; align-items:center; margin-bottom: 14px; }
     .brand-logo {
@@ -874,22 +874,23 @@ def render_login_page(auth_ready: bool):
         box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
     }
     .brand-eyebrow { color: #1d4ed8; font-weight: 800; letter-spacing: .12em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #0f172a; font-size: 34px; line-height: 1.05; font-weight: 800; margin: 2px 0 0 0; }
-    .brand-sub { color: #334155; font-size: 15px; line-height: 1.75; margin-top: 8px; }
-    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top:22px; }
-    .feature-item { border-radius: 20px; padding: 16px 14px; background: rgba(255,255,255,0.34); border: 1px solid rgba(255,255,255,0.52); min-height:112px; }
-    .feature-icon { font-size:24px; margin-bottom:8px; }
-    .feature-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
-    .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
-    .login-right-panel { padding: 10px 2px 0 2px; }
-    .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
-    .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
+    .brand-title { color: #0f172a; font-size: 38px; line-height: 1.02; font-weight: 900; margin: 2px 0 0 0; }
+    .brand-sub { color: #334155; font-size: 16px; line-height: 1.8; margin-top: 10px; }
+    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px; margin-top:24px; }
+    .feature-item { border-radius: 22px; padding: 18px 16px; background: rgba(255,255,255,0.38); border: 1px solid rgba(255,255,255,0.55); min-height:124px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.28); }
+    .feature-icon { font-size:26px; margin-bottom:10px; }
+    .feature-title { color:#0f172a; font-size:17px; font-weight:800; margin-bottom:6px; }
+    .feature-text { color:#475569; font-size:13.5px; line-height:1.65; }
+    .login-right-panel { padding: 18px 6px 0 6px; }
+    .login-right-panel-card { background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.42); border-radius: 28px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 18px 50px rgba(30,64,175,0.12); padding: 26px 26px 24px 26px; }
+    .login-panel-title { color:#0f172a; font-size:32px; font-weight:900; margin-bottom:10px; }
+    .login-panel-sub { color:#334155; font-size:15px; line-height:1.7; margin-bottom:20px; max-width: 560px; }
     .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
     .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
     .ms-login-link {
-        display:block; text-align:center; padding:12px 16px; border-radius:14px; text-decoration:none; font-weight:800;
-        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.2);
-        box-shadow: 0 10px 22px rgba(37,99,235,0.18);
+        display:block; text-align:center; padding:15px 18px; border-radius:16px; text-decoration:none; font-weight:800;
+        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.18);
+        box-shadow: 0 12px 26px rgba(37,99,235,0.22); font-size: 18px;
     }
     .ms-login-link:hover { filter: brightness(1.03); }
     .loading-overlay {
@@ -935,7 +936,7 @@ function showLoginLoading(){
 </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.35, 1])
+    left, right = st.columns([1.9, 0.9], gap="large")
     with left:
         st.markdown(textwrap.dedent("""
         <div class="glass-card">
@@ -959,10 +960,10 @@ function showLoginLoading(){
         """), unsafe_allow_html=True)
 
     with right:
-        st.markdown('<div class="login-right-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="login-right-panel"><div class="login-right-panel-card">', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อกำหนดสิทธิ์และแผนกอัตโนมัติจากบัญชีองค์กร</div>', unsafe_allow_html=True)
-        st.markdown('#### Microsoft 365')
+        st.markdown('### Microsoft 365')
         if auth_ready:
             login_url = _build_login_url()
             st.markdown(
@@ -978,6 +979,7 @@ function showLoginLoading(){
             st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
             st.caption('ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI')
         st.markdown(textwrap.dedent("""
+        </div></div>
         <div class="login-footer">
             Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
         </div>
