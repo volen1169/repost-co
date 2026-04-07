@@ -279,12 +279,98 @@ AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI
 AUTH_COOKIE_DAYS = 7
 AUTH_COOKIE_PREFIX = "salesdash_"
 LOCAL_USER_EMAIL = "local.user@salesdash.local"
+PERSIST_PARAM_PREFIX = "sd_"
+
+
+def _set_query_params_safe(**kwargs):
+    try:
+        qp = dict(st.query_params)
+        for k, v in kwargs.items():
+            key = f"{PERSIST_PARAM_PREFIX}{k}"
+            if v is None or str(v) == "":
+                qp.pop(key, None)
+            else:
+                qp[key] = str(v)
+        st.query_params.from_dict(qp)
+    except Exception:
+        pass
+
+
+def _clear_persisted_query_params():
+    try:
+        qp = dict(st.query_params)
+        for k in list(qp.keys()):
+            if str(k).startswith(PERSIST_PARAM_PREFIX):
+                qp.pop(k, None)
+        st.query_params.from_dict(qp)
+    except Exception:
+        pass
+
+
+def _set_persisted_login_state(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False, auth_mode: str = ""):
+    _set_query_params_safe(
+        email=(email or ""),
+        name=(name or ""),
+        role=(role or ""),
+        dept=(dept or ""),
+        is_admin=("1" if is_admin else "0"),
+        auth_mode=(auth_mode or ""),
+    )
+
+
+def _set_persisted_ui_state(menu: str = "", sp_file: str = ""):
+    _set_query_params_safe(menu=(menu or ""), sp_file=(sp_file or ""))
+
+
+def _restore_session_from_query_params():
+    try:
+        qp = st.query_params
+
+        if not st.session_state.get("ui_menu"):
+            st.session_state["ui_menu"] = str(qp.get(f"{PERSIST_PARAM_PREFIX}menu", "") or "").strip()
+        if not st.session_state.get("sp_file"):
+            st.session_state["sp_file"] = str(qp.get(f"{PERSIST_PARAM_PREFIX}sp_file", "") or "").strip() or None
+
+        if st.session_state.get("auth_user") or st.session_state.get("dept"):
+            return
+
+        email = str(qp.get(f"{PERSIST_PARAM_PREFIX}email", "") or "").strip().lower()
+        name = str(qp.get(f"{PERSIST_PARAM_PREFIX}name", "") or "").strip()
+        role = str(qp.get(f"{PERSIST_PARAM_PREFIX}role", "") or "").strip()
+        dept = str(qp.get(f"{PERSIST_PARAM_PREFIX}dept", "") or "").strip()
+        is_admin_raw = str(qp.get(f"{PERSIST_PARAM_PREFIX}is_admin", "") or "").strip()
+        auth_mode = str(qp.get(f"{PERSIST_PARAM_PREFIX}auth_mode", "") or "").strip().lower()
+        is_admin = is_admin_raw in ("1", "true", "True", "yes", "on")
+
+        if auth_mode == "local" and dept:
+            st.session_state["auth_user"] = {"email": LOCAL_USER_EMAIL, "name": name or "Local User"}
+            st.session_state["user_email"] = ""
+            st.session_state["user_name"] = name or "Local User"
+            st.session_state["user_role"] = role or ("admin" if is_admin else "manager")
+            st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "local"
+            return
+
+        if auth_mode == "m365" and email:
+            st.session_state["auth_user"] = {"email": email, "name": name or (email.split("@")[0] if "@" in email else email)}
+            st.session_state["user_email"] = email
+            st.session_state["user_name"] = name or (email.split("@")[0] if "@" in email else email)
+            if role:
+                st.session_state["user_role"] = role
+            if dept:
+                st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "m365"
+    except Exception:
+        pass
 
 
 def _js_escape(v: str) -> str:
     return str(v or "").replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
 
 def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False, auth_mode: str = "m365"):
+    _set_persisted_login_state(email=email, name=name, role=role, dept=dept, is_admin=is_admin, auth_mode=auth_mode)
     email_js = _js_escape(email)
     name_js = _js_escape(name)
     role_js = _js_escape(role)
@@ -311,6 +397,7 @@ def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str
     )
 
 def _set_ui_cookies(menu: str = "", sp_file: str = ""):
+    _set_persisted_ui_state(menu=menu, sp_file=sp_file)
     menu_js = _js_escape(menu)
     sp_file_js = _js_escape(sp_file)
     components.html(
@@ -329,6 +416,7 @@ def _set_ui_cookies(menu: str = "", sp_file: str = ""):
     )
 
 def _clear_auth_cookies():
+    _clear_persisted_query_params()
     components.html(
         f"""
         <script>
@@ -468,6 +556,7 @@ def _complete_login_from_query():
         st.query_params.clear()
     except Exception:
         pass
+    _set_persisted_login_state(email=email, name=name, auth_mode="m365")
 
 def _get_allowed_email_domains() -> list:
     raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
@@ -1280,8 +1369,10 @@ function showLoginLoading(){
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
 auth_ready = _auth_configured()
+_restore_session_from_query_params()
 _restore_session_from_cookies()
 _complete_login_from_query()
+_restore_session_from_query_params()
 _restore_session_from_cookies()
 is_logged_in = _session_logged_in()
 
