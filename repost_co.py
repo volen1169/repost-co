@@ -228,7 +228,7 @@ TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI   = os.getenv("REDIRECT_URI", APP_BASE_URL)
+REDIRECT_URI   = os.getenv("REDIRECT_URI", f"{APP_BASE_URL}/oauth2callback")
 TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
@@ -1137,7 +1137,9 @@ function showLoginLoading(){
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
 auth_ready = _auth_configured()
+_restore_session_from_cookies()
 _complete_login_from_query()
+_restore_session_from_cookies()
 is_logged_in = _session_logged_in()
 
 if not st.session_state.dept and not (auth_ready and is_logged_in):
