@@ -1499,9 +1499,19 @@ st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
 st.sidebar.title("📂 เมนูหลัก")
 
 role_label = _role_label()
-allowed_menus = ["🏢 ข้อมูลบริษัทลูกค้า", "🧠 Executive Report", "✏️ แก้ไข / เพิ่มข้อมูล"]
-if _can_view_dashboard():
-    allowed_menus.insert(0, "📊 Dashboard")
+if st.session_state.get("user_role") == "staff":
+    allowed_menus = [
+        "🎯 My Sales Intelligence",
+        "🏢 ข้อมูลบริษัทลูกค้า",
+        "✏️ แก้ไข / เพิ่มข้อมูล",
+    ]
+else:
+    allowed_menus = [
+        "📊 Dashboard",
+        "🎯 My Sales Intelligence",
+        "🏢 ข้อมูลบริษัทลูกค้า",
+        "✏️ แก้ไข / เพิ่มข้อมูล",
+    ]
 
 preferred_menu = st.session_state.get("ui_menu", "")
 if preferred_menu not in allowed_menus:
@@ -2600,9 +2610,9 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-elif menu == "🧠 Executive Report":
+elif menu == "🎯 My Sales Intelligence":
     _scroll_top()
-    st.title("🧠 Executive Report Center")
+    st.title("🎯 My Sales Intelligence")
 
     if df.empty or "Customer Name" not in df.columns:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
@@ -2610,43 +2620,69 @@ elif menu == "🧠 Executive Report":
 
     exec_source_df = filter_df_for_current_user(df)
     if exec_source_df.empty:
-        st.info("ไม่พบข้อมูล Executive Report ที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
         st.stop()
 
     rep = build_executive_report_df(exec_source_df)
-    if st.session_state.get("user_role") == "staff":
-        st.caption("สรุปเฉพาะข้อมูลของ Salesperson ที่ตรงกับบัญชีผู้ใช้ของคุณ")
+    rep["Sales/Year"] = pd.to_numeric(rep.get("Sales/Year", 0), errors="coerce").fillna(0)
+    rep["Budget_kg"] = pd.to_numeric(rep.get("Budget_kg", 0), errors="coerce").fillna(0)
+    rep["Actual_kg"] = pd.to_numeric(rep.get("Actual_kg", 0), errors="coerce").fillna(0)
+    rep["LastYear_kg"] = pd.to_numeric(rep.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    rep["gap_kg"] = pd.to_numeric(rep.get("gap_kg", 0), errors="coerce").fillna(0)
+    rep["achievement_pct"] = pd.to_numeric(rep.get("achievement_pct", 0), errors="coerce").fillna(0)
+    rep["yoy_pct"] = pd.to_numeric(rep.get("yoy_pct", 0), errors="coerce").fillna(0)
+    rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
+
+    role = str(st.session_state.get("user_role") or "").strip().lower()
+    if role == "staff":
+        st.caption("ภาพรวมผลงานและโอกาสขายเฉพาะข้อมูลของคุณ")
+    elif role == "manager":
+        st.caption("ภาพรวมผลงานและโอกาสขายของทีมในแผนกที่คุณดูแล")
     else:
-        st.caption("สรุปผู้บริหารสำหรับการประชุม, export, และส่งรายงานต่อ")
+        st.caption("ภาพรวมผลงานและโอกาสขายของแผนกที่กำลังเปิดอยู่")
 
-    k1, k2, k3, k4 = st.columns(4)
-    total_sales = float(pd.to_numeric(rep["Sales/Year"], errors="coerce").fillna(0).sum())
-    total_budget = float(pd.to_numeric(rep["Budget_kg"], errors="coerce").fillna(0).sum())
-    total_actual = float(pd.to_numeric(rep["Actual_kg"], errors="coerce").fillna(0).sum())
-    avg_ach = float(pd.to_numeric(rep["achievement_pct"], errors="coerce").fillna(0).mean()) if len(rep) else 0
-    k1.metric("💰 Total Sales", f"฿{total_sales/1e6:,.1f} M")
-    k2.metric("🎯 Budget รวม", f"{int(total_budget):,} kg")
-    k3.metric("✅ Actual รวม", f"{int(total_actual):,} kg")
-    k4.metric("📈 Avg Achievement", f"{avg_ach:,.1f}%")
+    # Section 1: My / Team Performance
+    section_1_title = "📊 My Performance" if role == "staff" else "📊 Team Performance"
+    st.subheader(section_1_title)
+    total_sales = float(rep["Sales/Year"].sum())
+    total_budget = float(rep["Budget_kg"].sum())
+    total_actual = float(rep["Actual_kg"].sum())
+    total_gap = float(rep["gap_kg"].sum())
+    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
 
-    c1, c2 = st.columns([1.1, 1])
-    with c1:
-        top_rep = rep.head(15).copy()
-        st.markdown("**🎯 Top Opportunity Accounts**")
-        show = top_rep[["Customer Name", "Salesperson", "Industry", "Province", "gap_kg", "achievement_pct", "opportunity_score"]].copy()
-        show["gap_kg"] = show["gap_kg"].apply(lambda v: f"{int(v):,} kg")
-        show["achievement_pct"] = show["achievement_pct"].apply(lambda v: f"{v:.1f}%")
-        show["opportunity_score"] = show["opportunity_score"].apply(lambda v: f"{v:.1f}")
-        st.dataframe(show.rename(columns={"gap_kg": "Gap", "achievement_pct": "Achievement", "opportunity_score": "Score"}), use_container_width=True, hide_index=True, height=430)
+    k1, k2, k3, k4, k5 = st.columns(5)
+    k1.metric("💰 Sales", f"฿{total_sales/1e6:,.1f} M")
+    k2.metric("🎯 Budget", f"{int(total_budget):,} kg")
+    k3.metric("✅ Actual", f"{int(total_actual):,} kg")
+    k4.metric("📉 Gap", f"{int(total_gap):,} kg")
+    k5.metric("📈 Achievement", f"{avg_ach:,.1f}%")
 
-    with c2:
+    perf_by_month_placeholder = rep[["Customer Name", "Salesperson", "Sales/Year", "Budget_kg", "Actual_kg", "achievement_pct"]].copy()
+    perf_by_month_placeholder = perf_by_month_placeholder.sort_values(["Sales/Year", "Actual_kg"], ascending=False).head(12)
+
+    p1, p2 = st.columns([1.15, 1])
+    with p1:
+        st.markdown("**Performance Snapshot**")
+        perf_view = perf_by_month_placeholder.rename(columns={
+            "Customer Name": "Customer",
+            "Salesperson": "Salesperson",
+            "Sales/Year": "Sales/Year",
+            "Budget_kg": "Budget",
+            "Actual_kg": "Actual",
+            "achievement_pct": "Achievement %",
+        }).copy()
+        perf_view["Sales/Year"] = perf_view["Sales/Year"].apply(lambda v: f"฿{v:,.0f}")
+        perf_view["Budget"] = perf_view["Budget"].apply(lambda v: f"{int(v):,}")
+        perf_view["Actual"] = perf_view["Actual"].apply(lambda v: f"{int(v):,}")
+        perf_view["Achievement %"] = perf_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
+        st.dataframe(perf_view, use_container_width=True, hide_index=True, height=360)
+    with p2:
+        st.markdown("**Achievement by Salesperson**")
         by_sp = rep.groupby("Salesperson", dropna=False).agg(
             total_sales=("Sales/Year", "sum"),
-            total_gap=("gap_kg", "sum"),
             avg_achievement=("achievement_pct", "mean"),
             customers=("Customer Name", "count")
-        ).reset_index().sort_values("total_sales", ascending=False)
-        st.markdown("**👤 Salesperson Performance**")
+        ).reset_index().sort_values(["total_sales", "avg_achievement"], ascending=False)
         fig_sp = px.bar(
             by_sp.head(12),
             x="Salesperson",
@@ -2654,70 +2690,104 @@ elif menu == "🧠 Executive Report":
             text=by_sp.head(12)["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
             color="avg_achievement",
             color_continuous_scale="Blues",
-            labels={"total_sales": "Total Sales", "avg_achievement": "Avg Achievement %"}
+            labels={"total_sales": "Total Sales", "avg_achievement": "Achievement %"}
         )
         fig_sp.update_traces(textposition="outside")
-        fig_sp.update_layout(height=430, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_sp, use_container_width=True)
 
-    r1, r2, r3 = st.columns(3)
-    region_summary = rep.groupby("Region_TH", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        sales=("Sales/Year", "sum"),
-        budget=("Budget_kg", "sum"),
-        actual=("Actual_kg", "sum")
-    ).reset_index().sort_values("sales", ascending=False)
-    industry_summary = rep.groupby("Industry", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        sales=("Sales/Year", "sum")
-    ).reset_index().sort_values("sales", ascending=False)
-    province_summary = rep.groupby("Province", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        sales=("Sales/Year", "sum")
-    ).reset_index().sort_values("sales", ascending=False)
+    st.divider()
 
-    with r1:
-        st.markdown("**🗺️ Region Summary**")
-        st.dataframe(region_summary, use_container_width=True, hide_index=True, height=280)
-    with r2:
-        st.markdown("**🏭 Industry Summary**")
-        st.dataframe(industry_summary.head(15), use_container_width=True, hide_index=True, height=280)
-    with r3:
-        st.markdown("**📍 Province Summary**")
-        st.dataframe(province_summary.head(15), use_container_width=True, hide_index=True, height=280)
+    # Section 2: Opportunities
+    section_2_title = "🔥 My Top Opportunities" if role == "staff" else "🔥 Team Opportunities"
+    st.subheader(section_2_title)
+    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(10).copy()
+    if opp.empty:
+        st.info("ยังไม่มีข้อมูลโอกาสขายให้แสดง")
+    else:
+        opp_view = opp[[
+            "Customer Name", "Salesperson", "Industry", "Province",
+            "Sales/Year", "Budget_kg", "Actual_kg", "gap_kg",
+            "achievement_pct", "opportunity_score"
+        ]].rename(columns={
+            "Customer Name": "Customer",
+            "Salesperson": "Salesperson",
+            "Industry": "Industry",
+            "Province": "Province",
+            "Sales/Year": "Sales/Year",
+            "Budget_kg": "Budget",
+            "Actual_kg": "Actual",
+            "gap_kg": "Gap",
+            "achievement_pct": "Achievement %",
+            "opportunity_score": "Score",
+        }).copy()
+        opp_view["Sales/Year"] = opp_view["Sales/Year"].apply(lambda v: f"฿{v:,.0f}")
+        for col in ["Budget", "Actual", "Gap"]:
+            opp_view[col] = opp_view[col].apply(lambda v: f"{int(v):,}")
+        opp_view["Achievement %"] = opp_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
+        opp_view["Score"] = opp_view["Score"].apply(lambda v: f"{v:.1f}")
+        st.dataframe(opp_view, use_container_width=True, hide_index=True, height=360)
+
+    st.divider()
+
+    # Section 3: At Risk
+    section_3_title = "⚠️ My At-Risk Customers" if role == "staff" else "⚠️ Team At-Risk Customers"
+    st.subheader(section_3_title)
+    risk = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].copy()
+    risk = risk.sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(15)
+    if risk.empty:
+        st.success("ยังไม่พบลูกค้าที่อยู่ในกลุ่มเสี่ยงตามเงื่อนไขปัจจุบัน")
+    else:
+        risk_view = risk[[
+            "Customer Name", "Salesperson", "Province", "Budget_kg",
+            "Actual_kg", "gap_kg", "achievement_pct", "yoy_pct"
+        ]].rename(columns={
+            "Customer Name": "Customer",
+            "Salesperson": "Salesperson",
+            "Province": "Province",
+            "Budget_kg": "Budget",
+            "Actual_kg": "Actual",
+            "gap_kg": "Gap",
+            "achievement_pct": "Achievement %",
+            "yoy_pct": "YoY %",
+        }).copy()
+        for col in ["Budget", "Actual", "Gap"]:
+            risk_view[col] = risk_view[col].apply(lambda v: f"{int(v):,}")
+        risk_view["Achievement %"] = risk_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
+        risk_view["YoY %"] = risk_view["YoY %"].apply(lambda v: f"{v:.1f}%")
+        st.dataframe(risk_view, use_container_width=True, hide_index=True, height=360)
 
     st.divider()
     st.subheader("📦 Export + Report")
     report_xlsx = to_excel_bytes_multi({
-        "Executive Report": rep,
-        "Region Summary": region_summary,
-        "Industry Summary": industry_summary,
-        "Province Summary": province_summary,
+        "Sales Intelligence": rep,
+        "Top Opportunities": opp,
+        "At Risk Customers": risk,
     })
     cexp1, cexp2, cexp3 = st.columns(3)
     with cexp1:
         st.download_button(
-            "⬇️ Download Executive Excel",
+            "⬇️ Download Sales Intelligence Excel",
             data=report_xlsx,
-            file_name=f"executive_report_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            file_name=f"sales_intelligence_{st.session_state.get('dept') or 'ALL'}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
     with cexp2:
         st.download_button(
-            "⬇️ Download Executive CSV",
+            "⬇️ Download Sales Intelligence CSV",
             data=rep.to_csv(index=False, encoding="utf-8-sig"),
-            file_name=f"executive_report_{st.session_state.get('dept') or 'ALL'}.csv",
+            file_name=f"sales_intelligence_{st.session_state.get('dept') or 'ALL'}.csv",
             mime="text/csv",
             use_container_width=True,
         )
     with cexp3:
-        if st.button("☁️ Upload Executive Report to SharePoint", use_container_width=True):
-            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/executive_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        if st.button("☁️ Upload Sales Intelligence to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_intelligence_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             if ok:
-                append_audit_log("upload_executive_report", remote_path, st.session_state.get("dept") or "")
-                st.success("✅ ส่ง Executive Report ขึ้น SharePoint สำเร็จ")
+                append_audit_log("upload_sales_intelligence", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Intelligence ขึ้น SharePoint สำเร็จ")
 
     st.divider()
     st.subheader("🧭 Smart Customer Map Export")
