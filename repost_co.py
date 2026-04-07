@@ -217,11 +217,11 @@ TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
 # ═══════════════════════════════════════════════════════════════════════════════
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
-APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI   = os.getenv("REDIRECT_URI", APP_BASE_URL)
-TENANT_ID      = os.getenv("TENANT_ID", "").strip()
-CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
-CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
+APP_BASE_URL   = _get_secret("APP_BASE_URL", "http://localhost:8501").rstrip("/")
+REDIRECT_URI   = _get_secret("REDIRECT_URI", APP_BASE_URL).strip()
+TENANT_ID      = _get_secret("TENANT_ID").strip()
+CLIENT_ID      = _get_secret("CLIENT_ID").strip()
+CLIENT_SECRET  = _get_secret("CLIENT_SECRET").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
 OIDC_SCOPES    = ["openid", "profile", "email", "User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
