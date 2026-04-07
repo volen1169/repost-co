@@ -224,6 +224,46 @@ GRADE_BASE = {"A": 5_000_000, "A-": 4_000_000, "B": 3_000_000, "B-": 2_500_000,
 TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
                  "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "Plus_Code", "Address"]
 
+PROVINCE_CENTERS = {
+    "กรุงเทพมหานคร": (13.7563, 100.5018), "นนทบุรี": (13.8621, 100.5144),
+    "ปทุมธานี": (14.0208, 100.5250), "พระนครศรีอยุธยา": (14.3532, 100.5689),
+    "สมุทรปราการ": (13.5991, 100.5998), "นครปฐม": (13.8199, 100.0622),
+    "สมุทรสาคร": (13.5475, 100.2744), "ชลบุรี": (13.3611, 100.9847),
+    "ระยอง": (12.6814, 101.2813), "ฉะเชิงเทรา": (13.6904, 101.0779),
+    "ปราจีนบุรี": (14.0509, 101.3704), "นครนายก": (14.2069, 101.2131),
+    "สระแก้ว": (13.8240, 102.0646), "ราชบุรี": (13.5367, 99.8171),
+    "กาญจนบุรี": (14.0228, 99.5328), "เพชรบุรี": (13.1119, 99.9447),
+    "ประจวบคีรีขันธ์": (11.8124, 99.7973), "เชียงใหม่": (18.7883, 98.9853),
+    "เชียงราย": (19.9105, 99.8406), "ขอนแก่น": (16.4322, 102.8236),
+    "นครราชสีมา": (14.9799, 102.0977), "อุดรธานี": (17.4138, 102.7872),
+    "อุบลราชธานี": (15.2448, 104.8473), "สงขลา": (7.1898, 100.5951),
+    "สุราษฎร์ธานี": (9.1382, 99.3215), "นครศรีธรรมราช": (8.4304, 99.9631),
+    "ภูเก็ต": (7.8804, 98.3923), "กระบี่": (8.0863, 98.9063)
+}
+
+REGION_CENTERS = {
+    "Central": (13.7367, 100.5231), "East": (13.1500, 101.1000),
+    "North": (18.7900, 98.9800), "Northeast": (16.4322, 102.8236),
+    "West": (13.7000, 99.5000), "South": (8.4300, 99.9600),
+    "Unknown": (13.6776, 100.6262)
+}
+
+def resolve_reference_latlng(province: str = "", region: str = "", address: str = ""):
+    prov = str(province or "").strip()
+    if prov and prov in PROVINCE_CENTERS:
+        return PROVINCE_CENTERS[prov]
+    reg = str(region or "").strip()
+    if reg and reg in REGION_CENTERS:
+        return REGION_CENTERS[reg]
+    addr = str(address or "").strip()
+    if addr:
+        _sub, _dis, _prov, _reg = parse_address(addr)
+        if _prov and _prov in PROVINCE_CENTERS:
+            return PROVINCE_CENTERS[_prov]
+        if _reg and _reg in REGION_CENTERS:
+            return REGION_CENTERS[_reg]
+    return REGION_CENTERS["Unknown"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
@@ -833,63 +873,6 @@ def plus_code_to_coords(code: str, ref_lat: float = 13.6776, ref_lng: float = 10
     return _olc_recover(s, ref_lat, ref_lng)
 
 
-PROVINCE_CENTERS = {
-    "กรุงเทพมหานคร": (13.7563, 100.5018), "นนทบุรี": (13.8621, 100.5144), "ปทุมธานี": (14.0208, 100.5250),
-    "พระนครศรีอยุธยา": (14.3532, 100.5689), "อ่างทอง": (14.5896, 100.4551), "ลพบุรี": (14.7995, 100.6534),
-    "สิงห์บุรี": (14.8879, 100.4046), "ชัยนาท": (15.1851, 100.1251), "สระบุรี": (14.5289, 100.9101),
-    "สมุทรปราการ": (13.5991, 100.5998), "สุพรรณบุรี": (14.4745, 100.1177), "นครปฐม": (13.8199, 100.0622),
-    "สมุทรสาคร": (13.5475, 100.2744), "สมุทรสงคราม": (13.4098, 100.0023),
-    "เชียงใหม่": (18.7883, 98.9853), "เชียงราย": (19.9105, 99.8406), "ลำปาง": (18.2888, 99.4908),
-    "ลำพูน": (18.5736, 99.0087), "แม่ฮ่องสอน": (19.3010, 97.9685), "น่าน": (18.7756, 100.7730),
-    "พะเยา": (19.1663, 99.9018), "แพร่": (18.1446, 100.1403), "อุตรดิตถ์": (17.6201, 100.0993),
-    "นครสวรรค์": (15.6930, 100.1226), "อุทัยธานี": (15.3794, 100.0246), "กำแพงเพชร": (16.4828, 99.5227),
-    "ตาก": (16.8839, 99.1258), "สุโขทัย": (17.0069, 99.8228), "พิษณุโลก": (16.8211, 100.2659),
-    "พิจิตร": (16.4419, 100.3482), "เพชรบูรณ์": (16.4190, 101.1606),
-    "ขอนแก่น": (16.4322, 102.8236), "นครราชสีมา": (14.9799, 102.0977), "อุดรธานี": (17.4138, 102.7870),
-    "อุบลราชธานี": (15.2447, 104.8472), "ร้อยเอ็ด": (16.0538, 103.6521), "ชัยภูมิ": (15.8068, 102.0315),
-    "เลย": (17.4860, 101.7223), "สกลนคร": (17.1611, 104.1479), "กาฬสินธุ์": (16.4323, 103.5061),
-    "มหาสารคาม": (16.1848, 103.3007), "มุกดาหาร": (16.5424, 104.7205), "หนองคาย": (17.8783, 102.7425),
-    "หนองบัวลำภู": (17.2218, 102.4260), "บึงกาฬ": (18.3609, 103.6464), "นครพนม": (17.3920, 104.7696),
-    "ยโสธร": (15.7941, 104.1452), "อำนาจเจริญ": (15.8657, 104.6258), "ศรีสะเกษ": (15.1186, 104.3220),
-    "สุรินทร์": (14.8829, 103.4937), "บุรีรัมย์": (14.9930, 103.1029),
-    "ชลบุรี": (13.3611, 100.9847), "ระยอง": (12.6814, 101.2813), "ฉะเชิงเทรา": (13.6904, 101.0779),
-    "จันทบุรี": (12.6112, 102.1038), "ตราด": (12.2428, 102.5151), "ปราจีนบุรี": (14.0500, 101.3700),
-    "นครนายก": (14.2069, 101.2131), "สระแก้ว": (13.8141, 102.0725),
-    "ราชบุรี": (13.5367, 99.8171), "กาญจนบุรี": (14.0227, 99.5328), "เพชรบุรี": (13.1119, 99.9447),
-    "ประจวบคีรีขันธ์": (11.8124, 99.7973),
-    "สงขลา": (7.1988, 100.5951), "สุราษฎร์ธานี": (9.1382, 99.3215), "นครศรีธรรมราช": (8.4304, 99.9631),
-    "ภูเก็ต": (7.8804, 98.3923), "กระบี่": (8.0863, 98.9063), "ชุมพร": (10.4930, 99.1800),
-    "ตรัง": (7.5563, 99.6114), "พังงา": (8.4509, 98.5266), "ระนอง": (9.9529, 98.6085),
-    "สตูล": (6.6238, 100.0674), "พัทลุง": (7.6167, 100.0770), "ปัตตานี": (6.8695, 101.2505),
-    "ยะลา": (6.5411, 101.2804), "นราธิวาส": (6.4264, 101.8253),
-}
-
-REGION_CENTERS = {
-    "Central": (14.0, 100.5),
-    "North": (18.2, 99.5),
-    "Northeast": (16.2, 102.6),
-    "East": (13.1, 101.2),
-    "West": (13.8, 99.6),
-    "South": (8.4, 99.5),
-    "Unknown": (13.6776, 100.6262),
-}
-
-
-def get_reference_latlng(province: str = "", address: str = "", region: str = ""):
-    province = str(province or "").strip()
-    if province in PROVINCE_CENTERS:
-        return PROVINCE_CENTERS[province]
-
-    if address:
-        _, _, parsed_province, parsed_region = parse_address(address)
-        parsed_province = str(parsed_province or "").strip()
-        if parsed_province in PROVINCE_CENTERS:
-            return PROVINCE_CENTERS[parsed_province]
-        region = region or parsed_region
-
-    region = str(region or "Unknown").strip() or "Unknown"
-    return REGION_CENTERS.get(region, REGION_CENTERS["Unknown"])
-
 
 def get_secret_or_default(key: str, default_value: str = "") -> str:
     try:
@@ -1003,23 +986,12 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
         region = str(row.get("Region", "") or "").strip()
         address = str(row.get("Address", "") or "").strip()
         plus_code = str(row.get("Plus_Code", "") or "").strip()
-
-        ref_for_code = get_reference_latlng(province=province, address=address, region=region)
-        if plus_code:
-            coords = plus_code_to_coords(plus_code, ref_lat=ref_for_code[0], ref_lng=ref_for_code[1])
+        row_ref_lat, row_ref_lng = resolve_reference_latlng(province, region, address)
+        if plus_code and "+" in plus_code:
+            query = f"{plus_code} {address} {province} Thailand".strip()
         else:
-            coords = None
-
-        query_parts = []
-        if plus_code:
-            query_parts.append(plus_code)
-        if address:
-            query_parts.append(address)
-        elif province:
-            query_parts.append(province)
-        query_parts.append("Thailand")
-        query = " ".join([p for p in query_parts if str(p).strip()]).strip()
-
+            query = f"{name} {address} {province} Thailand".strip()
+        coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng) if plus_code else None
         if coords:
             map_points.append({
                 "name": name,
@@ -1922,6 +1894,12 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         prov      = safe(row.get("Province"))
         plus_code = safe(row.get("Plus_Code", ""))
         reg       = region_badge(row.get("Region_TH", ""))
+        raw_address = str(row.get("Address", "") or "").strip()
+        raw_province = "" if prov == "—" else prov
+        raw_region = str(row.get("Region", "") or "").strip()
+        row_ref_lat, row_ref_lng = resolve_reference_latlng(raw_province, raw_region, raw_address)
+        row_coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng) if plus_code != "—" else None
+        prefetched_js = f"[{float(row_coords[0]):.7f},{float(row_coords[1]):.7f}]" if row_coords else "null"
 
         raw_addr = str(row.get("Address", "")) if pd.notna(row.get("Address", "")) else ""
         locations = []
@@ -1957,13 +1935,13 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
                         f"font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;"
                         f"margin-bottom:3px'>{icon} {lbl}</span><br>") if lbl else ""
             if plus_code != "—" and len(plus_code) >= 6:
-                q_loc = urllib.parse.quote(plus_code)
+                q_loc = urllib.parse.quote(f"{plus_code} {txt} {prov if prov != '—' else ''} Thailand".strip())
             elif lbl and prov != "—":
-                q_loc = urllib.parse.quote(f"{name} {lbl} {prov} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {lbl} {txt} {prov} Thailand")
             elif prov != "—":
-                q_loc = urllib.parse.quote(f"{name} {prov} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {txt} {prov} Thailand")
             else:
-                q_loc = urllib.parse.quote(f"{name} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {txt} Thailand")
 
             n_js  = name.replace("'", "`").replace('"', "`")
             btn_label = f"🗺️ {lbl}" if lbl else "🗺️ ดูแผนที่"
