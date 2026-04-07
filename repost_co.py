@@ -2050,19 +2050,24 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
+    base_df = filter_df_for_current_user(df)
+    if base_df.empty:
+        st.info("ไม่พบข้อมูลลูกค้าที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
     with st.expander("🔍 ตัวกรองข้อมูล", expanded=True):
         f1, f2, f3, f4 = st.columns(4)
-        sel_reg = f1.selectbox("ภูมิภาค", ["ทั้งหมด"] + sorted(df["Region_TH"].dropna().astype(str).unique().tolist()))
-        sel_ind = f2.selectbox("Industry", ["ทั้งหมด"] + sorted(df["Industry"].dropna().astype(str).unique().tolist()))
-        sel_grd = f3.selectbox("Grade", ["ทั้งหมด"] + sorted(df["Grade"].dropna().astype(str).unique().tolist()))
-        province_options = sorted([x for x in df.get("Province", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()])
+        sel_reg = f1.selectbox("ภูมิภาค", ["ทั้งหมด"] + sorted(base_df["Region_TH"].dropna().astype(str).unique().tolist()))
+        sel_ind = f2.selectbox("Industry", ["ทั้งหมด"] + sorted(base_df["Industry"].dropna().astype(str).unique().tolist()))
+        sel_grd = f3.selectbox("Grade", ["ทั้งหมด"] + sorted(base_df["Grade"].dropna().astype(str).unique().tolist()))
+        province_options = sorted([x for x in base_df.get("Province", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()])
         sel_prov = f4.multiselect("Province", province_options)
         f5, f6 = st.columns([2, 2])
-        sp_options = sorted([x for x in df["Salesperson"].dropna().astype(str).unique().tolist() if str(x).strip()])
+        sp_options = sorted([x for x in base_df["Salesperson"].dropna().astype(str).unique().tolist() if str(x).strip()])
         sel_sp_multi = f5.multiselect("Salesperson", sp_options)
         srch = f6.text_input("🔎 ค้นหาชื่อบริษัท / จังหวัด / Plus Code")
 
-    flt = df.copy()
+    flt = base_df.copy()
     if sel_reg != "ทั้งหมด": flt = flt[flt["Region_TH"] == sel_reg]
     if sel_ind != "ทั้งหมด": flt = flt[flt["Industry"] == sel_ind]
     if sel_grd != "ทั้งหมด": flt = flt[flt["Grade"] == sel_grd]
@@ -2737,6 +2742,14 @@ else:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
+    edit_source_df = filter_df_for_current_user(df)
+    if edit_source_df.empty and str(st.session_state.get("user_role") or "").strip().lower() != "staff":
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
+    can_delete_records = str(st.session_state.get("user_role") or "").strip().lower() in ["admin", "manager"]
+    is_staff_user = str(st.session_state.get("user_role") or "").strip().lower() == "staff"
+
     tab_edit, tab_add = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่"])
     GRADE_COLOR = {"A": "#16a34a", "A-": "#22c55e", "B": "#2563eb", "B-": "#60a5fa",
                    "C": "#d97706", "C-": "#f59e0b", "F": "#dc2626"}
@@ -2763,21 +2776,28 @@ else:
             st.success(f"✅ {label} สำเร็จ! (บันทึกใน session — กรุณา Export เพื่อเก็บไฟล์)")
 
     with tab_edit:
-        sc1, sc2, sc3 = st.columns([4, 1.2, 1.2])
+        if can_delete_records:
+            sc1, sc2, sc3 = st.columns([4, 1.2, 1.2])
+        else:
+            sc1, sc2 = st.columns([4, 1.2])
         srch2 = sc1.text_input("", key="edit_srch", placeholder="🔎 ค้นหาชื่อบริษัท…",
                                label_visibility="collapsed")
         if sc2.button("✏️ แก้ไข",
                       type="primary" if st.session_state.edit_mode == "edit" else "secondary",
                       use_container_width=True):
             st.session_state.edit_mode = "edit"; st.session_state.confirm_delete = False; st.rerun()
-        if sc3.button("🗑️ ลบ",
-                      type="primary" if st.session_state.edit_mode == "delete" else "secondary",
-                      use_container_width=True):
-            st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        if can_delete_records:
+            if sc3.button("🗑️ ลบ",
+                          type="primary" if st.session_state.edit_mode == "delete" else "secondary",
+                          use_container_width=True):
+                st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        elif st.session_state.edit_mode == "delete":
+            st.session_state.edit_mode = "edit"
+            st.session_state.confirm_delete = False
 
-        mask   = (df["Customer Name"].str.contains(srch2, case=False, na=False).values
-                  if srch2 else [True] * len(df))
-        subset = df[mask].copy()
+        mask   = (edit_source_df["Customer Name"].str.contains(srch2, case=False, na=False).values
+                  if srch2 else [True] * len(edit_source_df))
+        subset = edit_source_df[mask].copy()
         subset["_orig_idx"] = subset.index
         subset = subset.reset_index(drop=True)
         orig_idx = subset["_orig_idx"].tolist()
@@ -2864,7 +2884,11 @@ else:
                             st.markdown("##### ✏️ แก้ไขข้อมูล")
                             ef1, ef2, ef3 = st.columns([3, 3, 1.5])
                             new_name  = ef1.text_input("🏢 Customer Name", value=name)
-                            new_sp    = ef2.text_input("👤 Salesperson",   value=sp)
+                            if is_staff_user:
+                                new_sp = sp
+                                ef2.text_input("👤 Salesperson", value=sp, disabled=True)
+                            else:
+                                new_sp = ef2.text_input("👤 Salesperson", value=sp)
                             gopts     = ["", "A", "A-", "B", "B-", "C", "C-", "F"]
                             new_grade = ef3.selectbox("⭐ Grade", gopts,
                                                       index=gopts.index(grade) if grade in gopts else 0)
@@ -2969,7 +2993,12 @@ else:
         with st.form("form_add", clear_on_submit=True):
             r1c1, r1c2 = st.columns(2)
             n_name = r1c1.text_input("Customer Name *")
-            n_sp   = r1c2.text_input("Salesperson")
+            if is_staff_user:
+                _staff_sp_default = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
+                n_sp = _staff_sp_default
+                r1c2.text_input("Salesperson", value=_staff_sp_default, disabled=True)
+            else:
+                n_sp = r1c2.text_input("Salesperson")
             r2c1, r2c2, r2c3 = st.columns(3)
             n_ind   = r2c1.text_input("Industry")
             n_grade = r2c2.selectbox("Grade", ["", "A", "A-", "B", "B-", "C", "C-", "F"])
