@@ -64,11 +64,11 @@ DEPARTMENTS = ["CA", "CO", "PH", "PL", "PO", "SF"]
 
 DEPT_GROUPS = {
     "CA": "OPT Care Solutions",
-    "CO": "OPT Color Solutions",
-    "PH": "OPT Pharma Solutions",
-    "PL": "OPT Plastic Solutions",
-    "PO": "OPT Polyolefin Solutions",
-    "SF": "OPT Specialty Food Solutions",
+    "CO": "OPT Colourant Solutions",
+    "PH": "OPT Personalcare & Homecare",
+    "PL": "OPT Petroleum&Lubricant Solutions",
+    "PO": "OPT Polymer Solutions",
+    "SF": "OPT Surface Solutions",
 }
 
 ADMIN_EMAILS = {
@@ -223,7 +223,7 @@ TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
-OIDC_SCOPES    = ["openid", "profile", "email", "User.Read", "GroupMember.Read.All"]
+OIDC_SCOPES = ["User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
 
 def _msal_app():
