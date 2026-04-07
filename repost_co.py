@@ -917,21 +917,21 @@ div[data-testid="column"] {
 }
 
 </style>
-    <div class="loading-overlay" id="login-loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
-    </div>
-    <script>
-    function showLoginLoading(){
-        const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
-        if(el){ el.classList.add('show'); }
-    }
-    </script>
-    <div class="login-shell">
-        <div class="login-orb orb1"></div>
-        <div class="login-orb orb2"></div>
-        <div class="login-orb orb3"></div>
-    </div>
+<div class="loading-overlay" id="login-loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
+</div>
+<script>
+function showLoginLoading(){
+    const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
+    if(el){ el.classList.add('show'); }
+}
+</script>
+<div class="login-shell">
+    <div class="login-orb orb1"></div>
+    <div class="login-orb orb2"></div>
+    <div class="login-orb orb3"></div>
+</div>
     """), unsafe_allow_html=True)
 
     left, right = st.columns([1.35, 1])
