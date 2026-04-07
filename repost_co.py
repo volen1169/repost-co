@@ -217,11 +217,11 @@ TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
 # ═══════════════════════════════════════════════════════════════════════════════
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
-APP_BASE_URL   = _get_secret("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI   = _get_secret("REDIRECT_URI", APP_BASE_URL).strip()
-TENANT_ID      = _get_secret("TENANT_ID").strip()
-CLIENT_ID      = _get_secret("CLIENT_ID").strip()
-CLIENT_SECRET  = _get_secret("CLIENT_SECRET").strip()
+APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
+REDIRECT_URI   = os.getenv("REDIRECT_URI", APP_BASE_URL)
+TENANT_ID      = os.getenv("TENANT_ID", "").strip()
+CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
+CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
 OIDC_SCOPES    = ["openid", "profile", "email", "User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
@@ -825,18 +825,21 @@ def _can_edit_data():
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
 auth_ready = _auth_configured()
+_complete_login_from_query()
+is_logged_in = _session_logged_in()
 
-if auth_ready and not st.user.is_logged_in:
+if auth_ready and not is_logged_in:
     st.title("🔐 Sales Territory Dashboard")
     st.markdown("### เข้าสู่ระบบด้วย Microsoft 365")
     st.info("ระบบนี้กำหนดสิทธิ์ตามบัญชีงานและแผนกของผู้ใช้")
     c1, c2, c3 = st.columns([1, 1.4, 1])
     with c2:
-        st.button("🔵 Login with Microsoft 365", on_click=st.login, use_container_width=True, type="primary")
+        login_url = _build_login_url()
+        st.link_button("🔵 Login with Microsoft 365", login_url, use_container_width=True)
     st.caption("สิทธิ์การใช้งาน: Admin ดูได้ทุกแผนก • หัวหน้าแผนกดู Dashboard ได้เฉพาะแผนกตัวเอง • ลูกทีมดูข้อมูลลูกค้าและแก้ไขข้อมูล")
     st.stop()
 
-if auth_ready and st.user.is_logged_in and not _user_email_allowed():
+if auth_ready and is_logged_in and not _user_email_allowed():
     st.title("⛔ ไม่ได้รับสิทธิ์เข้าใช้งาน")
     st.error("บัญชี Microsoft 365 นี้ไม่มีสิทธิ์เข้าใช้งานระบบ")
     st.caption("อนุญาตเฉพาะโดเมน: " + ", ".join(_get_allowed_email_domains()))
@@ -844,7 +847,7 @@ if auth_ready and st.user.is_logged_in and not _user_email_allowed():
         _auth_logout()
     st.stop()
 
-if auth_ready and st.user.is_logged_in:
+if auth_ready and is_logged_in:
     st.session_state.user_email = _get_user_email()
     st.session_state.user_name = _get_user_name()
     user_groups = _get_user_groups()
