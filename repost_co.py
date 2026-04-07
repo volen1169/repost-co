@@ -278,17 +278,19 @@ OIDC_SCOPES = ["User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
 AUTH_COOKIE_DAYS = 7
 AUTH_COOKIE_PREFIX = "salesdash_"
+LOCAL_USER_EMAIL = "local.user@salesdash.local"
 
 
 def _js_escape(v: str) -> str:
     return str(v or "").replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
 
-def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False):
+def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False, auth_mode: str = "m365"):
     email_js = _js_escape(email)
     name_js = _js_escape(name)
     role_js = _js_escape(role)
     dept_js = _js_escape(dept)
     is_admin_js = "1" if is_admin else "0"
+    auth_mode_js = _js_escape(auth_mode or "m365")
     components.html(
         f"""
         <script>
@@ -301,6 +303,25 @@ def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str
             document.cookie = "{AUTH_COOKIE_PREFIX}role=" + encodeURIComponent('{role_js}') + expires;
             document.cookie = "{AUTH_COOKIE_PREFIX}dept=" + encodeURIComponent('{dept_js}') + expires;
             document.cookie = "{AUTH_COOKIE_PREFIX}is_admin=" + encodeURIComponent('{is_admin_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}auth_mode=" + encodeURIComponent('{auth_mode_js}') + expires;
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+def _set_ui_cookies(menu: str = "", sp_file: str = ""):
+    menu_js = _js_escape(menu)
+    sp_file_js = _js_escape(sp_file)
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            var d = new Date();
+            d.setTime(d.getTime() + ({AUTH_COOKIE_DAYS}*24*60*60*1000));
+            var expires = "; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+            document.cookie = "{AUTH_COOKIE_PREFIX}menu=" + encodeURIComponent('{menu_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}sp_file=" + encodeURIComponent('{sp_file_js}') + expires;
         }})();
         </script>
         """,
@@ -312,7 +333,7 @@ def _clear_auth_cookies():
         f"""
         <script>
         (function() {{
-            var names = ["email","name","role","dept","is_admin"];
+            var names = ["email","name","role","dept","is_admin","auth_mode","menu","sp_file"];
             names.forEach(function(n) {{
                 document.cookie = "{AUTH_COOKIE_PREFIX}" + n + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
             }});
@@ -325,21 +346,44 @@ def _clear_auth_cookies():
 def _restore_session_from_cookies():
     try:
         cookies = st.context.cookies
-        email = str(cookies.get(f"{AUTH_COOKIE_PREFIX}email", "") or "").strip().lower()
-        if not email or st.session_state.get("auth_user"):
+        if not st.session_state.get("ui_menu"):
+            st.session_state["ui_menu"] = str(cookies.get(f"{AUTH_COOKIE_PREFIX}menu", "") or "").strip()
+        if not st.session_state.get("sp_file"):
+            st.session_state["sp_file"] = str(cookies.get(f"{AUTH_COOKIE_PREFIX}sp_file", "") or "").strip() or None
+
+        if st.session_state.get("auth_user") or st.session_state.get("dept"):
             return
-        name = str(cookies.get(f"{AUTH_COOKIE_PREFIX}name", "") or "").strip() or (email.split("@")[0] if "@" in email else email)
+
+        email = str(cookies.get(f"{AUTH_COOKIE_PREFIX}email", "") or "").strip().lower()
+        name = str(cookies.get(f"{AUTH_COOKIE_PREFIX}name", "") or "").strip()
         role = str(cookies.get(f"{AUTH_COOKIE_PREFIX}role", "") or "").strip()
         dept = str(cookies.get(f"{AUTH_COOKIE_PREFIX}dept", "") or "").strip()
         is_admin_raw = str(cookies.get(f"{AUTH_COOKIE_PREFIX}is_admin", "") or "").strip()
-        st.session_state["auth_user"] = {"email": email, "name": name}
+        auth_mode = str(cookies.get(f"{AUTH_COOKIE_PREFIX}auth_mode", "") or "").strip().lower()
+        is_admin = is_admin_raw in ("1", "true", "True", "yes", "on")
+
+        if auth_mode == "local" and dept:
+            st.session_state["auth_user"] = {"email": LOCAL_USER_EMAIL, "name": name or "Local User"}
+            st.session_state["user_email"] = ""
+            st.session_state["user_name"] = name or "Local User"
+            st.session_state["user_role"] = role or ("admin" if is_admin else "manager")
+            st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "local"
+            return
+
+        if not email:
+            return
+
+        st.session_state["auth_user"] = {"email": email, "name": name or (email.split("@")[0] if "@" in email else email)}
         st.session_state["user_email"] = email
-        st.session_state["user_name"] = name
+        st.session_state["user_name"] = name or (email.split("@")[0] if "@" in email else email)
         if role:
             st.session_state["user_role"] = role
         if dept:
             st.session_state["dept"] = dept
-        st.session_state["is_admin"] = is_admin_raw in ("1", "true", "True", "yes", "on")
+        st.session_state["is_admin"] = is_admin
+        st.session_state["auth_mode"] = auth_mode or "m365"
     except Exception:
         pass
 
@@ -418,7 +462,8 @@ def _complete_login_from_query():
         "email": email,
         "name": name,
     }
-    _set_auth_cookies(email=email, name=name)
+    st.session_state["auth_mode"] = "m365"
+    _set_auth_cookies(email=email, name=name, auth_mode="m365")
     try:
         st.query_params.clear()
     except Exception:
@@ -1039,6 +1084,7 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
                ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                ("last_menu_logged", ""),
+               ("ui_menu", ""),
                ("sp_file_last_modified", ""),
                ("sp_file_etag", ""),
                ("sync_mode", "event_based"),
@@ -1280,6 +1326,7 @@ if auth_ready and is_logged_in:
         role=resolved_role,
         dept=(resolved_dept or st.session_state.get("dept") or ""),
         is_admin=(resolved_role == "admin"),
+        auth_mode="m365",
     )
 
     target_dept = st.session_state.dept
@@ -1310,7 +1357,12 @@ allowed_menus = ["🏢 ข้อมูลบริษัทลูกค้า", 
 if _can_view_dashboard():
     allowed_menus.insert(0, "📊 Dashboard")
 
-menu = st.sidebar.radio("", allowed_menus, label_visibility="collapsed")
+preferred_menu = st.session_state.get("ui_menu", "")
+if preferred_menu not in allowed_menus:
+    preferred_menu = allowed_menus[0]
+menu = st.sidebar.radio("", allowed_menus, index=allowed_menus.index(preferred_menu), key="menu_radio", label_visibility="collapsed")
+st.session_state["ui_menu"] = menu
+_set_ui_cookies(menu=menu, sp_file=st.session_state.get("sp_file") or "")
 if st.session_state.get("last_menu_logged") != menu:
     append_audit_log("page_view", menu, st.session_state.get("dept") or "")
     st.session_state["last_menu_logged"] = menu
@@ -1334,6 +1386,15 @@ if auth_ready:
             st.session_state.df = EMPTY_DF
             st.session_state.sp_file_last_modified = ""
             st.session_state.sp_file_etag = ""
+            _set_auth_cookies(
+                email=st.session_state.get("user_email", ""),
+                name=st.session_state.get("user_name", ""),
+                role=st.session_state.get("user_role", ""),
+                dept=switch,
+                is_admin=bool(st.session_state.get("is_admin", False)),
+                auth_mode=st.session_state.get("auth_mode", "m365") or "m365",
+            )
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
         st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
@@ -1362,8 +1423,19 @@ else:
                 st.session_state.user_role = "admin" if st.session_state.is_admin else "manager"
                 st.session_state.user_name = "Local User"
                 st.session_state.user_email = ""
+                st.session_state.auth_user = {"email": LOCAL_USER_EMAIL, "name": "Local User"}
+                st.session_state.auth_mode = "local"
                 st.session_state.sp_file = None
                 st.session_state.df = EMPTY_DF
+                _set_auth_cookies(
+                    email=LOCAL_USER_EMAIL,
+                    name="Local User",
+                    role=st.session_state.user_role,
+                    dept=sel_dept,
+                    is_admin=st.session_state.is_admin,
+                    auth_mode="local",
+                )
+                _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
                 append_audit_log("login", f"login to {sel_dept}", sel_dept)
                 st.rerun()
             else:
@@ -1379,12 +1451,22 @@ else:
                 st.session_state.dept = switch
                 st.session_state.sp_file = None
                 st.session_state.df = EMPTY_DF
+                _set_auth_cookies(
+                    email=LOCAL_USER_EMAIL,
+                    name=st.session_state.get("user_name", "Local User"),
+                    role=st.session_state.get("user_role", "manager"),
+                    dept=switch,
+                    is_admin=bool(st.session_state.get("is_admin", False)),
+                    auth_mode="local",
+                )
+                _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
                 append_audit_log("switch_dept", f"switch to {switch}", switch)
                 st.rerun()
         if st.sidebar.button("🚪 ออกจากระบบ", use_container_width=True):
             append_audit_log("logout", "local logout", st.session_state.get("dept") or "")
             for k in ["dept", "sp_file", "df", "is_admin", "user_role", "user_email", "user_name"]:
                 st.session_state[k] = None if k not in ["df", "user_role", "user_email", "user_name"] else (EMPTY_DF if k=="df" else ("staff" if k=="user_role" else ""))
+            _auth_logout()
             st.rerun()
 
 # ── File Selector + SharePoint Load ──────────────────────────────────────────
@@ -1403,6 +1485,7 @@ if st.session_state.dept:
                 default_idx = fnames.index(st.session_state.sp_file)
 
             chosen = st.sidebar.selectbox("ไฟล์ใน SharePoint", fnames, index=default_idx, key="file_sel")
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=chosen)
 
             selected_meta = next((f for f in files if f["name"] == chosen), {})
             selected_modified = str(selected_meta.get("lastModifiedDateTime", "") or "")
@@ -1552,10 +1635,12 @@ if uploaded:
             raw["Region_TH"] = raw["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ")
             st.session_state.df = raw
             st.session_state.sp_file = uploaded.name
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=uploaded.name)
         else:
             raw_xl = pd.read_excel(uploaded, sheet_name=None)
             st.session_state.df = build_df_from_original(raw_xl)
             st.session_state.sp_file = uploaded.name
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=uploaded.name)
         append_audit_log("manual_upload", uploaded.name, st.session_state.get("dept", ""))
         st.sidebar.success(f"✅ โหลดสำเร็จ ({len(st.session_state.df):,} ราย)")
     except Exception as e:
