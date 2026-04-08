@@ -91,7 +91,6 @@ HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
     "Pornphavit.Bu@optimal.co.th":"CO",
-    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1556,8 +1555,8 @@ def render_login_page(auth_ready: bool):
                 <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
             </div>
             <div class="feature-stack">
-                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-copy"><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมยอดขาย Budget และโอกาสสำคัญในหน้าจอเดียว</div></div></div>
-                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-copy"><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, โอกาสขาย และลูกค้าสำคัญในมุมมองที่เข้าใจง่ายและพร้อมใช้งาน</div></div></div>
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-copy"><div class="feature-title">Team Dashboard</div><div class="feature-text">มุมมองสำหรับหัวหน้า ดูภาพรวมทีม Ranking พื้นที่ และความเสี่ยงของทั้งแผนก</div></div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-copy"><div class="feature-title">Sales Action Center</div><div class="feature-text">มุมมองสำหรับ Sales ใช้ลำดับลูกค้าที่ต้องเข้า Follow-up และวาง action next step ได้ทันที</div></div></div>
                 <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-copy"><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div>
             </div>
         </div>
@@ -1703,14 +1702,14 @@ st.sidebar.title("📂 เมนูหลัก")
 role_label = _role_label()
 if st.session_state.get("user_role") == "staff":
     allowed_menus = [
-        "🎯 My Sales Intelligence",
+        "🎯 Sales Action Center",
         "🏢 ข้อมูลบริษัทลูกค้า",
         "✏️ แก้ไข / เพิ่มข้อมูล",
     ]
 else:
     allowed_menus = [
-        "📊 Dashboard",
-        "🎯 My Sales Intelligence",
+        "📊 Team Dashboard",
+        "🎯 Sales Action Center",
         "🏢 ข้อมูลบริษัทลูกค้า",
         "✏️ แก้ไข / เพิ่มข้อมูล",
     ]
@@ -1760,9 +1759,9 @@ if auth_ready:
     else:
         st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         if _can_view_dashboard():
-            st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Dashboard ได้เฉพาะแผนกตัวเอง")
+            st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Team Dashboard และ Sales Action Center ของแผนกตัวเอง")
         else:
-            st.sidebar.caption("สิทธิ์ลูกทีม: ดูข้อมูลลูกค้าและแก้ไขข้อมูลเฉพาะแผนกตัวเอง")
+            st.sidebar.caption("สิทธิ์ลูกทีม: โฟกัส Sales Action Center และข้อมูลลูกค้าที่รับผิดชอบเท่านั้น")
 
     if st.sidebar.button("🚪 ออกจากระบบ", use_container_width=True):
         append_audit_log("logout", "m365 logout", st.session_state.get("dept") or "")
@@ -2015,240 +2014,243 @@ if not st.session_state.dept:
 # MENU 1 – DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 
-if menu == "📊 Dashboard":
+
+if menu == "📊 Team Dashboard":
     if not _can_view_dashboard():
-        st.error("คุณไม่มีสิทธิ์ดูหน้า Dashboard")
+        st.error("คุณไม่มีสิทธิ์ดูหน้า Team Dashboard")
         st.stop()
     _scroll_top()
-    st.title("📊 Sales Territory Dashboard")
-    st.caption("ภาพรวมยอดขายและลูกค้าแยกตามภูมิภาค")
+    st.title("📊 Team Dashboard")
+    st.caption("มุมมองสำหรับหัวหน้า: ภาพรวมทีม พื้นที่ ความเสี่ยง และโอกาสของทั้งแผนก")
 
     if df.empty or "Customer Name" not in df.columns:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน (ด้านซ้าย)")
         st.stop()
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("👥 ลูกค้าทั้งหมด", f"{len(df):,} ราย")
-    k2.metric("💰 ยอดขายรวม", f"฿{df['Sales/Year'].sum()/1e6:,.1f} M")
-    k3.metric("📈 เฉลี่ย/ลูกค้า", f"฿{df['Sales/Year'].mean()/1e6:,.2f} M")
-    k4.metric("🗺️ ระบุภูมิภาคได้", f"{(df['Region'] != 'Unknown').sum():,} ราย")
-    st.divider()
-
-    rsum = (df.groupby("Region_TH")
-            .agg(count=("Customer Name", "count"), total_sales=("Sales/Year", "sum"))
-            .reset_index().rename(columns={"Region_TH": "region"})
-            .sort_values("total_sales", ascending=False))
-
-    cl, cr = st.columns([1.2, 1])
-    with cl:
-        st.subheader("💹 ยอดขายรวมแยกตามภูมิภาค")
-        f1 = px.bar(rsum, x="region", y="total_sales", color="region",
-                    color_discrete_map=REGION_COLORS,
-                    text=rsum["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                    labels={"total_sales": "ยอดขาย (บาท)", "region": ""})
-        f1.update_traces(textposition="outside")
-        f1.update_layout(showlegend=False, yaxis_tickformat=",.0f",
-                         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                         margin=dict(t=20, b=10), height=380)
-        st.plotly_chart(f1, use_container_width=True)
-    with cr:
-        st.subheader("🗺️ สัดส่วนลูกค้าตามภูมิภาค")
-        f2 = px.pie(rsum, names="region", values="count", color="region",
-                    color_discrete_map=REGION_COLORS, hole=0.45)
-        f2.update_traces(textinfo="label+percent", pull=[0.03] * len(rsum))
-        f2.update_layout(showlegend=False, margin=dict(t=20, b=10),
-                         height=380, paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(f2, use_container_width=True)
-
-    st.subheader("📋 ตารางสรุปแยกภูมิภาค")
-    tbl = rsum.rename(columns={"region": "ภูมิภาค", "count": "จำนวนลูกค้า",
-                                "total_sales": "ยอดขายรวม"}).copy()
-    tbl["ยอดขายรวม"] = tbl["ยอดขายรวม"].apply(lambda v: f"฿{v:,.0f}")
-    st.dataframe(tbl, use_container_width=True, hide_index=True)
-    st.divider()
-
-    st.subheader("🏭 ยอดขายแยกตาม Industry")
-    ind = (df.groupby("Industry").agg(total_sales=("Sales/Year", "sum"))
-           .reset_index().sort_values("total_sales", ascending=True))
-    f3 = px.bar(ind, x="total_sales", y="Industry", orientation="h",
-                text=ind["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                color="total_sales", color_continuous_scale="Blues",
-                labels={"total_sales": "ยอดขาย (บาท)"})
-    f3.update_traces(textposition="outside")
-    f3.update_layout(coloraxis_showscale=False, xaxis_tickformat=",.0f",
-                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                     margin=dict(t=10, b=10), height=300)
-    st.plotly_chart(f3, use_container_width=True)
-
-    st.subheader("👤 ยอดขายแยกตาม Salesperson")
-    sp_g = (df.groupby("Salesperson").agg(total_sales=("Sales/Year", "sum"))
-            .reset_index().sort_values("total_sales", ascending=False))
-    f4 = px.bar(sp_g, x="Salesperson", y="total_sales",
-                text=sp_g["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                color="total_sales", color_continuous_scale="Teal",
-                labels={"total_sales": "ยอดขาย (บาท)", "Salesperson": ""})
-    f4.update_traces(textposition="outside")
-    f4.update_layout(coloraxis_showscale=False, yaxis_tickformat=",.0f",
-                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                     margin=dict(t=10, b=10), height=350)
-    st.plotly_chart(f4, use_container_width=True)
-
-    st.divider()
-    st.subheader("🧠 Executive Insights / Opportunity Ranking")
-    insight_df = df.copy()
-    insight_df["Sales/Year"] = pd.to_numeric(insight_df.get("Sales/Year", 0), errors="coerce").fillna(0)
-    insight_df["Budget_kg"] = pd.to_numeric(insight_df.get("Budget_kg", 0), errors="coerce").fillna(0)
-    insight_df["Actual_kg"] = pd.to_numeric(insight_df.get("Actual_kg", 0), errors="coerce").fillna(0)
-    insight_df["LastYear_kg"] = pd.to_numeric(insight_df.get("LastYear_kg", 0), errors="coerce").fillna(0)
-    insight_df["gap_kg"] = (insight_df["Budget_kg"] - insight_df["Actual_kg"]).clip(lower=0)
-    insight_df["achievement_pct"] = insight_df.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
-    insight_df["yoy_pct"] = insight_df.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
-    insight_df["opportunity_score"] = (
-        insight_df["gap_kg"].rank(pct=True).fillna(0) * 45
-        + (100 - insight_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
-        + insight_df["Sales/Year"].rank(pct=True).fillna(0) * 20
+    team_df = df.copy()
+    team_df["Sales/Year"] = pd.to_numeric(team_df.get("Sales/Year", 0), errors="coerce").fillna(0)
+    team_df["Budget_kg"] = pd.to_numeric(team_df.get("Budget_kg", 0), errors="coerce").fillna(0)
+    team_df["Actual_kg"] = pd.to_numeric(team_df.get("Actual_kg", 0), errors="coerce").fillna(0)
+    team_df["LastYear_kg"] = pd.to_numeric(team_df.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    team_df["gap_kg"] = (team_df["Budget_kg"] - team_df["Actual_kg"]).clip(lower=0)
+    team_df["achievement_pct"] = team_df.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
+    team_df["yoy_pct"] = team_df.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
+    team_df["opportunity_score"] = (
+        team_df["gap_kg"].rank(pct=True).fillna(0) * 45
+        + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
+        + team_df["Sales/Year"].rank(pct=True).fillna(0) * 20
     ).round(1)
 
-    ex1, ex2 = st.columns([1.25, 1])
-    with ex1:
-        top_opp = insight_df.sort_values(["opportunity_score", "gap_kg"], ascending=False).head(12).copy()
-        top_opp_show = top_opp[["Customer Name", "Salesperson", "Industry", "gap_kg", "achievement_pct", "opportunity_score"]].copy()
-        top_opp_show["gap_kg"] = top_opp_show["gap_kg"].apply(lambda v: f"{int(v):,} kg")
-        top_opp_show["achievement_pct"] = top_opp_show["achievement_pct"].apply(lambda v: f"{v:.1f}%")
-        top_opp_show["opportunity_score"] = top_opp_show["opportunity_score"].apply(lambda v: f"{v:.1f}")
-        st.markdown("**🎯 ลูกค้าที่ควรเร่งตามมากที่สุด**")
-        st.dataframe(top_opp_show.rename(columns={
-            "gap_kg": "Gap", "achievement_pct": "Achievement", "opportunity_score": "Score"
-        }), use_container_width=True, hide_index=True, height=360)
-    with ex2:
-        sp_perf = insight_df.groupby("Salesperson").agg(
+    total_sales = float(team_df["Sales/Year"].sum())
+    total_budget = float(team_df["Budget_kg"].sum())
+    total_actual = float(team_df["Actual_kg"].sum())
+    total_gap = float(team_df["gap_kg"].sum())
+    team_ach = (total_actual / total_budget * 100) if total_budget > 0 else 0.0
+    risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
+    active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
+
+    render_info_banner(
+        title="Team Dashboard",
+        subtitle="ใช้สำหรับมองภาพรวมระดับหัวหน้า ดูสถานะทีม ยอดรวม Budget vs Actual พื้นที่ที่ต้องเร่ง และคนที่ต้องโฟกัสเป็นพิเศษ",
+        badge=f"🧑‍💼 Manager Cockpit • {_dept_label(st.session_state.get('dept') or '')}",
+    )
+
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    with k1:
+        render_kpi_card("Customers", f"{len(team_df):,}", "จำนวนลูกค้าทั้งแผนก", "🏢")
+    with k2:
+        render_kpi_card("Team Sales", f"฿{total_sales/1e6:,.1f}M", "ยอดขายรวมทั้งทีม", "💰")
+    with k3:
+        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
+    with k4:
+        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
+    with k5:
+        render_kpi_card("Achievement", f"{team_ach:,.1f}%", "Achievement ระดับทีม", "📈")
+    with k6:
+        render_kpi_card("At-Risk", f"{risk_accounts:,}", "ลูกค้าที่ต้องจับตา", "⚠️")
+
+    render_section_header(
+        title="Executive KPIs",
+        subtitle="ภาพรวมระดับหัวหน้าเพื่อดูว่าทีมกำลังไปถูกทางหรือไม่",
+        icon="🧭",
+        accent="#1d4ed8",
+    )
+
+    e1, e2 = st.columns([1.15, 0.85])
+    with e1:
+        by_sp = team_df.groupby("Salesperson", dropna=False).agg(
+            customers=("Customer Name", "count"),
             total_sales=("Sales/Year", "sum"),
             budget_kg=("Budget_kg", "sum"),
             actual_kg=("Actual_kg", "sum"),
-            customers=("Customer Name", "count"),
-            avg_score=("opportunity_score", "mean"),
+            avg_yoy=("yoy_pct", "mean"),
         ).reset_index()
-        sp_perf["achievement_pct"] = sp_perf.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
-        fig_exec = px.scatter(
-            sp_perf, x="achievement_pct", y="total_sales", size="customers",
-            hover_name="Salesperson", text="Salesperson", color="avg_score",
-            color_continuous_scale="Turbo", labels={"achievement_pct": "Achievement %", "total_sales": "Total Sales"}
+        by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
+        by_sp["gap_kg"] = (by_sp["budget_kg"] - by_sp["actual_kg"]).clip(lower=0)
+        by_sp = by_sp.sort_values(["achievement_pct", "total_sales"], ascending=[False, False])
+
+        sp_show = by_sp.rename(columns={
+            "Salesperson": "Salesperson",
+            "customers": "Customers",
+            "total_sales": "Sales",
+            "budget_kg": "Budget",
+            "actual_kg": "Actual",
+            "achievement_pct": "Achievement %",
+            "gap_kg": "Gap",
+            "avg_yoy": "Avg YoY %",
+        }).copy()
+
+        st.markdown("**Team Performance Table**")
+        st.dataframe(
+            style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual", "Gap"], pct_cols=["Achievement %", "Avg YoY %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=360,
         )
-        fig_exec.update_traces(textposition="top center")
-        fig_exec.update_layout(height=360, margin=dict(t=15, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_exec, use_container_width=True)
+    with e2:
+        st.markdown("**Achievement by Salesperson**")
+        fig_sp = px.bar(
+            by_sp.sort_values("achievement_pct", ascending=False).head(12),
+            x="Salesperson",
+            y="achievement_pct",
+            text=by_sp.sort_values("achievement_pct", ascending=False).head(12)["achievement_pct"].apply(lambda v: f"{v:.1f}%"),
+            color="total_sales",
+            color_continuous_scale="Blues",
+            labels={"achievement_pct": "Achievement %", "total_sales": "Sales"},
+        )
+        fig_sp.update_traces(textposition="outside", marker_line_width=0)
+        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_sp, use_container_width=True)
 
-    if "Budget_kg" in df.columns and df["Budget_kg"].sum() > 0:
-        st.divider()
-        st.subheader("📦 Budget vs Actual & การวิเคราะห์ ปี 2026")
-        bdf = df[df["Budget_kg"] > 0].copy()
-        bdf["Actual_kg"] = pd.to_numeric(bdf.get("Actual_kg", 0), errors="coerce").fillna(0)
+    render_section_header(
+        title="Area & Coverage",
+        subtitle="ดูว่าพื้นที่ไหนมีน้ำหนักยอดขายสูง พื้นที่ไหนยังมี gap และควรเร่งโฟกัส",
+        icon="🗺️",
+        accent="#0f766e",
+    )
 
-        total_budget = int(bdf["Budget_kg"].sum())
-        total_actual = int(bdf["Actual_kg"].sum())
-        gap  = total_actual - total_budget
-        pct  = (total_actual / total_budget * 100) if total_budget > 0 else 0
+    by_region = team_df.groupby("Region_TH", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+    ).reset_index().rename(columns={"Region_TH": "region"}).sort_values("total_sales", ascending=False)
+    by_province = team_df.groupby("Province", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False]).head(12)
 
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("🎯 Budget รวม",    f"{total_budget:,} kg")
-        k2.metric("✅ Actual รวม",    f"{total_actual:,} kg",  delta=f"{gap:+,} kg")
-        k3.metric("📊 Achievement",   f"{pct:.1f}%")
-        k4.metric("📋 บริษัทที่มีข้อมูล", f"{len(bdf):,} ราย")
+    a1, a2 = st.columns([1.05, 0.95])
+    with a1:
+        fig_region = px.bar(
+            by_region,
+            x="region",
+            y="total_sales",
+            color="region",
+            color_discrete_map=REGION_COLORS,
+            text=by_region["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
+            labels={"total_sales": "ยอดขาย (บาท)", "region": ""},
+        )
+        fig_region.update_traces(textposition="outside")
+        fig_region.update_layout(showlegend=False, height=360, yaxis_tickformat=",.0f", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_region, use_container_width=True)
+    with a2:
+        fig_prov = px.bar(
+            by_province.sort_values("gap_kg", ascending=True),
+            x="gap_kg",
+            y="Province",
+            orientation="h",
+            text=by_province.sort_values("gap_kg", ascending=True)["gap_kg"].apply(lambda v: f"{int(v):,}"),
+            color="customers",
+            color_continuous_scale="Teal",
+            labels={"gap_kg": "Gap (kg)", "customers": "Customers", "Province": ""},
+        )
+        fig_prov.update_traces(textposition="outside", marker_line_width=0)
+        fig_prov.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_prov, use_container_width=True)
 
-        gc1, gc2 = st.columns(2)
-        with gc1:
-            st.markdown("**📊 Budget vs Actual แยก Industry**")
-            b_ind = (bdf.groupby("Industry")
-                     .agg(Budget=("Budget_kg", "sum"), Actual=("Actual_kg", "sum"))
-                     .reset_index().sort_values("Budget", ascending=True))
-            fig_ind = go.Figure()
-            fig_ind.add_trace(go.Bar(name="Budget", y=b_ind["Industry"], x=b_ind["Budget"],
-                                     orientation="h", marker_color="#fb923c",
-                                     text=b_ind["Budget"].apply(lambda v: f"{int(v):,}"),
-                                     textposition="outside"))
-            fig_ind.add_trace(go.Bar(name="Actual", y=b_ind["Industry"], x=b_ind["Actual"],
-                                     orientation="h", marker_color="#22c55e",
-                                     text=b_ind["Actual"].apply(lambda v: f"{int(v):,}" if v > 0 else ""),
-                                     textposition="outside"))
-            fig_ind.update_layout(barmode="group", height=280, xaxis_tickformat=",.0f",
-                                  plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                                  margin=dict(t=10, b=10), legend=dict(orientation="h", y=1.1))
-            st.plotly_chart(fig_ind, use_container_width=True)
+    render_section_header(
+        title="Team Risk & Opportunity",
+        subtitle="ช่วยหัวหน้าเห็นว่าควรเข้าไปโค้ชทีม หรือดันลูกค้ารายไหนก่อน",
+        icon="🔥",
+        accent="#f97316",
+    )
 
-        with gc2:
-            st.markdown("**📊 Budget vs Actual แยก Salesperson**")
-            b_sp2 = (bdf.groupby("Salesperson")
-                     .agg(Budget=("Budget_kg", "sum"), Actual=("Actual_kg", "sum"))
-                     .reset_index().sort_values("Budget", ascending=False))
-            fig_sp2 = go.Figure()
-            fig_sp2.add_trace(go.Bar(name="Budget", x=b_sp2["Salesperson"], y=b_sp2["Budget"],
-                                     marker_color="#fb923c",
-                                     text=b_sp2["Budget"].apply(lambda v: f"{int(v):,}"),
-                                     textposition="outside"))
-            fig_sp2.add_trace(go.Bar(name="Actual", x=b_sp2["Salesperson"], y=b_sp2["Actual"],
-                                     marker_color="#22c55e",
-                                     text=b_sp2["Actual"].apply(lambda v: f"{int(v):,}" if v > 0 else ""),
-                                     textposition="outside"))
-            fig_sp2.update_layout(barmode="group", height=280, yaxis_tickformat=",.0f",
-                                  plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                                  margin=dict(t=10, b=10), legend=dict(orientation="h", y=1.1))
-            st.plotly_chart(fig_sp2, use_container_width=True)
+    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12)
+    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(12)
 
-        st.markdown("**🔍 Gap & Achievement Analysis รายบริษัท**")
-        gap_df = bdf[["Customer Name", "Salesperson", "Industry", "Budget_kg", "Actual_kg"]].copy()
-        gap_df["Gap (kg)"]     = gap_df["Actual_kg"] - gap_df["Budget_kg"]
-        gap_df["Achievement%"] = gap_df.apply(
-            lambda r: round(r["Actual_kg"] / r["Budget_kg"] * 100, 1) if r["Budget_kg"] > 0 else 0.0, axis=1)
-        gap_df["สถานะ"] = gap_df.apply(
-            lambda r: "✅ เกิน Budget" if r["Achievement%"] >= 100
-            else ("🟡 ใกล้ถึง" if r["Achievement%"] >= 70 else "🔴 ต้องเร่ง"), axis=1)
+    r1, r2 = st.columns(2)
+    with r1:
+        st.markdown("**Top Opportunities ของทั้งทีม**")
+        opp_show = top_opp[["Customer Name", "Salesperson", "Province", "Sales/Year", "gap_kg", "achievement_pct", "opportunity_score"]].rename(columns={
+            "Customer Name": "Customer",
+            "Sales/Year": "Sales",
+            "gap_kg": "Gap",
+            "achievement_pct": "Achievement %",
+            "opportunity_score": "Score",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(opp_show, numeric_cols=["Sales", "Gap", "Score"], pct_cols=["Achievement %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=360,
+        )
+    with r2:
+        st.markdown("**Accounts ที่เสี่ยงของทั้งทีม**")
+        risk_show = at_risk[["Customer Name", "Salesperson", "Province", "Budget_kg", "Actual_kg", "gap_kg", "achievement_pct", "yoy_pct"]].rename(columns={
+            "Customer Name": "Customer",
+            "Budget_kg": "Budget",
+            "Actual_kg": "Actual",
+            "gap_kg": "Gap",
+            "achievement_pct": "Achievement %",
+            "yoy_pct": "YoY %",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(risk_show, numeric_cols=["Budget", "Actual", "Gap"], pct_cols=["Achievement %", "YoY %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=360,
+        )
 
-        gauge_pct = min(pct, 150)
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=pct,
-            number={"suffix": "%", "font": {"size": 36}},
-            delta={"reference": 100, "suffix": "%"},
-            title={"text": "Achievement vs Budget (รวม)", "font": {"size": 14}},
-            gauge={
-                "axis": {"range": [0, 150], "ticksuffix": "%"},
-                "bar": {"color": "#22c55e" if pct >= 100 else ("#f59e0b" if pct >= 70 else "#ef4444")},
-                "steps": [{"range": [0, 70], "color": "#fee2e2"},
-                           {"range": [70, 100], "color": "#fef9c3"},
-                           {"range": [100, 150], "color": "#dcfce7"}],
-                "threshold": {"line": {"color": "#1e3a5f", "width": 4}, "thickness": 0.75, "value": 100},
-            }
-        ))
-        fig_gauge.update_layout(height=260, margin=dict(t=30, b=10, l=30, r=30),
-                                paper_bgcolor="rgba(0,0,0,0)")
+    render_section_header(
+        title="Manager Exports",
+        subtitle="ส่งออกรายงานสำหรับหัวหน้าเพื่อนำไปประชุม หรือติดตามทีมต่อได้ทันที",
+        icon="📦",
+        accent="#7c3aed",
+    )
 
-        gg1, gg2 = st.columns([1.2, 2])
-        with gg1:
-            st.plotly_chart(fig_gauge, use_container_width=True)
-        with gg2:
-            top_ach = gap_df[gap_df["Actual_kg"] > 0].nlargest(8, "Achievement%")[
-                ["Customer Name", "Budget_kg", "Actual_kg", "Achievement%", "สถานะ"]].copy()
-            top_ach["Budget_kg"]    = top_ach["Budget_kg"].apply(lambda v: f"{int(v):,} kg")
-            top_ach["Actual_kg"]    = top_ach["Actual_kg"].apply(lambda v: f"{int(v):,} kg")
-            top_ach["Achievement%"] = top_ach["Achievement%"].apply(lambda v: f"{v:.1f}%")
-            st.markdown("**🏆 Top Achievement**")
-            st.dataframe(top_ach.rename(columns={"Budget_kg": "Budget", "Actual_kg": "Actual"}),
-                         use_container_width=True, hide_index=True, height=220)
+    manager_report = to_excel_bytes_multi({
+        "Team Dashboard": team_df,
+        "Salesperson Summary": by_sp,
+        "Top Opportunities": top_opp,
+        "At Risk": at_risk,
+        "Province Focus": by_province,
+    })
 
-        tab_all, tab_actual, tab_behind = st.tabs(["📋 ทั้งหมด", "✅ มี Actual", "🔴 ต้องเร่ง"])
-        for tab, mask in [
-            (tab_all,    slice(None)),
-            (tab_actual, gap_df["Actual_kg"] > 0),
-            (tab_behind, gap_df["Achievement%"] < 70),
-        ]:
-            with tab:
-                show = gap_df[mask].sort_values("Achievement%", ascending=False).copy()
-                show["Budget_kg"]    = show["Budget_kg"].apply(lambda v: f"{int(v):,}")
-                show["Actual_kg"]    = show["Actual_kg"].apply(lambda v: f"{int(v):,}")
-                show["Gap (kg)"]     = show["Gap (kg)"].apply(lambda v: f"{int(v):+,}")
-                show["Achievement%"] = show["Achievement%"].apply(lambda v: f"{v:.1f}%")
-                st.dataframe(show.rename(columns={"Budget_kg": "Budget (kg)", "Actual_kg": "Actual (kg)"}),
-                             use_container_width=True, hide_index=True)
+    x1, x2, x3 = st.columns(3)
+    with x1:
+        st.download_button(
+            "⬇️ Download Team Dashboard Excel",
+            data=manager_report,
+            file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with x2:
+        st.download_button(
+            "⬇️ Download Team Summary CSV",
+            data=by_sp.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"team_summary_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with x3:
+        if st.button("☁️ Upload Team Dashboard to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 2 – CUSTOMER TABLE
@@ -2812,17 +2814,18 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-elif menu == "🎯 My Sales Intelligence":
+
+elif menu == "🎯 Sales Action Center":
     _scroll_top()
 
     if df.empty or "Customer Name" not in df.columns:
-        st.title("🎯 My Sales Intelligence")
+        st.title("🎯 Sales Action Center")
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
     exec_source_df = filter_df_for_current_user(df)
     if exec_source_df.empty:
-        st.title("🎯 My Sales Intelligence")
+        st.title("🎯 Sales Action Center")
         st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
         st.stop()
 
@@ -2837,18 +2840,24 @@ elif menu == "🎯 My Sales Intelligence":
     rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
 
     role = str(st.session_state.get("user_role") or "").strip().lower()
-    role_badge = "👨‍💻 Staff View" if role == "staff" else ("🧑‍💼 Manager View" if role == "manager" else "👑 Admin View")
     if role == "staff":
-        hero_subtitle = "โฟกัสเฉพาะข้อมูลลูกค้าและผลงานของคุณ เพื่อช่วยลำดับความสำคัญในการดูแลลูกค้าและโอกาสขาย"
+        title = "My Sales Action Center"
+        subtitle = "มุมมองสำหรับ Sales: ใช้ดู KPI ของตัวเอง จัดลำดับลูกค้าที่ต้องเข้า และวาง next action ให้ชัดในแต่ละวัน"
+        badge = "👨‍💻 Sales Workbench"
     elif role == "manager":
-        hero_subtitle = "เห็นภาพรวมผลงานของทีม พร้อมโอกาสขายและกลุ่มลูกค้าเสี่ยงของแผนกที่คุณดูแล"
+        title = "Sales Action Center"
+        subtitle = "มุมมองเชิง action ของแผนก: ใช้ไล่ดู priority accounts, at-risk accounts และจังหวัดที่ควรลงมือก่อน"
+        badge = "🧑‍💼 Manager Action View"
     else:
-        hero_subtitle = "ภาพรวมเชิงกลยุทธ์ของแผนกที่กำลังเปิดอยู่ พร้อมข้อมูลสำหรับติดตามโอกาสและความเสี่ยง"
+        title = "Sales Action Center"
+        subtitle = "มุมมองเชิง action ของข้อมูลที่กำลังเปิดอยู่ เพื่อไล่ลูกค้าที่ควรทำก่อนและส่งต่อให้ทีมใช้งานได้ทันที"
+        badge = "👑 Admin Action View"
 
     render_info_banner(
-        title="My Sales Intelligence",
-        subtitle=hero_subtitle,
-        badge=f"{role_badge} • {_dept_label(st.session_state.get('dept') or '')}",
+        title=title,
+        subtitle=subtitle,
+        badge=f"{badge} • {_dept_label(st.session_state.get('dept') or '')}",
+        gradient="linear-gradient(135deg, #172554 0%, #2563eb 55%, #38bdf8 100%)",
     )
 
     total_sales = float(rep["Sales/Year"].sum())
@@ -2856,233 +2865,239 @@ elif menu == "🎯 My Sales Intelligence":
     total_actual = float(rep["Actual_kg"].sum())
     total_gap = float(rep["gap_kg"].sum())
     avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
+    priority_accounts = int((rep["opportunity_score"] >= rep["opportunity_score"].quantile(0.8)).sum()) if len(rep) else 0
+    risk_accounts = int(((rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)).sum())
+    province_focus = int(rep["Province"].astype(str).replace("", pd.NA).dropna().nunique())
 
-    k1, k2, k3, k4, k5 = st.columns(5)
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
     with k1:
-        render_kpi_card("Sales", f"฿{total_sales/1e6:,.1f}M", "มูลค่ายอดขายรวมในมุมมองปัจจุบัน", "💰")
+        render_kpi_card("Customers", f"{len(rep):,}", "ลูกค้าที่อยู่ในมุมมองนี้", "🏢")
     with k2:
-        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
+        render_kpi_card("Sales", f"฿{total_sales/1e6:,.1f}M", "ยอดขายของ portfolio ปัจจุบัน", "💰")
     with k3:
-        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
+        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
     with k4:
-        render_kpi_card("Gap", f"{int(total_gap):,}", "ส่วนต่าง Budget ที่ยังเหลือ", "📉")
+        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
     with k5:
-        render_kpi_card("Achievement", f"{avg_ach:,.1f}%", "ค่าเฉลี่ย Achievement", "📈")
-
-    perf_by_month_placeholder = rep[["Customer Name", "Salesperson", "Sales/Year", "Budget_kg", "Actual_kg", "achievement_pct"]].copy()
-    perf_by_month_placeholder = perf_by_month_placeholder.sort_values(["Sales/Year", "Actual_kg"], ascending=False).head(12)
+        render_kpi_card("Priority", f"{priority_accounts:,}", "ลูกค้าที่ควรทำก่อน", "🔥")
+    with k6:
+        render_kpi_card("At-Risk", f"{risk_accounts:,}", "ลูกค้าที่ต้อง follow-up", "⚠️")
 
     render_section_header(
-        title="Performance Overview",
-        subtitle="ภาพรวมผลงานล่าสุดในรูปแบบที่อ่านง่าย ทั้งตารางและกราฟสรุป",
-        icon="📊",
+        title="Priority Accounts",
+        subtitle="ลำดับลูกค้าที่ควรเข้าเยี่ยมหรือ follow-up ก่อน จาก gap, achievement และมูลค่าที่ทำได้",
+        icon="🎯",
         accent="#2563eb",
     )
-    p1, p2 = st.columns([1.1, 1])
-    with p1:
-        st.markdown("**Performance Snapshot**")
-        perf_view = perf_by_month_placeholder.rename(columns={
-            "Customer Name": "Customer",
-            "Salesperson": "Salesperson",
-            "Sales/Year": "Sales/Year",
-            "Budget_kg": "Budget",
-            "Actual_kg": "Actual",
-            "achievement_pct": "Achievement %",
-        }).copy()
-        st.dataframe(
-            style_rich_dataframe(perf_view, numeric_cols=["Sales/Year", "Budget", "Actual"], pct_cols=["Achievement %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=388,
-        )
-    with p2:
-        st.markdown("**Achievement by Salesperson**")
-        by_sp = rep.groupby("Salesperson", dropna=False).agg(
-            total_sales=("Sales/Year", "sum"),
-            avg_achievement=("achievement_pct", "mean"),
-            customers=("Customer Name", "count")
-        ).reset_index().sort_values(["total_sales", "avg_achievement"], ascending=False)
-        fig_sp = px.bar(
-            by_sp.head(12),
-            x="Salesperson",
-            y="total_sales",
-            text=by_sp.head(12)["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-            color="avg_achievement",
-            color_continuous_scale="Blues",
-            labels={"total_sales": "Total Sales", "avg_achievement": "Achievement %"}
-        )
-        fig_sp.update_traces(textposition="outside", marker_line_width=0)
-        fig_sp.update_layout(
-            height=388,
-            coloraxis_showscale=False,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=18, b=10),
-            xaxis_title="",
-            yaxis_title="Sales",
-        )
-        st.plotly_chart(fig_sp, use_container_width=True)
 
-    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(10).copy()
-    render_section_header(
-        title="Top Opportunities",
-        subtitle="ลูกค้าที่มีโอกาสต่อยอดมากที่สุดจาก gap, achievement และมูลค่ายอดขาย",
-        icon="🔥",
-        accent="#f97316",
-    )
-    if opp.empty:
-        st.info("ยังไม่มีข้อมูลโอกาสขายให้แสดง")
-    else:
+    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12).copy()
+    pc1, pc2 = st.columns([1.15, 0.85])
+    with pc1:
         opp_view = opp[[
             "Customer Name", "Salesperson", "Industry", "Province",
             "Sales/Year", "Budget_kg", "Actual_kg", "gap_kg",
             "achievement_pct", "opportunity_score"
         ]].rename(columns={
             "Customer Name": "Customer",
-            "Salesperson": "Salesperson",
-            "Industry": "Industry",
-            "Province": "Province",
-            "Sales/Year": "Sales/Year",
+            "Sales/Year": "Sales",
             "Budget_kg": "Budget",
             "Actual_kg": "Actual",
             "gap_kg": "Gap",
             "achievement_pct": "Achievement %",
             "opportunity_score": "Score",
         }).copy()
+        st.dataframe(
+            style_rich_dataframe(opp_view, numeric_cols=["Sales", "Budget", "Actual", "Gap", "Score"], pct_cols=["Achievement %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=388,
+        )
+    with pc2:
+        opp_chart = opp.head(8).sort_values("opportunity_score", ascending=True)
+        fig_opp = px.bar(
+            opp_chart,
+            x="opportunity_score",
+            y="Customer Name",
+            orientation="h",
+            text=opp_chart["opportunity_score"].apply(lambda v: f"{v:.1f}"),
+            color="gap_kg",
+            color_continuous_scale="Sunsetdark",
+            labels={"Customer Name": "", "opportunity_score": "Score", "gap_kg": "Gap"},
+        )
+        fig_opp.update_traces(textposition="outside", marker_line_width=0)
+        fig_opp.update_layout(height=388, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_opp, use_container_width=True)
 
-        oc1, oc2 = st.columns([1.15, 0.85])
-        with oc1:
-            st.dataframe(
-                style_rich_dataframe(opp_view, numeric_cols=["Sales/Year", "Budget", "Actual", "Gap", "Score"], pct_cols=["Achievement %"]),
-                use_container_width=True,
-                hide_index=True,
-                height=380,
-            )
-        with oc2:
-            opp_chart = opp.head(8).sort_values("opportunity_score", ascending=True)
-            fig_opp = px.bar(
-                opp_chart,
-                x="opportunity_score",
-                y="Customer Name",
-                orientation="h",
-                text=opp_chart["opportunity_score"].apply(lambda v: f"{v:.1f}"),
-                color="gap_kg",
-                color_continuous_scale="Sunsetdark",
-                labels={"Customer Name": "", "opportunity_score": "Opportunity Score", "gap_kg": "Gap"},
-            )
-            fig_opp.update_traces(textposition="outside", marker_line_width=0)
-            fig_opp.update_layout(
-                height=380,
-                coloraxis_showscale=False,
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=10, r=10, t=18, b=10),
-            )
-            st.plotly_chart(fig_opp, use_container_width=True)
-
-    risk = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].copy()
-    risk = risk.sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(15)
     render_section_header(
-        title="At-Risk Customers",
-        subtitle="ลูกค้าที่ควรติดตามใกล้ชิดจาก achievement ต่ำ หรือ YoY ลดลง",
-        icon="⚠️",
-        accent="#dc2626",
+        title="Visit & Area Focus",
+        subtitle="ดูว่าควรลงพื้นที่จังหวัดไหนก่อน และลูกค้ากลุ่มไหนรวมกันได้สำหรับการวางแผน route",
+        icon="🧭",
+        accent="#0f766e",
     )
-    if risk.empty:
-        st.success("ยังไม่พบลูกค้าที่อยู่ในกลุ่มเสี่ยงตามเงื่อนไขปัจจุบัน")
-    else:
-        risk_view = risk[[
-            "Customer Name", "Salesperson", "Province", "Budget_kg",
-            "Actual_kg", "gap_kg", "achievement_pct", "yoy_pct"
+
+    province_focus_df = rep.groupby("Province", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_score=("opportunity_score", "mean"),
+    ).reset_index().sort_values(["gap_kg", "avg_score"], ascending=[False, False]).head(12)
+
+    salesperson_focus_df = rep.groupby("Salesperson", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
+    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
+
+    vf1, vf2 = st.columns([1, 1])
+    with vf1:
+        fig_prov = px.bar(
+            province_focus_df.sort_values("gap_kg", ascending=True),
+            x="gap_kg",
+            y="Province",
+            orientation="h",
+            text=province_focus_df.sort_values("gap_kg", ascending=True)["gap_kg"].apply(lambda v: f"{int(v):,}"),
+            color="customers",
+            color_continuous_scale="Teal",
+            labels={"gap_kg": "Gap (kg)", "customers": "Customers", "Province": ""},
+        )
+        fig_prov.update_traces(textposition="outside", marker_line_width=0)
+        fig_prov.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_prov, use_container_width=True)
+    with vf2:
+        sp_focus_chart = salesperson_focus_df.head(10).sort_values("gap_kg", ascending=True)
+        fig_sp = px.bar(
+            sp_focus_chart,
+            x="gap_kg",
+            y="Salesperson",
+            orientation="h",
+            text=sp_focus_chart["gap_kg"].apply(lambda v: f"{int(v):,}"),
+            color="avg_achievement",
+            color_continuous_scale="Blues",
+            labels={"gap_kg": "Gap (kg)", "avg_achievement": "Achievement %", "Salesperson": ""},
+        )
+        fig_sp.update_traces(textposition="outside", marker_line_width=0)
+        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_sp, use_container_width=True)
+
+    render_section_header(
+        title="Action Queue",
+        subtitle="แปลงข้อมูลให้เป็นสิ่งที่ควรทำต่อทันที เช่น follow-up, recover หรือ close gap",
+        icon="📌",
+        accent="#f97316",
+    )
+
+    action_df = rep.copy()
+    action_df["priority_bucket"] = action_df["opportunity_score"].apply(lambda v: "🔥 Close Now" if v >= 80 else ("🟠 Push This Week" if v >= 60 else "🟡 Monitor"))
+    action_df["risk_flag"] = action_df.apply(lambda r: "⚠️ Recover" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ Healthy", axis=1)
+    action_df["next_action"] = action_df.apply(
+        lambda r: "นัดเข้าพบ / ปิด gap" if r["opportunity_score"] >= 80
+        else ("โทร follow-up และอัปเดตแผน" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0)
+              else "รักษาความสัมพันธ์และตรวจโอกาสเพิ่ม"),
+        axis=1
+    )
+    action_queue = action_df.sort_values(["opportunity_score", "gap_kg"], ascending=False).head(15)
+
+    aq1, aq2 = st.columns([1.15, 0.85])
+    with aq1:
+        queue_view = action_queue[[
+            "Customer Name", "Salesperson", "Province", "gap_kg",
+            "achievement_pct", "yoy_pct", "priority_bucket", "risk_flag", "next_action"
         ]].rename(columns={
             "Customer Name": "Customer",
-            "Salesperson": "Salesperson",
-            "Province": "Province",
-            "Budget_kg": "Budget",
-            "Actual_kg": "Actual",
             "gap_kg": "Gap",
             "achievement_pct": "Achievement %",
             "yoy_pct": "YoY %",
+            "priority_bucket": "Priority",
+            "risk_flag": "Risk",
+            "next_action": "Next Action",
         }).copy()
+        st.dataframe(
+            style_rich_dataframe(queue_view, numeric_cols=["Gap"], pct_cols=["Achievement %", "YoY %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=400,
+        )
+    with aq2:
+        bucket_summary = action_df.groupby("priority_bucket", dropna=False).agg(
+            customers=("Customer Name", "count"),
+            gap_kg=("gap_kg", "sum"),
+        ).reset_index().sort_values("customers", ascending=False)
+        fig_bucket = px.pie(
+            bucket_summary,
+            names="priority_bucket",
+            values="customers",
+            hole=0.45,
+        )
+        fig_bucket.update_traces(textinfo="label+percent")
+        fig_bucket.update_layout(height=240, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_bucket, use_container_width=True)
 
-        rc1, rc2 = st.columns([1.15, 0.85])
-        with rc1:
-            st.dataframe(
-                style_rich_dataframe(risk_view, numeric_cols=["Budget", "Actual", "Gap"], pct_cols=["Achievement %", "YoY %"]),
-                use_container_width=True,
-                hide_index=True,
-                height=380,
-            )
-        with rc2:
-            risk_chart = risk.head(10).sort_values("achievement_pct", ascending=True)
-            fig_risk = px.scatter(
-                risk_chart,
-                x="achievement_pct",
-                y="yoy_pct",
-                size="gap_kg",
-                hover_name="Customer Name",
-                color="gap_kg",
-                color_continuous_scale="Reds",
-                labels={"achievement_pct": "Achievement %", "yoy_pct": "YoY %", "gap_kg": "Gap"},
-            )
-            fig_risk.update_layout(
-                height=380,
-                coloraxis_showscale=False,
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=10, r=10, t=18, b=10),
-            )
-            fig_risk.add_vline(x=50, line_dash="dash", line_color="#f97316", opacity=0.7)
-            fig_risk.add_hline(y=0, line_dash="dash", line_color="#94a3b8", opacity=0.7)
-            st.plotly_chart(fig_risk, use_container_width=True)
+        st.markdown("**Area Focus Table**")
+        province_show = province_focus_df.rename(columns={
+            "Province": "Province",
+            "customers": "Customers",
+            "total_sales": "Sales",
+            "gap_kg": "Gap",
+            "avg_score": "Avg Score",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(province_show, numeric_cols=["Customers", "Sales", "Gap", "Avg Score"]),
+            use_container_width=True,
+            hide_index=True,
+            height=150,
+        )
 
     render_section_header(
-        title="Export & Reporting",
-        subtitle="ดาวน์โหลดรายงาน หรืออัปโหลดผลลัพธ์กลับขึ้น SharePoint ได้ทันที",
+        title="Exports",
+        subtitle="ส่งออก action list ไปใช้งานต่อกับ SharePoint, map, route planning หรือการประชุมทีมได้ทันที",
         icon="📦",
-        accent="#0f766e",
+        accent="#7c3aed",
     )
+
     report_xlsx = to_excel_bytes_multi({
-        "Sales Intelligence": rep,
-        "Top Opportunities": opp,
-        "At Risk Customers": risk,
+        "Sales Action Center": rep,
+        "Priority Accounts": opp,
+        "Action Queue": action_queue,
+        "Province Focus": province_focus_df,
     })
+
     cexp1, cexp2, cexp3 = st.columns(3)
     with cexp1:
         st.download_button(
-            "⬇️ Download Sales Intelligence Excel",
+            "⬇️ Download Sales Action Excel",
             data=report_xlsx,
-            file_name=f"sales_intelligence_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
     with cexp2:
         st.download_button(
-            "⬇️ Download Sales Intelligence CSV",
-            data=rep.to_csv(index=False, encoding="utf-8-sig"),
-            file_name=f"sales_intelligence_{st.session_state.get('dept') or 'ALL'}.csv",
+            "⬇️ Download Action Queue CSV",
+            data=action_queue.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
             mime="text/csv",
             use_container_width=True,
         )
     with cexp3:
-        if st.button("☁️ Upload Sales Intelligence to SharePoint", use_container_width=True):
-            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_intelligence_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        if st.button("☁️ Upload Sales Action to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             if ok:
-                append_audit_log("upload_sales_intelligence", remote_path, st.session_state.get("dept") or "")
-                st.success("✅ ส่ง Sales Intelligence ขึ้น SharePoint สำเร็จ")
+                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
 
     render_section_header(
-        title="Smart Customer Map Export",
-        subtitle="ส่งออกรายชื่อลูกค้าเพื่อใช้ต่อกับ Map, Route Planning หรือการวิเคราะห์พื้นที่",
-        icon="🧭",
-        accent="#7c3aed",
+        title="Map Export",
+        subtitle="ส่งออกรายชื่อลูกค้า priority เพื่อใช้วางแผน route หรือเตรียมลงพื้นที่ต่อได้ทันที",
+        icon="🗺️",
+        accent="#0f766e",
     )
-    map_export = rep[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score"]].copy()
+    map_export = action_queue[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score", "next_action"]].copy()
     st.download_button(
-        "⬇️ Download Map Customer List",
+        "⬇️ Download Priority Map Customer List",
         data=map_export.to_csv(index=False, encoding="utf-8-sig"),
-        file_name=f"customer_map_export_{st.session_state.get('dept') or 'ALL'}.csv",
+        file_name=f"priority_map_export_{st.session_state.get('dept') or 'ALL'}.csv",
         mime="text/csv",
         use_container_width=False,
     )
