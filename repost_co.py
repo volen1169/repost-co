@@ -91,7 +91,6 @@ HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
     "Pornphavit.Bu@optimal.co.th":"CO",
-    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2021,8 +2020,6 @@ if menu == "📊 Team Dashboard":
         st.error("คุณไม่มีสิทธิ์ดูหน้า Team Dashboard")
         st.stop()
     _scroll_top()
-    st.title("📊 Team Dashboard")
-    st.caption("มุมมองสำหรับหัวหน้า: ภาพรวมทีม พื้นที่ ความเสี่ยง และโอกาสของทั้งแผนก")
 
     if df.empty or "Customer Name" not in df.columns:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน (ด้านซ้าย)")
@@ -2049,86 +2046,23 @@ if menu == "📊 Team Dashboard":
     team_ach = (total_actual / total_budget * 100) if total_budget > 0 else 0.0
     risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
     active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
+    positive_yoy = int((team_df["yoy_pct"] > 0).sum())
+    risk_ratio = (risk_accounts / len(team_df) * 100) if len(team_df) else 0.0
 
-    render_info_banner(
-        title="Team Dashboard",
-        subtitle="ใช้สำหรับมองภาพรวมระดับหัวหน้า ดูสถานะทีม ยอดรวม Budget vs Actual พื้นที่ที่ต้องเร่ง และคนที่ต้องโฟกัสเป็นพิเศษ",
-        badge=f"🧑‍💼 Manager Cockpit • {_dept_label(st.session_state.get('dept') or '')}",
-    )
+    team_df["Salesperson"] = team_df["Salesperson"].fillna("").astype(str).replace("", "Unassigned")
+    team_df["Province"] = team_df.get("Province", "").fillna("").astype(str).replace("", "ไม่ระบุ")
+    team_df["Region_TH"] = team_df.get("Region_TH", "ไม่ระบุ").fillna("ไม่ระบุ").astype(str)
 
-    k1, k2, k3, k4, k5, k6 = st.columns(6)
-    with k1:
-        render_kpi_card("Customers", f"{len(team_df):,}", "จำนวนลูกค้าทั้งแผนก", "🏢")
-    with k2:
-        render_kpi_card("Team Sales", f"฿{total_sales/1e6:,.1f}M", "ยอดขายรวมทั้งทีม", "💰")
-    with k3:
-        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
-    with k4:
-        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
-    with k5:
-        render_kpi_card("Achievement", f"{team_ach:,.1f}%", "Achievement ระดับทีม", "📈")
-    with k6:
-        render_kpi_card("At-Risk", f"{risk_accounts:,}", "ลูกค้าที่ต้องจับตา", "⚠️")
-
-    render_section_header(
-        title="Executive KPIs",
-        subtitle="ภาพรวมระดับหัวหน้าเพื่อดูว่าทีมกำลังไปถูกทางหรือไม่",
-        icon="🧭",
-        accent="#1d4ed8",
-    )
-
-    e1, e2 = st.columns([1.15, 0.85])
-    with e1:
-        by_sp = team_df.groupby("Salesperson", dropna=False).agg(
-            customers=("Customer Name", "count"),
-            total_sales=("Sales/Year", "sum"),
-            budget_kg=("Budget_kg", "sum"),
-            actual_kg=("Actual_kg", "sum"),
-            avg_yoy=("yoy_pct", "mean"),
-        ).reset_index()
-        by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
-        by_sp["gap_kg"] = (by_sp["budget_kg"] - by_sp["actual_kg"]).clip(lower=0)
-        by_sp = by_sp.sort_values(["achievement_pct", "total_sales"], ascending=[False, False])
-
-        sp_show = by_sp.rename(columns={
-            "Salesperson": "Salesperson",
-            "customers": "Customers",
-            "total_sales": "Sales",
-            "budget_kg": "Budget",
-            "actual_kg": "Actual",
-            "achievement_pct": "Achievement %",
-            "gap_kg": "Gap",
-            "avg_yoy": "Avg YoY %",
-        }).copy()
-
-        st.markdown("**Team Performance Table**")
-        st.dataframe(
-            style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual", "Gap"], pct_cols=["Achievement %", "Avg YoY %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=360,
-        )
-    with e2:
-        st.markdown("**Achievement by Salesperson**")
-        fig_sp = px.bar(
-            by_sp.sort_values("achievement_pct", ascending=False).head(12),
-            x="Salesperson",
-            y="achievement_pct",
-            text=by_sp.sort_values("achievement_pct", ascending=False).head(12)["achievement_pct"].apply(lambda v: f"{v:.1f}%"),
-            color="total_sales",
-            color_continuous_scale="Blues",
-            labels={"achievement_pct": "Achievement %", "total_sales": "Sales"},
-        )
-        fig_sp.update_traces(textposition="outside", marker_line_width=0)
-        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_sp, use_container_width=True)
-
-    render_section_header(
-        title="Area & Coverage",
-        subtitle="ดูว่าพื้นที่ไหนมีน้ำหนักยอดขายสูง พื้นที่ไหนยังมี gap และควรเร่งโฟกัส",
-        icon="🗺️",
-        accent="#0f766e",
-    )
+    by_sp = team_df.groupby("Salesperson", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        budget_kg=("Budget_kg", "sum"),
+        actual_kg=("Actual_kg", "sum"),
+        avg_yoy=("yoy_pct", "mean"),
+    ).reset_index()
+    by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
+    by_sp["gap_kg"] = (by_sp["budget_kg"] - by_sp["actual_kg"]).clip(lower=0)
+    by_sp = by_sp.sort_values(["total_sales", "achievement_pct"], ascending=[False, False])
 
     by_region = team_df.groupby("Region_TH", dropna=False).agg(
         customers=("Customer Name", "count"),
@@ -2139,79 +2073,231 @@ if menu == "📊 Team Dashboard":
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
-    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False]).head(12)
+    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False]).head(8)
 
-    a1, a2 = st.columns([1.05, 0.95])
-    with a1:
-        fig_region = px.bar(
-            by_region,
-            x="region",
-            y="total_sales",
-            color="region",
-            color_discrete_map=REGION_COLORS,
-            text=by_region["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-            labels={"total_sales": "ยอดขาย (บาท)", "region": ""},
-        )
-        fig_region.update_traces(textposition="outside")
-        fig_region.update_layout(showlegend=False, height=360, yaxis_tickformat=",.0f", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_region, use_container_width=True)
-    with a2:
-        fig_prov = px.bar(
-            by_province.sort_values("gap_kg", ascending=True),
-            x="gap_kg",
-            y="Province",
-            orientation="h",
-            text=by_province.sort_values("gap_kg", ascending=True)["gap_kg"].apply(lambda v: f"{int(v):,}"),
-            color="customers",
-            color_continuous_scale="Teal",
-            labels={"gap_kg": "Gap (kg)", "customers": "Customers", "Province": ""},
-        )
-        fig_prov.update_traces(textposition="outside", marker_line_width=0)
-        fig_prov.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_prov, use_container_width=True)
+    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(8)
+    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(8)
+
+    top_sales = by_sp.head(4).copy()
+    if not top_sales.empty:
+        top_sales["sales_label"] = top_sales["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M")
+
+    region_cards = by_region.head(3).copy()
+    region_icon_map = {"เหนือ": "🟠", "ตะวันออกเฉียงเหนือ": "🟣", "ออก": "🟡", "ตก": "🔶", "ใต้": "🔵", "กลาง": "⚪", "ไม่ระบุ": "⚫"}
+
+    st.markdown("""
+    <style>
+    .teamdash-shell{
+        background:
+            radial-gradient(circle at 8% 18%, rgba(96,165,250,.22), transparent 26%),
+            radial-gradient(circle at 92% 10%, rgba(244,114,182,.14), transparent 24%),
+            linear-gradient(135deg, #0c1e56 0%, #1f4fb6 52%, #66b9ff 100%);
+        border-radius: 34px;
+        padding: 22px 24px 18px 24px;
+        box-shadow: 0 24px 60px rgba(15,23,42,.22);
+        border: 1px solid rgba(255,255,255,.14);
+        color: #fff;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 18px;
+    }
+    .teamdash-shell::before{
+        content:''; position:absolute; right:-60px; top:-70px; width:220px; height:220px; border-radius:999px;
+        background: rgba(255,255,255,.10); filter: blur(8px);
+    }
+    .teamdash-shell::after{
+        content:''; position:absolute; left:38%; bottom:-90px; width:280px; height:200px; border-radius:999px;
+        background: rgba(255,255,255,.08); filter: blur(16px);
+    }
+    .teamdash-head{position:relative; z-index:1; display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap;}
+    .teamdash-kicker{font-size:11px; text-transform:uppercase; letter-spacing:.18em; color:#dbeafe; font-weight:800; margin-bottom:8px;}
+    .teamdash-title{font-size:42px; line-height:1.02; font-weight:900; letter-spacing:-.04em; margin-bottom:8px;}
+    .teamdash-sub{max-width:780px; color:#e0f2fe; font-size:14px; line-height:1.75;}
+    .teamdash-badge{display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.16); padding:10px 14px; border-radius:999px; font-size:12px; font-weight:800; color:#eff6ff;}
+    .teamdash-mini-grid{position:relative; z-index:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:18px;}
+    .teamdash-mini-card{background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.10) 100%); border:1px solid rgba(255,255,255,.16); border-radius:24px; padding:16px 18px; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 16px 30px rgba(2,6,23,.14);}
+    .teamdash-mini-label{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#dbeafe; font-weight:700; margin-bottom:8px;}
+    .teamdash-mini-value{font-size:28px; font-weight:900; line-height:1.05; color:#fff;}
+    .teamdash-mini-sub{font-size:12px; color:#dbeafe; margin-top:6px;}
+    .teamdash-glass{background:linear-gradient(180deg, rgba(255,255,255,.78) 0%, rgba(241,245,249,.70) 100%); border:1px solid rgba(255,255,255,.55); border-radius:28px; padding:18px; box-shadow:0 18px 32px rgba(15,23,42,.10); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);}
+    .teamdash-card-title{font-size:15px; font-weight:800; color:#0f172a;}
+    .teamdash-card-sub{font-size:12px; color:#475569; margin-top:3px;}
+    .teamdash-side-stack{display:flex; flex-direction:column; gap:14px;}
+    .market-tag{display:flex; justify-content:space-between; align-items:center; gap:10px; background:linear-gradient(135deg, rgba(37,99,235,.92), rgba(30,64,175,.90)); color:#fff; border-radius:18px; padding:12px 14px; box-shadow:0 12px 24px rgba(30,64,175,.18);}
+    .market-tag .left{font-weight:800; font-size:14px;}
+    .market-tag .right{font-size:13px; color:#dbeafe; font-weight:700;}
+    .opprow, .riskrow{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px solid rgba(148,163,184,.18);}
+    .opprow:last-child, .riskrow:last-child{border-bottom:none;}
+    .opprow .name, .riskrow .name{font-size:14px; font-weight:800; color:#0f172a;}
+    .opprow .meta, .riskrow .meta{font-size:12px; color:#64748b; margin-top:4px;}
+    .pill-up{padding:8px 12px; border-radius:999px; background:linear-gradient(135deg, #16a34a, #34d399); color:#fff; font-weight:800; font-size:13px; box-shadow:0 10px 18px rgba(22,163,74,.18);}
+    .pill-down{padding:8px 12px; border-radius:999px; background:linear-gradient(135deg, #ef4444, #fb7185); color:#fff; font-weight:800; font-size:13px; box-shadow:0 10px 18px rgba(239,68,68,.18);}
+    .section-kicker{font-size:11px; text-transform:uppercase; letter-spacing:.16em; color:#94a3b8; font-weight:800; margin-bottom:6px;}
+    @media (max-width: 1100px){ .teamdash-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+    @media (max-width: 700px){ .teamdash-mini-grid{grid-template-columns:1fr;} .teamdash-title{font-size:34px;} }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="teamdash-shell">
+        <div class="teamdash-head">
+            <div>
+                <div class="teamdash-kicker">Manager cockpit • Team performance overview</div>
+                <div class="teamdash-title">TEAM DASHBOARD</div>
+                <div class="teamdash-sub">ภาพรวมแบบหัวหน้าในสไตล์ glass + action-driven สำหรับดู KPI ทีม, performance ของ Sales, market focus และ risk &amp; opportunity ในจอเดียว</div>
+            </div>
+            <div class="teamdash-badge">🧑‍💼 {_dept_label(st.session_state.get('dept') or '')} • {active_sales} reps active</div>
+        </div>
+        <div class="teamdash-mini-grid">
+            <div class="teamdash-mini-card"><div class="teamdash-mini-label">Total Sales</div><div class="teamdash-mini-value">฿{total_sales/1e6:,.1f}M</div><div class="teamdash-mini-sub">+{positive_yoy:,} accounts โตเทียบปีก่อน</div></div>
+            <div class="teamdash-mini-card"><div class="teamdash-mini-label">Total Budget</div><div class="teamdash-mini-value">{total_budget/1e6:,.1f}M kg</div><div class="teamdash-mini-sub">ลูกค้าทั้งหมด {len(team_df):,} ราย</div></div>
+            <div class="teamdash-mini-card"><div class="teamdash-mini-label">Achievement</div><div class="teamdash-mini-value">{team_ach:,.1f}%</div><div class="teamdash-mini-sub">Actual {int(total_actual):,} kg • Gap {int(total_gap):,} kg</div></div>
+            <div class="teamdash-mini-card"><div class="teamdash-mini-label">Risk Exposure</div><div class="teamdash-mini-value">{risk_accounts:,}</div><div class="teamdash-mini-sub">{risk_ratio:,.1f}% ของ portfolio ต้องจับตา</div></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    top_rep_name = str(top_sales.iloc[0]["Salesperson"]) if not top_sales.empty else "-"
+    top_rep_sales = f"฿{float(top_sales.iloc[0]['total_sales'])/1e6:.1f}M" if not top_sales.empty else "-"
+
+    left_col, right_col = st.columns([1.95, 0.95], gap="large")
+    with left_col:
+        st.markdown('<div class="section-kicker">Overall KPIs</div>', unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1.05, 1.05, 1.0])
+        with c1:
+            st.markdown(f"""
+            <div class="teamdash-glass" style="min-height:155px; background:linear-gradient(135deg, rgba(17,24,39,.90), rgba(37,99,235,.78)); color:#fff; border:1px solid rgba(255,255,255,.18)">
+                <div class="teamdash-card-title" style="color:#dbeafe;">Total Sales</div>
+                <div class="teamdash-card-sub" style="color:#bfdbfe;">ภาพรวมรายได้ของทีม</div>
+                <div style="font-size:48px; font-weight:900; line-height:1.05; margin-top:16px;">฿{total_sales/1e6:,.1f}M <span style="font-size:34px; color:#4ade80;">↑</span></div>
+                <div style="font-size:14px; color:#e2e8f0; margin-top:8px;">Top rep: {top_rep_name} • {top_rep_sales}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"""
+            <div class="teamdash-glass" style="min-height:155px; background:linear-gradient(135deg, rgba(37,99,235,.94), rgba(255,255,255,.36)); border:1px solid rgba(255,255,255,.44)">
+                <div class="teamdash-card-title">Total Budget</div>
+                <div class="teamdash-card-sub">เป้าหมายทั้งแผนก</div>
+                <div style="font-size:46px; font-weight:900; line-height:1.05; margin-top:16px; color:#f8fafc;">{total_budget/1e6:,.1f}M</div>
+                <div style="font-size:14px; color:#eff6ff; margin-top:8px;">Actual {total_actual/1e6:,.1f}M kg • Gap {total_gap/1e6:,.1f}M kg</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c3:
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=team_ach,
+                number={'suffix': "%", 'font': {'size': 34, 'color': '#eff6ff'}},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickwidth': 0, 'tickcolor': 'rgba(255,255,255,.2)'},
+                    'bar': {'color': '#fb923c'},
+                    'bgcolor': 'rgba(255,255,255,.12)',
+                    'borderwidth': 0,
+                    'steps': [
+                        {'range': [0, 60], 'color': 'rgba(239,68,68,.35)'},
+                        {'range': [60, 80], 'color': 'rgba(59,130,246,.30)'},
+                        {'range': [80, 100], 'color': 'rgba(34,197,94,.34)'}
+                    ],
+                    'threshold': {'line': {'color': '#e2e8f0', 'width': 3}, 'thickness': 0.8, 'value': 90}
+                },
+                domain={'x':[0,1],'y':[0,1]}
+            ))
+            fig_gauge.update_layout(height=155, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor='rgba(17,24,39,.0)', font={'color':'white'})
+            st.markdown('<div class="teamdash-glass" style="min-height:155px; background:linear-gradient(135deg, rgba(15,23,42,.88), rgba(29,78,216,.78)); border:1px solid rgba(255,255,255,.18)"><div class="teamdash-card-title" style="color:#dbeafe;">Achievement</div><div class="teamdash-card-sub" style="color:#bfdbfe;">Target 90%</div></div>', unsafe_allow_html=True)
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+        perf_left, perf_right = st.columns([1.05, 1.15], gap="medium")
+        with perf_left:
+            st.markdown('<div class="teamdash-glass"><div class="teamdash-card-title">Top Sales Reps</div><div class="teamdash-card-sub">เรียงตามยอดขายรวมของทีม</div></div>', unsafe_allow_html=True)
+            fig_top = px.bar(
+                top_sales,
+                x="total_sales",
+                y="Salesperson",
+                orientation="h",
+                text="sales_label",
+                color="achievement_pct",
+                color_continuous_scale=[[0, '#ef4444'], [0.5, '#60a5fa'], [1, '#8b5cf6']],
+                labels={"total_sales": "Sales", "Salesperson": "", "achievement_pct": "Achievement %"},
+            )
+            fig_top.update_traces(textposition="outside", marker_line_width=0)
+            fig_top.update_layout(height=300, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10), xaxis_title=None, yaxis_title=None)
+            st.plotly_chart(fig_top, use_container_width=True)
+
+        with perf_right:
+            trend = by_sp.head(6).copy()
+            if not trend.empty:
+                trend = trend.sort_values("total_sales", ascending=False)
+                fig_trend = go.Figure()
+                fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3), fill='tozeroy'))
+                fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3)))
+                fig_trend.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=10, r=10, t=18, b=10), legend=dict(orientation='h', y=1.1, x=0), xaxis_title=None, yaxis_title=None)
+                st.markdown('<div class="teamdash-glass"><div class="teamdash-card-title">Win / Loss Trend</div><div class="teamdash-card-sub">เปรียบเทียบ Achievement และ Avg YoY ของ sales หลัก</div></div>', unsafe_allow_html=True)
+                st.plotly_chart(fig_trend, use_container_width=True)
+
+    with right_col:
+        st.markdown('<div class="section-kicker">Market Insights</div>', unsafe_allow_html=True)
+        map_colors = ["#fbbf24", "#fb923c", "#c084fc", "#60a5fa", "#2563eb", "#eab308", "#f472b6", "#2dd4bf"]
+        if not by_province.empty:
+            fig_map = px.treemap(
+                by_province,
+                path=[px.Constant("Thailand"), "Province"],
+                values="total_sales",
+                color="gap_kg",
+                color_continuous_scale="Plasma",
+            )
+            fig_map.update_layout(height=420, margin=dict(l=6, r=6, t=12, b=6), paper_bgcolor='rgba(0,0,0,0)')
+            st.markdown('<div class="teamdash-glass"><div class="teamdash-card-title">Market Insights</div><div class="teamdash-card-sub">ใช้ยอดขายและ gap เพื่อหา province ที่ควรลงมือก่อน</div></div>', unsafe_allow_html=True)
+            st.plotly_chart(fig_map, use_container_width=True)
+
+        st.markdown('<div class="teamdash-side-stack">', unsafe_allow_html=True)
+        for _, row in region_cards.iterrows():
+            region_name = str(row.get("region", "ไม่ระบุ"))
+            st.markdown(f'<div class="market-tag"><div class="left">{region_icon_map.get(region_name, "🔹")} {region_name}</div><div class="right">฿{float(row.get("total_sales", 0))/1e6:.1f}M</div></div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        high_potential = by_province.head(3).copy()
+        hp_html = []
+        for _, row in high_potential.iterrows():
+            hp_html.append(f"<div class='opprow'><div><div class='name'>{row['Province']}</div><div class='meta'>{int(row['customers']):,} accounts • sales ฿{float(row['total_sales'])/1e6:.1f}M</div></div><div class='pill-up'>▲ +{float(row['gap_kg'])/1e6:.1f}M</div></div>")
+        st.markdown(f"<div class='teamdash-glass'><div class='teamdash-card-title'>High Potential Provinces</div><div class='teamdash-card-sub'>จังหวัดที่มี upside สูงสุดของทีม</div>{''.join(hp_html)}</div>", unsafe_allow_html=True)
+
+    lower_left, lower_right = st.columns(2, gap="large")
+    with lower_left:
+        opp_html = []
+        for _, row in top_opp.iterrows():
+            opp_html.append(
+                f"<div class='opprow'><div><div class='name'>{row['Customer Name']}</div><div class='meta'>{row['Salesperson']} • {row['Province']} • Score {float(row['opportunity_score']):.1f}</div></div><div class='pill-up'>↑ {float(row['gap_kg'])/1e6:.1f}M</div></div>"
+            )
+        st.markdown(f"<div class='section-kicker'>Risk &amp; Opportunity</div><div class='teamdash-glass'><div class='teamdash-card-title'>Growth Opportunities</div><div class='teamdash-card-sub'>ลูกค้าที่ควรผลักดันก่อนสำหรับหัวหน้า</div>{''.join(opp_html)}</div>", unsafe_allow_html=True)
+
+    with lower_right:
+        risk_html = []
+        for _, row in at_risk.iterrows():
+            risk_html.append(
+                f"<div class='riskrow'><div><div class='name'>{row['Customer Name']}</div><div class='meta'>{row['Salesperson']} • {row['Province']} • Ach {float(row['achievement_pct']):.1f}%</div></div><div class='pill-down'>{float(row['yoy_pct']):+.1f}%</div></div>"
+            )
+        st.markdown(f"<div class='section-kicker'>Focus Accounts</div><div class='teamdash-glass'><div class='teamdash-card-title'>At Risk Accounts</div><div class='teamdash-card-sub'>ลูกค้าที่รายได้หรือ achievement เริ่มอ่อนแรง</div>{''.join(risk_html) if risk_html else '<div class="teamdash-card-sub" style="margin-top:12px">ไม่พบ account ที่เข้ากลุ่มเสี่ยง</div>'}</div>", unsafe_allow_html=True)
 
     render_section_header(
-        title="Team Risk & Opportunity",
-        subtitle="ช่วยหัวหน้าเห็นว่าควรเข้าไปโค้ชทีม หรือดันลูกค้ารายไหนก่อน",
-        icon="🔥",
-        accent="#f97316",
+        title="Detailed Team Performance",
+        subtitle="ตารางสำหรับไล่ดูรายละเอียด sales แต่ละคนก่อน export หรือคุย one-on-one",
+        icon="📋",
+        accent="#1d4ed8",
     )
-
-    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12)
-    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(12)
-
-    r1, r2 = st.columns(2)
-    with r1:
-        st.markdown("**Top Opportunities ของทั้งทีม**")
-        opp_show = top_opp[["Customer Name", "Salesperson", "Province", "Sales/Year", "gap_kg", "achievement_pct", "opportunity_score"]].rename(columns={
-            "Customer Name": "Customer",
-            "Sales/Year": "Sales",
-            "gap_kg": "Gap",
-            "achievement_pct": "Achievement %",
-            "opportunity_score": "Score",
-        }).copy()
-        st.dataframe(
-            style_rich_dataframe(opp_show, numeric_cols=["Sales", "Gap", "Score"], pct_cols=["Achievement %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=360,
-        )
-    with r2:
-        st.markdown("**Accounts ที่เสี่ยงของทั้งทีม**")
-        risk_show = at_risk[["Customer Name", "Salesperson", "Province", "Budget_kg", "Actual_kg", "gap_kg", "achievement_pct", "yoy_pct"]].rename(columns={
-            "Customer Name": "Customer",
-            "Budget_kg": "Budget",
-            "Actual_kg": "Actual",
-            "gap_kg": "Gap",
-            "achievement_pct": "Achievement %",
-            "yoy_pct": "YoY %",
-        }).copy()
-        st.dataframe(
-            style_rich_dataframe(risk_show, numeric_cols=["Budget", "Actual", "Gap"], pct_cols=["Achievement %", "YoY %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=360,
-        )
+    sp_show = by_sp.rename(columns={
+        "customers": "Customers",
+        "total_sales": "Sales",
+        "budget_kg": "Budget",
+        "actual_kg": "Actual",
+        "achievement_pct": "Achievement %",
+        "gap_kg": "Gap",
+        "avg_yoy": "Avg YoY %",
+    }).copy()
+    st.dataframe(
+        style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual", "Gap"], pct_cols=["Achievement %", "Avg YoY %"]),
+        use_container_width=True,
+        hide_index=True,
+        height=320,
+    )
 
     render_section_header(
         title="Manager Exports",
