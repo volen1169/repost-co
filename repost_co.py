@@ -1185,6 +1185,141 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
 # ═══════════════════════════════════════════════════════════════════════════════
 # UI Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
+def inject_premium_ui():
+    st.markdown("""
+    <style>
+    :root{
+        --bg-1:#081225;
+        --bg-2:#123a8f;
+        --bg-3:#38bdf8;
+        --card:#ffffff;
+        --card-soft:rgba(255,255,255,.72);
+        --stroke:rgba(255,255,255,.22);
+        --stroke-2:#dbeafe;
+        --text:#0f172a;
+        --muted:#5b6b84;
+        --primary:#2563eb;
+        --primary-2:#1d4ed8;
+        --accent:#06b6d4;
+        --success:#10b981;
+        --danger:#ef4444;
+        --warning:#f59e0b;
+        --shadow-lg:0 20px 60px rgba(2, 6, 23, .18);
+        --shadow-md:0 14px 30px rgba(15, 23, 42, .10);
+        --radius-xl:28px;
+        --radius-lg:22px;
+        --radius-md:16px;
+    }
+
+    .stApp{
+        background:
+            radial-gradient(circle at 12% 15%, rgba(56,189,248,.20) 0%, transparent 22%),
+            radial-gradient(circle at 86% 10%, rgba(147,197,253,.16) 0%, transparent 24%),
+            radial-gradient(circle at 74% 78%, rgba(255,255,255,.10) 0%, transparent 18%),
+            linear-gradient(135deg, #081225 0%, #123a8f 48%, #38bdf8 100%);
+    }
+
+    [data-testid="stHeader"]{
+        background: rgba(255,255,255,.02);
+        backdrop-filter: blur(8px);
+    }
+
+    [data-testid="stAppViewBlockContainer"], .block-container{
+        padding-top: 1.1rem !important;
+        padding-bottom: 1.25rem !important;
+        max-width: 1440px !important;
+    }
+
+    [data-testid="stSidebar"]{
+        background:
+            linear-gradient(180deg, rgba(7,18,39,.94) 0%, rgba(20,45,102,.96) 100%);
+        border-right: 1px solid rgba(255,255,255,.10);
+    }
+    [data-testid="stSidebar"] *{
+        color: #eaf2ff;
+    }
+    [data-testid="stSidebar"] .stRadio > div{
+        gap: 8px;
+    }
+    [data-testid="stSidebar"] label[data-baseweb="radio"]{
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 16px;
+        padding: 10px 12px;
+        transition: .22s ease;
+    }
+    [data-testid="stSidebar"] label[data-baseweb="radio"]:hover{
+        background: rgba(255,255,255,.14);
+        transform: translateY(-1px);
+    }
+
+    .stButton > button{
+        border-radius: 16px !important;
+        border: 1px solid rgba(37,99,235,.18) !important;
+        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%) !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        box-shadow: 0 10px 22px rgba(15,23,42,.08);
+        transition: all .2s ease !important;
+    }
+    .stButton > button:hover{
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(15,23,42,.12);
+        border-color: rgba(37,99,235,.30) !important;
+    }
+
+    .stTextInput input, .stSelectbox [data-baseweb="select"], .stTextArea textarea, .stNumberInput input{
+        border-radius: 16px !important;
+    }
+
+    [data-testid="stDataFrame"], .stTable{
+        background: rgba(255,255,255,.96);
+        border: 1px solid rgba(191,219,254,.85);
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+    }
+
+    .stTabs [data-baseweb="tab-list"]{
+        gap: 8px;
+        background: rgba(255,255,255,.10);
+        padding: 8px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,.10);
+    }
+    .stTabs [data-baseweb="tab"]{
+        border-radius: 14px;
+        padding: 10px 16px;
+        font-weight: 800;
+    }
+
+    [data-testid="stAlert"]{
+        border-radius: 18px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .premium-shell{
+        position: relative;
+    }
+    .premium-panel{
+        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(248,251,255,.94) 100%);
+        border: 1px solid rgba(191,219,254,.78);
+        border-radius: 26px;
+        box-shadow: 0 18px 44px rgba(15,23,42,.10);
+        padding: 18px;
+    }
+    .premium-glass{
+        background: rgba(255,255,255,.18);
+        border: 1px solid rgba(255,255,255,.22);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 28px;
+        box-shadow: 0 22px 60px rgba(15,23,42,.20);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 def _dept_label(dept_code: str | None) -> str:
     code = str(dept_code or "").strip()
     return DEPARTMENT_LABELS.get(code, code)
@@ -1267,42 +1402,74 @@ def filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
 
 def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊"):
     st.markdown(f"""
-    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-            <div style="font-size:13px; color:#475569; font-weight:700;">{label}</div>
-            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
+    <div style="
+        position:relative;
+        overflow:hidden;
+        background:linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(241,245,249,.96) 100%);
+        border:1px solid rgba(191,219,254,.85);
+        border-radius:24px;
+        padding:20px 20px 18px 20px;
+        box-shadow:0 16px 34px rgba(15,23,42,.10);
+        min-height:142px;">
+        <div style="position:absolute; right:-18px; top:-18px; width:86px; height:86px; border-radius:999px; background:rgba(37,99,235,.08);"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; position:relative; z-index:1;">
+            <div style="font-size:12px; color:#64748b; font-weight:800; letter-spacing:.06em; text-transform:uppercase;">{label}</div>
+            <div style="
+                width:44px; height:44px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+                background:linear-gradient(135deg, #2563eb, #06b6d4);
+                color:#fff; font-size:20px; box-shadow:0 12px 22px rgba(37,99,235,.20);">{icon}</div>
         </div>
-        <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
-        <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
+        <div style="font-size:32px; line-height:1.05; color:#0f172a; font-weight:900; margin-bottom:8px; position:relative; z-index:1;">{value}</div>
+        <div style="font-size:12.8px; color:#64748b; line-height:1.6; position:relative; z-index:1;">{subtext}</div>
     </div>
     """, unsafe_allow_html=True)
 
 
 def render_section_header(title: str, subtitle: str = "", icon: str = "✨", accent: str = "#2563eb"):
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
-        <div style="display:flex; align-items:flex-start; gap:14px;">
-            <div style="width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
+    <div style="
+        position:relative;
+        overflow:hidden;
+        background:linear-gradient(135deg, rgba(255,255,255,.98) 0%, rgba(239,246,255,.96) 100%);
+        border:1px solid rgba(191,219,254,.86);
+        border-radius:26px;
+        padding:20px 22px;
+        box-shadow:0 16px 36px rgba(15,23,42,.08);
+        margin:4px 0 14px 0;">
+        <div style="position:absolute; right:-30px; top:-40px; width:140px; height:140px; border-radius:999px; background:rgba(37,99,235,.06);"></div>
+        <div style="display:flex; align-items:flex-start; gap:14px; position:relative; z-index:1;">
+            <div style="
+                width:50px; height:50px; border-radius:18px; display:flex; align-items:center; justify-content:center;
+                background:linear-gradient(135deg, {accent}, #06b6d4);
+                color:#fff; font-size:22px; box-shadow:0 12px 22px rgba(37,99,235,.16); flex:0 0 50px;">{icon}</div>
             <div>
-                <div style="font-size:22px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
-                <div style="font-size:13px; color:#475569; margin-top:4px;">{subtitle}</div>
+                <div style="font-size:24px; font-weight:900; color:#0f172a; line-height:1.15;">{title}</div>
+                <div style="font-size:13px; color:#64748b; margin-top:5px; line-height:1.65;">{subtitle}</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
-    badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
+def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #081225 0%, #1d4ed8 55%, #06b6d4 100%)"):
+    badge_html = f"""<span style="display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.18); color:#eff6ff; font-size:12px; font-weight:800;">{badge}</span>""" if badge else ""
     st.markdown(f"""
-    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:18px; color:white; overflow:hidden; position:relative;">
-        <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
-        <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
+    <div style="
+        background:{gradient};
+        border-radius:30px;
+        padding:30px 30px;
+        box-shadow:0 22px 48px rgba(2,6,23,.22);
+        margin-bottom:18px;
+        color:white;
+        overflow:hidden;
+        position:relative;">
+        <div style="position:absolute; right:-44px; top:-42px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,.08);"></div>
+        <div style="position:absolute; right:90px; bottom:-70px; width:220px; height:220px; border-radius:999px; background:rgba(255,255,255,.06);"></div>
         <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
             <div style="max-width:860px;">
-                <div style="font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
-                <div style="font-size:34px; line-height:1.08; font-weight:800; margin-bottom:8px;">{title}</div>
-                <div style="font-size:14px; line-height:1.7; color:#e0f2fe;">{subtitle}</div>
+                <div style="font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:900; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
+                <div style="font-size:36px; line-height:1.05; font-weight:900; margin-bottom:10px;">{title}</div>
+                <div style="font-size:14px; line-height:1.8; color:#e0f2fe;">{subtitle}</div>
             </div>
             <div>{badge_html}</div>
         </div>
@@ -1340,16 +1507,16 @@ def render_login_page(auth_ready: bool):
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 10% 14%, rgba(59,130,246,.28) 0%, transparent 24%),
-            radial-gradient(circle at 84% 12%, rgba(56,189,248,.20) 0%, transparent 28%),
-            radial-gradient(circle at 76% 82%, rgba(255,255,255,.18) 0%, transparent 26%),
-            linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #38bdf8 100%);
+            radial-gradient(circle at 10% 14%, rgba(59,130,246,.22) 0%, transparent 24%),
+            radial-gradient(circle at 84% 12%, rgba(56,189,248,.18) 0%, transparent 28%),
+            radial-gradient(circle at 76% 82%, rgba(255,255,255,.12) 0%, transparent 26%),
+            linear-gradient(135deg, #081225 0%, #123a8f 50%, #38bdf8 100%);
     }
     [data-testid="stHeader"] { background: transparent; }
     [data-testid="stAppViewBlockContainer"], .block-container {
         padding-top: 0.35rem !important;
         padding-bottom: 0.25rem !important;
-        max-width: 1320px !important;
+        max-width: 1360px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
     .login-shell { position: relative; min-height: 0; height: 0; }
@@ -1365,17 +1532,26 @@ def render_login_page(auth_ready: bool):
         50% { transform: translate(16px, -18px) scale(1.06); }
         100% { transform: translate(0, 0) scale(1); }
     }
+
     .login-hero-card, .login-auth-card {
         position: relative; z-index: 1; overflow: hidden;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.24);
-        box-shadow: 0 24px 70px rgba(15,23,42,.24);
-        border-radius: 30px;
+        border-radius: 32px;
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
     }
-    .login-hero-card { padding: 30px; min-height: 560px; }
-    .login-auth-card { padding: 28px; }
+    .login-hero-card {
+        padding: 32px;
+        min-height: 580px;
+        background: linear-gradient(180deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.08) 100%);
+        border: 1px solid rgba(255,255,255,.22);
+        box-shadow: 0 28px 80px rgba(15,23,42,.28);
+    }
+    .login-auth-card {
+        padding: 28px;
+        background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.14) 100%);
+        border: 1px solid rgba(255,255,255,.24);
+        box-shadow: 0 26px 70px rgba(15,23,42,.24);
+    }
     .hero-top-badge {
         display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px;
         background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14);
@@ -1384,57 +1560,95 @@ def render_login_page(auth_ready: bool):
     }
     .brand-row { display:flex; gap:18px; align-items:flex-start; margin-bottom: 18px; }
     .brand-logo {
-        width: 84px; height: 84px; border-radius: 24px; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(219,234,254,.96));
-        color:#1d4ed8; font-size: 38px; font-weight: 900;
-        box-shadow: 0 16px 36px rgba(15,23,42,.16); flex: 0 0 84px;
+        width: 88px; height: 88px; border-radius: 26px;
+        display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+        color:#1d4ed8; font-size: 40px; font-weight: 900;
+        box-shadow: 0 18px 38px rgba(15,23,42,.18);
     }
     .brand-eyebrow { color: #bfdbfe; font-weight: 800; letter-spacing: .14em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #fff; font-size: 38px; line-height: 1.04; font-weight: 900; margin: 4px 0 0 0; }
-    .brand-sub { color: #dbeafe; font-size: 15px; line-height: 1.8; margin-top: 10px; max-width: 760px; }
+    .brand-title {
+        color: #fff; font-size: 42px; line-height: 1.02; font-weight: 900;
+        letter-spacing: -.02em;
+    }
+    .brand-sub {
+        color: #dbeafe; font-size: 15px; line-height: 1.85;
+        margin-top: 12px; max-width: 760px;
+    }
     .hero-chip-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
     .hero-chip {
-        display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background: rgba(255,255,255,.10);
-        border:1px solid rgba(255,255,255,.14); color:#eff6ff; font-size:12px; font-weight:700;
+        display:inline-flex; align-items:center; gap:8px;
+        padding:10px 14px; border-radius:999px;
+        background: rgba(255,255,255,.10);
+        border:1px solid rgba(255,255,255,.14);
+        color:#eff6ff; font-size:12px; font-weight:800;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     }
     .feature-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; margin-top:24px; }
     .feature-item {
-        border-radius: 22px; padding: 18px 16px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14);
-        min-height:124px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        border-radius: 24px;
+        padding: 18px 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.08) 100%);
+        border: 1px solid rgba(255,255,255,.14);
+        min-height: 126px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        transition: all .22s ease;
+    }
+    .feature-item:hover {
+        transform: translateY(-3px);
+        background: linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.10) 100%);
+        box-shadow: 0 18px 28px rgba(15,23,42,.14);
     }
     .feature-icon { font-size:24px; margin-bottom:8px; }
     .feature-title { color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
     .feature-text { color:#dbeafe; font-size:12.5px; line-height:1.6; }
-    .auth-kicker { color:#1d4ed8; font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:12px; margin-bottom:8px; }
-    .login-panel-title { color:#0f172a; font-size:30px; font-weight:900; margin-bottom:8px; line-height:1.08; }
-    .login-panel-sub { color:#475569; font-size:14px; line-height:1.7; margin-bottom:20px; }
+    .auth-kicker { color:#dbeafe; font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:12px; margin-bottom:8px; }
+    .login-panel-title { color:#ffffff; font-size:32px; font-weight:900; margin-bottom:8px; line-height:1.08; }
+    .login-panel-sub { color:#e0f2fe; font-size:14px; line-height:1.75; margin-bottom:20px; }
     .login-mini-card {
-        background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%); border:1px solid #dbeafe; border-radius:20px;
-        padding:14px 14px 12px 14px; margin-bottom:12px;
+        background: rgba(255,255,255,.94);
+        border: 1px solid rgba(255,255,255,.55);
+        border-radius: 22px;
+        padding: 16px 16px 14px 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 14px 32px rgba(0,0,0,.10);
+        transition: all .22s ease;
     }
-    .login-mini-title { color:#0f172a; font-size:14px; font-weight:800; margin-bottom:4px; }
-    .login-mini-text { color:#64748b; font-size:12.5px; line-height:1.55; }
+    .login-mini-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 36px rgba(0,0,0,.14);
+    }
+    .login-mini-title { color:#0f172a; font-size:15px; font-weight:900; margin-bottom:4px; }
+    .login-mini-text { color:#64748b; font-size:12.8px; line-height:1.65; }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
-        text-align:center; padding:14px 18px; border-radius:18px; text-decoration:none; font-weight:900; font-size:15px;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8 55%, #38bdf8 100%); color:white; border: 1px solid rgba(37,99,235,.18);
-        box-shadow: 0 14px 28px rgba(37,99,235,.20); transition: all .2s ease;
+        text-align:center; padding:15px 18px; border-radius:20px; text-decoration:none;
+        font-weight:900; font-size:15px; color:white;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #06b6d4 100%);
+        border: 1px solid rgba(255,255,255,.18);
+        box-shadow: 0 18px 34px rgba(37,99,235,.24);
+        transition: all .22s ease;
     }
-    .ms-login-link:hover { transform: translateY(-1px); filter: brightness(1.03); box-shadow: 0 18px 34px rgba(37,99,235,.24); }
-    .login-note { color:#64748b; font-size:12.5px; line-height:1.6; margin-top:12px; }
-    .login-footer { text-align:center; color:#64748b; font-size:12.5px; margin-top:18px; }
-    .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
+    .ms-login-link:hover {
+        transform: translateY(-2px) scale(1.01);
+        filter: brightness(1.03);
+        box-shadow: 0 22px 38px rgba(37,99,235,.30);
+    }
+    .login-note { color:#dbeafe; font-size:12.8px; line-height:1.65; margin-top:12px; }
+    .login-footer { text-align:center; color:#dbeafe; font-size:12.5px; margin-top:18px; }
+    .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
     .loading-overlay {
-        display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
-        z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+        display:none; position: fixed; inset:0; background: rgba(2,6,23,.34);
+        backdrop-filter: blur(9px); z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
     }
     .loading-overlay.show { display:flex; }
     .loading-spinner {
-        width:56px; height:56px; border-radius:999px; border:5px solid rgba(255,255,255,.28); border-top-color:#ffffff;
+        width:58px; height:58px; border-radius:999px;
+        border:5px solid rgba(255,255,255,.24); border-top-color:#ffffff;
         animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
+    .loading-text { color:#ffffff; font-weight:900; font-size:15px; }
     @media (max-width: 980px) { .feature-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 720px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:30px; } .login-hero-card { min-height:auto; } }
     </style>
@@ -1454,73 +1668,6 @@ def render_login_page(auth_ready: bool):
         <div class="login-orb orb3"></div>
     </div>
     """), unsafe_allow_html=True)
-
-    left, right = st.columns([1.35, 0.9])
-    with left:
-        st.markdown(textwrap.dedent("""
-        <div class="login-hero-card">
-            <div class="hero-top-badge">✨ Modern workspace for sales operations</div>
-            <div class="brand-row">
-                <div class="brand-logo">📊</div>
-                <div>
-                    <div class="brand-eyebrow">Optimal Group Platform</div>
-                    <div class="brand-title">Sales Territory Dashboard</div>
-                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
-                </div>
-            </div>
-            <div class="hero-chip-row">
-                <div class="hero-chip">🔐 Microsoft 365 Security</div>
-                <div class="hero-chip">🗺️ Smart Customer Mapping</div>
-                <div class="hero-chip">📈 Budget & Performance Insight</div>
-            </div>
-            <div class="feature-grid">
-                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Executive Visibility</div><div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับแต่ละแผนก</div></div>
-                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในมุมมองที่เข้าใจง่ายและใช้งานได้ทันที</div></div>
-                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint Connected</div><div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีม</div></div>
-                <div class="feature-item"><div class="feature-icon">🧭</div><div class="feature-title">Route & Coverage Ready</div><div class="feature-text">ต่อยอดไปสู่แผนที่ลูกค้า การวาง route และการวางแผนเข้าพบได้สะดวก</div></div>
-            </div>
-        </div>
-        """), unsafe_allow_html=True)
-
-    with right:
-        st.markdown(textwrap.dedent("""
-        <div class="login-auth-card">
-            <div class="auth-kicker">Secure sign in</div>
-            <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-            <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
-            <div class="login-mini-card">
-                <div class="login-mini-title">Role-based access</div>
-                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กร</div>
-            </div>
-            <div class="login-mini-card">
-                <div class="login-mini-title">Fast and familiar</div>
-                <div class="login-mini-text">ใช้บัญชีองค์กรเดิม ไม่ต้องจำรหัสผ่านของระบบเพิ่มเติม</div>
-            </div>
-        """), unsafe_allow_html=True)
-
-        if auth_ready:
-            login_url = _build_login_url()
-            st.markdown(
-                f"""
-                <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    <span>🔵</span>
-                    <span>Sign in with Microsoft 365</span>
-                </a>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
-        else:
-            st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
-            st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
-
-        st.markdown(textwrap.dedent("""
-            <div class="login-footer">
-                Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
-            </div>
-        </div>
-        """), unsafe_allow_html=True)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
@@ -1597,10 +1744,43 @@ if auth_ready and is_logged_in:
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
-st.sidebar.title("📂 เมนูหลัก")
+st.sidebar.markdown("""
+<div style="
+    background:linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.08) 100%);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:24px;
+    padding:16px 16px 14px 16px;
+    box-shadow:0 14px 30px rgba(2,6,23,.18);
+    margin-bottom:12px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="
+            width:52px; height:52px; border-radius:16px;
+            background:linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+            display:flex; align-items:center; justify-content:center;
+            font-size:26px;">📊</div>
+        <div>
+            <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#bfdbfe; font-weight:800;">Optimal Group</div>
+            <div style="font-size:18px; line-height:1.15; color:white; font-weight:900;">Sales Territory Dashboard</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.sidebar.markdown("### 📂 เมนูหลัก")
 
 role_label = _role_label()
+st.sidebar.markdown(f"""
+<div style="
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:18px;
+    padding:12px 14px;
+    margin-bottom:12px;">
+    <div style="font-size:11px; color:#bfdbfe; font-weight:800; text-transform:uppercase; letter-spacing:.10em;">Current Access</div>
+    <div style="font-size:14px; color:#ffffff; font-weight:800; margin-top:4px;">{role_label}</div>
+    <div style="font-size:12px; color:#dbeafe; margin-top:6px;">Department: {_dept_label(st.session_state.get('dept', ''))}</div>
+</div>
+""", unsafe_allow_html=True)
 if st.session_state.get("user_role") == "staff":
     allowed_menus = [
         "🎯 My Sales Intelligence",
