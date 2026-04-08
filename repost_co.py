@@ -1464,148 +1464,148 @@ def render_login_page(auth_ready: bool):
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 12% 14%, rgba(96,165,250,.18) 0%, transparent 22%),
-            radial-gradient(circle at 82% 18%, rgba(56,189,248,.16) 0%, transparent 24%),
-            linear-gradient(135deg, #09152b 0%, #163d92 52%, #38bdf8 100%);
+            radial-gradient(circle at 14% 18%, rgba(96,165,250,.12) 0%, transparent 24%),
+            radial-gradient(circle at 85% 16%, rgba(56,189,248,.10) 0%, transparent 22%),
+            linear-gradient(135deg, #081325 0%, #14357a 56%, #2c7dd8 100%);
     }
     [data-testid="stHeader"] { background: transparent; }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: 0.8rem !important;
-        padding-bottom: 0.8rem !important;
-        max-width: 1360px !important;
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+        max-width: 1340px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
+
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
-        position: fixed; border-radius: 999px; filter: blur(70px); opacity: .32;
+        position: fixed; border-radius: 999px; filter: blur(78px); opacity: .22;
         pointer-events: none; z-index: 0; animation: floatOrb 16s ease-in-out infinite;
     }
-    .login-orb.orb1 { width: 320px; height: 320px; left: -2%; top: 12%; background: rgba(96,165,250,.36); }
-    .login-orb.orb2 { width: 360px; height: 360px; right: 2%; top: 18%; background: rgba(56,189,248,.28); animation-delay: 3s; }
-    .login-orb.orb3 { width: 300px; height: 300px; left: 28%; bottom: 2%; background: rgba(255,255,255,.12); animation-delay: 6s; }
+    .login-orb.orb1 { width: 320px; height: 320px; left: -4%; top: 12%; background: rgba(96,165,250,.30); }
+    .login-orb.orb2 { width: 380px; height: 380px; right: -2%; top: 18%; background: rgba(56,189,248,.22); animation-delay: 3s; }
+    .login-orb.orb3 { width: 300px; height: 300px; left: 34%; bottom: 4%; background: rgba(255,255,255,.08); animation-delay: 6s; }
     @keyframes floatOrb {
         0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(18px, -20px) scale(1.05); }
+        50% { transform: translate(18px, -18px) scale(1.04); }
         100% { transform: translate(0, 0) scale(1); }
     }
+
     .login-hero-card, .login-auth-card {
         position: relative; z-index: 1; overflow: hidden;
-        border-radius: 32px;
-        border: 1px solid rgba(255,255,255,.18);
-        box-shadow: 0 24px 64px rgba(2,6,23,.20);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        border-radius: 30px;
+        border: 1px solid rgba(255,255,255,.13);
+        box-shadow: 0 22px 54px rgba(2,6,23,.18);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
     }
     .login-hero-card {
-        padding: 36px 36px 34px 36px;
-        min-height: 640px;
-        background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.08) 100%);
+        padding: 34px;
+        min-height: 620px;
+        background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.05) 100%);
     }
     .login-auth-card {
-        padding: 32px;
-        min-height: 640px;
-        background: linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.12) 100%);
+        padding: 34px;
+        min-height: 620px;
+        background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.10) 100%);
     }
+
     .hero-top-badge {
         display:inline-flex; align-items:center; gap:10px; padding:11px 18px; border-radius:999px;
-        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.12);
-        color:#e0ecff; font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
-        margin-bottom:26px;
+        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
+        color:#dbeafe; font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+        margin-bottom:28px;
     }
     .hero-top-badge::before {
-        content:'';
-        width:9px; height:9px; border-radius:999px;
+        content:''; width:8px; height:8px; border-radius:999px;
         background: linear-gradient(135deg, #f59e0b, #fb7185);
-        box-shadow: 0 0 0 4px rgba(255,255,255,.06);
     }
-    .brand-row { display:flex; gap:22px; align-items:flex-start; margin-bottom: 24px; }
+    .brand-row { display:flex; gap:22px; align-items:flex-start; margin-bottom:24px; }
     .brand-logo {
-        width: 96px; height: 96px; border-radius: 28px; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(224,231,255,.92) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 18px 38px rgba(15,23,42,.16);
-        flex: 0 0 96px;
+        width:92px; height:92px; border-radius:28px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(180deg, rgba(255,255,255,.97) 0%, rgba(224,231,255,.92) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 16px 36px rgba(15,23,42,.14);
+        flex: 0 0 92px;
     }
-    .brand-logo-bars { display:flex; align-items:flex-end; gap:6px; height:44px; }
+    .brand-logo-bars { display:flex; align-items:flex-end; gap:6px; height:42px; }
     .brand-logo-bars span { width:10px; border-radius:999px; display:block; }
     .brand-logo-bars span:nth-child(1){ height:28px; background:#7c3aed; }
-    .brand-logo-bars span:nth-child(2){ height:38px; background:#22c55e; }
+    .brand-logo-bars span:nth-child(2){ height:36px; background:#22c55e; }
     .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
-    .brand-logo-bars span:nth-child(4){ height:34px; background:#38bdf8; }
-    .brand-eyebrow { color: #c8d8ff; font-weight: 800; letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #ffffff; font-size: 42px; line-height: 1.04; font-weight: 900; margin: 6px 0 0 0; letter-spacing:-.03em; }
-    .brand-sub { color: #e4efff; font-size: 16px; line-height: 1.8; margin-top: 14px; max-width: 720px; }
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
+    .brand-logo-bars span:nth-child(4){ height:32px; background:#38bdf8; }
+    .brand-eyebrow { color:#c6d7ff; font-weight:800; letter-spacing:.16em; font-size:12px; text-transform:uppercase; }
+    .brand-title { color:#ffffff; font-size:42px; line-height:1.04; font-weight:900; margin:6px 0 0 0; letter-spacing:-.03em; }
+    .brand-sub { color:#e2edff; font-size:16px; line-height:1.82; margin-top:14px; max-width:690px; }
+
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:22px; }
     .hero-chip {
         display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px;
-        background: rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.12); color:#f8fbff; font-size:13px; font-weight:700;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
+        color:#f8fbff; font-size:13px; font-weight:700;
     }
     .chip-dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
     .chip-dot.secure { background:#f59e0b; }
     .chip-dot.map { background:#34d399; }
     .chip-dot.insight { background:#93c5fd; }
-    .feature-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:18px; margin-top:28px; }
+
+    .feature-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-top:28px; }
     .feature-item {
-        border-radius: 24px;
-        padding: 22px;
-        background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.05) 100%);
-        border: 1px solid rgba(255,255,255,.10);
-        min-height: 176px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+        border-radius: 22px;
+        padding: 18px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.045) 100%);
+        border: 1px solid rgba(255,255,255,.09);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
     .feature-item:hover {
-        transform: translateY(-3px);
-        border-color: rgba(255,255,255,.18);
-        box-shadow: 0 18px 32px rgba(15,23,42,.12);
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,.14);
+        box-shadow: 0 14px 28px rgba(15,23,42,.10);
     }
+    .feature-line { display:flex; align-items:flex-start; gap:14px; }
     .feature-icon {
-        width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center;
-        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); color:#fff;
-        font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:16px;
+        width:46px; height:46px; border-radius:14px; flex:0 0 46px;
+        display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.10); color:#fff;
+        font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
     }
-    .feature-title { color:#ffffff; font-size:18px; font-weight:800; margin-bottom:10px; line-height:1.3; }
-    .feature-text { color:#dce8ff; font-size:13px; line-height:1.75; }
+    .feature-title { color:#ffffff; font-size:17px; font-weight:800; margin-bottom:6px; line-height:1.35; }
+    .feature-text { color:#dce8ff; font-size:13px; line-height:1.72; }
+
     .auth-kicker { color:#d9e7ff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:12px; }
     .login-panel-title { color:#ffffff; font-size:44px; font-weight:900; margin-bottom:14px; line-height:1.04; letter-spacing:-.03em; }
-    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.9; margin-bottom:26px; max-width: 440px; }
+    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.88; margin-bottom:28px; max-width: 430px; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
-        border:1px solid rgba(219,234,254,.95);
-        border-radius:24px;
-        padding:18px 18px 16px 18px;
-        margin-bottom:16px;
-        box-shadow: 0 12px 28px rgba(15,23,42,.08);
+        border:1px solid rgba(219,234,254,.92);
+        border-radius:24px; padding:18px 18px 16px 18px; margin-bottom:18px;
+        box-shadow: 0 12px 26px rgba(15,23,42,.07);
     }
     .login-mini-head { display:flex; align-items:flex-start; gap:12px; }
     .login-mini-icon {
-        width:38px; height:38px; border-radius:12px; flex:0 0 38px;
+        width:40px; height:40px; border-radius:13px; flex:0 0 40px;
         display:flex; align-items:center; justify-content:center;
         background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:11px; font-weight:800; letter-spacing:.06em;
     }
-    .login-mini-title { color:#0f172a; font-size:16px; font-weight:800; margin-bottom:5px; }
-    .login-mini-text { color:#5b6b84; font-size:13px; line-height:1.7; }
+    .login-mini-title { color:#0f172a; font-size:17px; font-weight:800; margin-bottom:5px; }
+    .login-mini-text { color:#5b6b84; font-size:13px; line-height:1.72; }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
         text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:900; font-size:16px;
         background: linear-gradient(135deg, #1d4ed8, #2563eb 45%, #22d3ee 100%); color:white; border: 1px solid rgba(255,255,255,.14);
-        box-shadow: 0 18px 32px rgba(29,78,216,.26); transition: all .2s ease;
-        margin-top: 28px;
+        box-shadow: 0 18px 32px rgba(29,78,216,.24); transition: all .2s ease; margin-top: 26px;
     }
-    .ms-login-link:hover { transform: translateY(-2px); filter: brightness(1.03); box-shadow: 0 22px 38px rgba(29,78,216,.30); }
+    .ms-login-link:hover { transform: translateY(-2px); filter: brightness(1.03); box-shadow: 0 22px 38px rgba(29,78,216,.28); }
     .ms-logo {
-        width:22px; height:22px; border-radius:6px;
-        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+        width:22px; height:22px; border-radius:6px; background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
         position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
     }
-    .ms-logo::before, .ms-logo::after {
-        content:''; position:absolute; background:#2563eb;
-    }
+    .ms-logo::before, .ms-logo::after { content:''; position:absolute; background:#2563eb; }
     .ms-logo::before { width:2px; height:14px; left:10px; top:4px; opacity:.3; }
     .ms-logo::after { width:14px; height:2px; left:4px; top:10px; opacity:.3; }
     .login-note { color:#dce8ff; font-size:12.8px; line-height:1.7; margin-top:14px; }
-    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:20px; }
+    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:22px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
+
     .loading-overlay {
         display:none; position: fixed; inset:0; background: rgba(15,23,42,.30); backdrop-filter: blur(8px);
         z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
@@ -1617,13 +1617,13 @@ def render_login_page(auth_ready: bool):
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
+
     @media (max-width: 1024px) {
         .login-hero-card, .login-auth-card { min-height: auto; }
         .brand-title { font-size: 36px; }
         .login-panel-title { font-size: 38px; }
     }
     @media (max-width: 720px) {
-        .feature-grid { grid-template-columns: 1fr; }
         .brand-row { flex-direction: column; gap: 18px; }
         .brand-title { font-size:30px; }
         .login-panel-title { font-size: 32px; }
@@ -1659,19 +1659,18 @@ def render_login_page(auth_ready: bool):
                 <div>
                     <div class="brand-eyebrow">Optimal Group Platform</div>
                     <div class="brand-title">Sales Territory Dashboard</div>
-                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
+                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ Budget และยอดขายในมุมมองเดียว ช่วยให้ทีมงานเห็นภาพรวมและตัดสินใจได้เร็วขึ้น</div>
                 </div>
             </div>
             <div class="hero-chip-row">
                 <div class="hero-chip"><span class="chip-dot secure"></span>Microsoft 365 Security</div>
                 <div class="hero-chip"><span class="chip-dot map"></span>Smart Customer Mapping</div>
-                <div class="hero-chip"><span class="chip-dot insight"></span>Budget &amp; Performance Insight</div>
+                <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
             </div>
-            <div class="feature-grid">
-                <div class="feature-item"><div class="feature-icon">EX</div><div class="feature-title">Executive Visibility</div><div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับแต่ละแผนกในมุมมองเดียว</div></div>
-                <div class="feature-item"><div class="feature-icon">MI</div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในรูปแบบที่อ่านง่ายและพร้อมใช้งานทันที</div></div>
-                <div class="feature-item"><div class="feature-icon">SP</div><div class="feature-title">SharePoint Connected</div><div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีมขาย</div></div>
-                <div class="feature-item"><div class="feature-icon">RT</div><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การวิเคราะห์พื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div>
+            <div class="feature-stack">
+                <div class="feature-item"><div class="feature-line"><div class="feature-icon">DB</div><div><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมสำหรับยอดขาย Budget และโอกาสทางธุรกิจในรูปแบบที่อ่านง่ายและพร้อมใช้งาน</div></div></div></div>
+                <div class="feature-item"><div class="feature-line"><div class="feature-icon">MI</div><div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI ลูกค้าหลัก และโอกาสที่ควรติดตามต่อ ช่วยให้โฟกัสงานขายได้ชัดเจนยิ่งขึ้น</div></div></div></div>
+                <div class="feature-item"><div class="feature-line"><div class="feature-icon">RT</div><div><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การครอบคลุมพื้นที่ และการวางแผนเข้าพบลูกค้าได้อย่างเป็นระบบ</div></div></div></div>
             </div>
         </div>
         """), unsafe_allow_html=True)
@@ -1687,16 +1686,7 @@ def render_login_page(auth_ready: bool):
                     <div class="login-mini-icon">RB</div>
                     <div>
                         <div class="login-mini-title">Role-based access</div>
-                        <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กรอย่างชัดเจน</div>
-                    </div>
-                </div>
-            </div>
-            <div class="login-mini-card">
-                <div class="login-mini-head">
-                    <div class="login-mini-icon">SS</div>
-                    <div>
-                        <div class="login-mini-title">Simple and secure</div>
-                        <div class="login-mini-text">ใช้บัญชีองค์กรเดิม ไม่ต้องจำรหัสผ่านของระบบเพิ่ม และตรวจสอบสิทธิ์ก่อนเข้าใช้งานทุกครั้ง</div>
+                        <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กรอย่างชัดเจนและปลอดภัย</div>
                     </div>
                 </div>
             </div>
@@ -1724,7 +1714,6 @@ def render_login_page(auth_ready: bool):
             </div>
         </div>
         """), unsafe_allow_html=True)
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
