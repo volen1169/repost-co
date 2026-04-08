@@ -2160,9 +2160,9 @@ if menu == "📊 Team Dashboard":
             linear-gradient(180deg, #f8fbff 0%, #eef5ff 42%, #f7fbff 100%);
     }
     section.main > div {padding-top:0 !important;}
-    .main .block-container{max-width:1460px; padding-top:0.05rem !important; padding-bottom:1.3rem;}
-    div[data-testid="stVerticalBlock"]{gap:0.95rem;}
-    div[data-testid="column"] > div{gap:0.95rem;}
+    .main .block-container{max-width:1480px; padding-top:0.35rem !important; padding-bottom:2.2rem;}
+    div[data-testid="stVerticalBlock"]{gap:1.25rem;}
+    div[data-testid="column"] > div{gap:1.25rem;}
     [data-testid="stExpander"]{border:1px solid rgba(219,234,254,.95); border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.94)); box-shadow:0 14px 30px rgba(148,163,184,.10); margin-top:0.4rem;}
     [data-testid="stExpander"] details summary{padding:0.95rem 1.05rem; font-weight:800; color:#0f172a;}
     [data-testid="stExpanderDetails"]{padding:0.25rem 1rem 1rem 1rem;}
@@ -2173,9 +2173,9 @@ if menu == "📊 Team Dashboard":
     [data-testid="stDataFrame"]{border:1px solid rgba(219,234,254,.9); border-radius:18px; overflow:hidden; box-shadow:0 12px 24px rgba(148,163,184,.10);}
     [data-testid="stDataFrame"] [role="columnheader"]{background:#eff6ff !important; color:#1e3a5f !important; font-weight:800 !important; border-bottom:1px solid #dbeafe !important;}
     [data-testid="stDataFrame"] [role="gridcell"]{border-color:#eef2ff !important;}
-    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 24px 20px 24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:22px 28px 26px 28px; margin-bottom:1.8rem; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
     .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.08), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.08), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
-    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; flex-wrap:wrap;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:24px; flex-wrap:wrap;}
     .saas-title-wrap{display:flex; align-items:flex-start; gap:16px;}
     .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
     .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:4px;}
@@ -2183,28 +2183,30 @@ if menu == "📊 Team Dashboard":
     .saas-sub{font-size:13px; color:#334155; margin-top:8px; line-height:1.65; max-width:920px;}
     .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px; align-self:flex-end;}
     .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12);}
-    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
-    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px 18px 16px 18px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,247,255,.94)); border:1px solid rgba(203,213,225,.72); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:142px;}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-top:4px;}
+    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:20px 20px 18px 20px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,247,255,.94)); border:1px solid rgba(203,213,225,.72); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:152px;}
     .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.07);}
     .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
     .saas-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#0f172a; margin-top:12px; letter-spacing:-.04em;}
     .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b; line-height:1.5;}
     .saas-kpi.good .saas-kpi-value{color:#15803d;}
     .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
-    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.10); overflow:hidden; margin-bottom:0.15rem;}
+    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:26px; box-shadow:0 16px 32px rgba(148,163,184,.10); overflow:hidden; margin-bottom:1.15rem;}
     .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.98), rgba(224,242,254,.95)); border:1px solid rgba(186,230,253,.95);}
-    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 10px 20px;}
+    .saas-card.feature{box-shadow:0 18px 38px rgba(59,130,246,.12);}
+    .saas-card.flush{margin-bottom:0.2rem;}
+    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 22px 12px 22px;}
     .saas-card-title{font-size:17px; font-weight:900; color:#10224d; line-height:1.25;}
     .saas-card-sub{font-size:12px; color:#64748b; margin-top:4px; line-height:1.55;}
-    .saas-card-body{padding:0 20px 20px 20px;}
-    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-card-body{padding:0 22px 22px 22px;}
+    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
     .saas-mini-stat{border-radius:18px; padding:14px; background:linear-gradient(135deg, #ffffff, #eef6ff); border:1px solid rgba(191,219,254,.65); min-height:116px;}
     .saas-mini-stat.purple{background:linear-gradient(135deg, #fdf4ff, #f5f3ff);}
     .saas-mini-label{font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.05em;}
     .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
     .saas-mini-sub{font-size:12px; color:#64748b; margin-top:6px; line-height:1.5;}
-    .saas-list{display:flex; flex-direction:column; gap:4px;}
-    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px solid rgba(148,163,184,.14);}
+    .saas-list{display:flex; flex-direction:column; gap:6px;}
+    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 0; border-bottom:1px solid rgba(148,163,184,.14);}
     .saas-list-row:last-child{border-bottom:none; padding-bottom:0;}
     .saas-list-row:first-child{padding-top:4px;}
     .saas-rank{width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,#38bdf8,#60a5fa); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; box-shadow:0 10px 18px rgba(56,189,248,.18); flex:0 0 34px;}
@@ -2215,7 +2217,8 @@ if menu == "📊 Team Dashboard":
     .saas-pill.warn{background:linear-gradient(135deg,#f59e0b,#fde68a); color:#7c2d12;}
     .saas-pill.bad{background:linear-gradient(135deg,#ef4444,#fda4af); color:#fff;}
     .saas-pill.info{background:linear-gradient(135deg,#38bdf8,#93c5fd); color:#0f172a;}
-    .saas-table-wrap{margin-top:6px; border:1px solid rgba(219,234,254,.9); border-radius:20px; overflow:hidden; background:rgba(255,255,255,.88);}
+    .saas-table-wrap{margin-top:10px; border:1px solid rgba(219,234,254,.9); border-radius:20px; overflow:hidden; background:rgba(255,255,255,.88);}
+    .saas-section-label{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#60a5fa; margin:2px 0 8px 2px;}
     .saas-priority-table{width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed;}
     .saas-priority-table thead th{background:#eff6ff; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#56708f; text-align:left; padding:14px 16px; border-bottom:1px solid rgba(191,219,254,.95);}
     .saas-priority-table tbody td{padding:16px; border-bottom:1px solid rgba(226,232,240,.85); vertical-align:middle; color:#0f172a;}
@@ -2283,9 +2286,10 @@ if menu == "📊 Team Dashboard":
     </div>
     """, unsafe_allow_html=True)
 
-    main_left, main_right = st.columns([1.55, 1.0], gap="large")
+    main_left, main_right = st.columns([1.52, 1.0], gap="large")
 
     with main_left:
+        st.markdown("<div class='saas-section-label'>Leadership overview</div>", unsafe_allow_html=True)
         _saas_card(
             "Manager Snapshot",
             "ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า",
@@ -2303,7 +2307,7 @@ if menu == "📊 Team Dashboard":
                 </div>
             </div>
             """,
-            tone="dark",
+            tone="dark feature",
         )
 
         rank_rows = []
@@ -2357,11 +2361,12 @@ if menu == "📊 Team Dashboard":
         if not high_potential.empty:
             first_hp = high_potential.iloc[0]
             command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Province to push</div><div class='saas-meta'>{_safe_html(first_hp['Province'])} • {int(first_hp['customers'])} accounts • Achv. {float(first_hp['avg_achievement']):,.1f}%</div></div><div class='saas-pill info'>Expand</div></div>")
+        st.markdown("<div class='saas-section-label'>Immediate actions</div>", unsafe_allow_html=True)
         _saas_card(
             "Manager Command Center",
             "สรุปสิ่งที่หัวหน้าควรทำต่อทันทีในมุมมองเดียว",
             f"<div class='saas-list'>{''.join(command_rows) if command_rows else '<div class=\'saas-meta\'>ยังไม่มี insight เพิ่มเติม</div>'}</div>",
-            tone="dark",
+            tone="dark feature",
         )
 
         risk_rows = []
@@ -2385,6 +2390,7 @@ if menu == "📊 Team Dashboard":
             "High Potential Provinces",
             "จังหวัดที่ gap สูงและมีโอกาสขยาย",
             f"<div class='saas-list'>{''.join(hp_rows) if hp_rows else '<div class=\'saas-meta\'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>'}</div>",
+            tone="flush",
         )
 
     chart_left, chart_right = st.columns(2, gap="large")
