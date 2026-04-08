@@ -2139,13 +2139,13 @@ if menu == "📊 Team Dashboard":
     }
     .sp-card-btn .stDownloadButton > button,
     .sp-card-btn .stButton > button {
-        height: 46px;
+        height: 44px;
         border-radius: 14px;
         border: 1px solid #c7dbff;
         background: rgba(255,255,255,.78);
         color: #1e3a8a;
         font-weight: 700;
-        box-shadow: 0 10px 22px rgba(30,64,175,.07);
+        box-shadow: 0 8px 18px rgba(30,64,175,.06);
     }
     .saas-shell {
         position: relative;
@@ -2173,15 +2173,16 @@ if menu == "📊 Team Dashboard":
         position: relative;
         z-index: 2;
         display:grid;
-        grid-template-columns: 1.5fr auto;
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, .95fr);
         gap: 14px;
         align-items: start;
     }
     .saas-actions {
         display:flex;
         gap:10px;
-        flex-wrap:wrap;
+        flex-wrap:nowrap;
         justify-content:flex-end;
+        align-items:center;
     }
     .saas-kicker {
         font-size:12px;
@@ -2192,7 +2193,7 @@ if menu == "📊 Team Dashboard":
         margin-bottom:10px;
     }
     .saas-title {
-        font-size:54px;
+        font-size:52px;
         line-height:1.02;
         letter-spacing:-.04em;
         font-weight:900;
@@ -2201,7 +2202,7 @@ if menu == "📊 Team Dashboard":
     }
     .saas-subtitle {
         margin-top:14px;
-        max-width:840px;
+        max-width:760px;
         font-size:15px;
         line-height:1.8;
         color:#445b91;
@@ -2466,38 +2467,37 @@ if menu == "📊 Team Dashboard":
         </div>
         """, unsafe_allow_html=True)
 
-    c1, c2, c3, c4 = st.columns(4, gap='large')
-    with c1:
-        _saas_kpi_card("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰")
-    with c2:
-        _saas_kpi_card("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} / {total_budget:,.0f} kg", "🎯")
-    with c3:
-        _saas_kpi_card("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉")
-    with c4:
-        _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
-
     insight_bullets = [
         f"Top Opportunity: {top_opportunity}",
         f"Follow-up accounts could increase +{max(12, min(28, risk_accounts // 9 + 10))}%",
         f"Risk accounts now at {risk_accounts:,} accounts",
     ]
 
-    insight_col, summary_col = st.columns([1.05, 1.95], gap='large')
-    with insight_col:
+    k1, k2, k3, k4 = st.columns([1, 1, 1, 1], gap='large')
+    with k1:
+        _saas_kpi_card("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰")
+    with k2:
+        _saas_kpi_card("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} / {total_budget:,.0f} kg", "🎯")
+    with k3:
+        _saas_kpi_card("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉")
+    with k4:
         st.markdown(f"""
-            <div class='saas-insight' style='min-height:220px;'>
+            <div class='saas-insight' style='min-height:198px; height:198px;'>
                 <div class='saas-insight-label'>AI Insight</div>
                 <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
                 <ul class='saas-insight-list'>
                     <li>{insight_bullets[0]}</li>
                     <li>{insight_bullets[1]}</li>
-                    <li>{insight_bullets[2]}</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    with summary_col:
+
+    lower_left, lower_right = st.columns([1.05, 2.05], gap='large')
+    with lower_left:
+        _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
+    with lower_right:
         st.markdown(f"""
-            <div class='saas-panel' style='min-height:220px;'>
+            <div class='saas-panel' style='min-height:198px; height:198px;'>
                 <div class='saas-panel-head'>Executive Summary</div>
                 <div class='saas-panel-body'>
                     <div class='saas-op-row'>
