@@ -83,14 +83,14 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport1@poonyaruk.co.th",
+    "itsupport@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "itsupport@poonyaruk.co.th":"CO",
+    "Pornphavit.Bu@optimal.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2087,7 +2087,7 @@ if menu == "📊 Team Dashboard":
     strongest_rep = by_sp.iloc[0] if not by_sp.empty else None
     most_risky_rep = by_sp.sort_values(["risk_accounts", "achievement_pct"], ascending=[False, True]).iloc[0] if not by_sp.empty else None
 
-    map_points_json, _ = build_map_points(top_opp if not top_opp.empty else team_df.head(20))
+    map_points_json, map_points_no_coords_json = build_map_points(top_opp if not top_opp.empty else team_df.head(20))
     try:
         map_points = json.loads(map_points_json)
     except Exception:
@@ -2249,18 +2249,82 @@ if menu == "📊 Team Dashboard":
     st.markdown(f"<table class='saas-priority-table'><thead><tr><th>Customer</th><th>Score</th><th>Sales</th><th>Achv.</th><th>Gap</th></tr></thead><tbody>{''.join(rows)}</tbody></table>", unsafe_allow_html=True)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>โชว์จุดลูกค้าที่ควรโฟกัสแบบ SaaS card</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
-    chip_html = []
-    if map_points:
-        for i, p in enumerate(map_points[:8]):
-            left = 16 + (i * 9) % 66
-            top = 20 + (i * 11) % 56
-            cls = "red" if i < 4 else "blue"
-            chip_html.append(f"<div class='saas-map-chip {cls}' style='left:{left}%; top:{top}%;'>{p.get('name','Account')[:18]}</div>")
-    else:
-        chip_html.append("<div class='saas-map-chip blue' style='left:34%; top:34%;'>Coverage Point</div>")
-        chip_html.append("<div class='saas-map-chip red' style='left:58%; top:54%;'>Priority Account</div>")
-    st.markdown(f"<div class='saas-map-wrap'><div class='saas-map-base'></div><div class='saas-map-svg'>🗺️</div>{''.join(chip_html)}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    map_no_coords = []
+    try:
+        map_no_coords = json.loads(map_points_no_coords_json)
+    except Exception:
+        map_no_coords = []
+    map_component_id = f"saas-focus-map-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(st.session_state.get('dept') or 'all')).strip('-') or 'all'}"
+    top_priority_count = min(4, len(map_points))
+    normal_count = max(0, len(map_points) - top_priority_count)
+    map_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset='utf-8'/>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
+      <style>
+        * {{ box-sizing:border-box; }}
+        html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
+        .saas-real-map-shell {{ border-radius:22px; overflow:hidden; border:1px solid rgba(255,255,255,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.45); background:linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%); }}
+        .saas-real-map-toolbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(15,23,42,.92), rgba(37,99,235,.86)); color:#fff; flex-wrap:wrap; }}
+        .saas-real-map-title {{ font-size:13px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }}
+        .saas-real-map-meta {{ font-size:11px; color:#dbeafe; margin-top:4px; }}
+        .saas-real-map-legend {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }}
+        .saas-real-map-legend span {{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12); font-size:11px; font-weight:800; color:#eff6ff; }}
+        .saas-real-map-dot {{ width:9px; height:9px; border-radius:999px; display:inline-block; }}
+        #${map_component_id} {{ width:100%; height:360px; background:#dbeafe; }}
+        .focus-pin {{ width:18px; height:18px; border-radius:999px; border:3px solid rgba(255,255,255,.95); box-shadow:0 10px 20px rgba(15,23,42,.24); }}
+        .focus-pin.priority {{ background:linear-gradient(135deg,#ef4444,#fb7185); }}
+        .focus-pin.coverage {{ background:linear-gradient(135deg,#2563eb,#38bdf8); }}
+        .saas-real-map-note {{ padding:10px 14px 12px 14px; font-size:11.5px; color:#64748b; background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,252,.92)); }}
+        .leaflet-popup-content-wrapper {{ border-radius:16px; box-shadow:0 18px 32px rgba(15,23,42,.18); }}
+        .leaflet-popup-content {{ margin:12px 14px; }}
+      </style>
+    </head>
+    <body>
+      <div class='saas-real-map-shell'>
+        <div class='saas-real-map-toolbar'>
+          <div>
+            <div class='saas-real-map-title'>Live Coverage View</div>
+            <div class='saas-real-map-meta'>Priority {top_priority_count} จุด • Coverage {normal_count} จุด • Missing coords {len(map_no_coords)}</div>
+          </div>
+          <div class='saas-real-map-legend'>
+            <span><i class='saas-real-map-dot' style='background:#ef4444;'></i>Priority</span>
+            <span><i class='saas-real-map-dot' style='background:#2563eb;'></i>Coverage</span>
+          </div>
+        </div>
+        <div id='{map_component_id}'></div>
+        <div class='saas-real-map-note'>คลิกหมุดเพื่อดูชื่อบริษัทและผู้รับผิดชอบ • ระบบจะ auto-fit ตามจุดที่พบพิกัด</div>
+      </div>
+      <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+      <script>
+        const MAP_POINTS = {map_points_json};
+        const map = L.map('{map_component_id}', {{ zoomControl: true, scrollWheelZoom: false }}).setView([13.7563, 100.5018], 6);
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{ attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }}).addTo(map);
+        const bounds = [];
+        MAP_POINTS.forEach((item, index) => {{
+          if (typeof item.lat !== 'number' || typeof item.lng !== 'number') return;
+          const priority = index < {top_priority_count};
+          const icon = L.divIcon({{ className: '', html: `<div class="focus-pin ${{priority ? 'priority' : 'coverage'}}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10] }});
+          const marker = L.marker([item.lat, item.lng], {{ icon }}).addTo(map);
+          marker.bindPopup(`
+            <div style="min-width:180px">
+              <div style="font-weight:800;color:#0f172a;font-size:13px;">${{item.name || 'Account'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:6px;">👤 ${{item.salesperson || '-'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:4px;">📍 ${{item.province || '-'}}</div>
+              <div style="font-size:11px;color:${{priority ? '#dc2626' : '#2563eb'}};font-weight:700;margin-top:8px;">${{priority ? 'Priority account' : 'Coverage account'}}</div>
+            </div>
+          `);
+          bounds.push([item.lat, item.lng]);
+        }});
+        if (bounds.length) {{ map.fitBounds(bounds, {{ padding: [26, 26] }}); }}
+      </script>
+    </body>
+    </html>
+    """
+    components.html(map_html, height=420)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div><div class='saas-stack'>", unsafe_allow_html=True)
