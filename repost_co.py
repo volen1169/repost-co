@@ -1269,7 +1269,7 @@ def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊
     st.markdown(f"""
     <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-            <div style="font-size:13px; color:#475569; font-weight:700;">{label}</div>
+            <div style="font-size:12px; color:#475569; font-weight:700;">{label}</div>
             <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
         </div>
         <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
@@ -1281,11 +1281,11 @@ def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊
 def render_section_header(title: str, subtitle: str = "", icon: str = "✨", accent: str = "#2563eb"):
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
-        <div style="display:flex; align-items:flex-start; gap:14px;">
-            <div style="width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:18px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 40px;">{icon}</div>
             <div>
-                <div style="font-size:22px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
-                <div style="font-size:13px; color:#475569; margin-top:4px;">{subtitle}</div>
+                <div style="font-size:18px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
+                <div style="font-size:12px; color:#475569; margin-top:4px;">{subtitle}</div>
             </div>
         </div>
     </div>
@@ -1295,12 +1295,12 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
 def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
     badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
     st.markdown(f"""
-    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:18px; color:white; overflow:hidden; position:relative;">
+    <div style="background:{gradient}; border-radius:24px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:12px; color:white; overflow:hidden; position:relative;">
         <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
         <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
         <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
             <div style="max-width:860px;">
-                <div style="font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
+                <div style="font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
                 <div style="font-size:34px; line-height:1.08; font-weight:800; margin-bottom:8px;">{title}</div>
                 <div style="font-size:14px; line-height:1.7; color:#e0f2fe;">{subtitle}</div>
             </div>
@@ -1346,8 +1346,8 @@ def render_login_page(auth_ready: bool):
     }
     [data-testid="stHeader"] { background: transparent; }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: .45rem !important;
-        padding-bottom: .35rem !important;
+        padding-top: .18rem !important;
+        padding-bottom: .12rem !important;
         max-width: 1380px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
@@ -1373,23 +1373,23 @@ def render_login_page(auth_ready: bool):
         -webkit-backdrop-filter: blur(18px);
     }
     .login-hero-card {
-        padding: 28px 30px 26px 30px;
-        min-height: 700px;
+        padding: 24px 26px 22px 26px;
+        min-height: 620px;
         background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.06) 100%);
     }
     .login-auth-card {
-        padding: 28px;
-        min-height: 700px;
+        padding: 24px 24px 20px 24px;
+        min-height: 620px;
         background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.10) 100%);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
     .hero-top-badge {
         display:inline-flex; align-items:center; gap:10px; padding:10px 18px; border-radius:999px;
         background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
         color:#e6eefc; font-size:11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
-        margin-bottom:22px;
+        margin-bottom:12px;
     }
     .hero-top-badge::before {
         content:'';
@@ -1399,71 +1399,71 @@ def render_login_page(auth_ready: bool):
     }
     .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 18px; }
     .brand-logo {
-        width: 108px; height: 108px; border-radius: 30px; display:flex; align-items:center; justify-content:center;
+        width: 92px; height: 92px; border-radius: 30px; display:flex; align-items:center; justify-content:center;
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(229,237,255,.94) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 34px rgba(15,23,42,.12); flex: 0 0 108px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 34px rgba(15,23,42,.12); flex: 0 0 92px;
     }
-    .brand-logo-bars { display:flex; align-items:flex-end; gap:8px; height:50px; }
-    .brand-logo-bars span { width:11px; border-radius:999px; display:block; }
-    .brand-logo-bars span:nth-child(1){ height:32px; background:#7c3aed; }
-    .brand-logo-bars span:nth-child(2){ height:44px; background:#22c55e; }
-    .brand-logo-bars span:nth-child(3){ height:26px; background:#f59e0b; }
-    .brand-logo-bars span:nth-child(4){ height:38px; background:#38bdf8; }
+    .brand-logo-bars { display:flex; align-items:flex-end; gap:7px; height:42px; }
+    .brand-logo-bars span { width:10px; border-radius:999px; display:block; }
+    .brand-logo-bars span:nth-child(1){ height:27px; background:#7c3aed; }
+    .brand-logo-bars span:nth-child(2){ height:32px; background:#22c55e; }
+    .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
+    .brand-logo-bars span:nth-child(4){ height:32px; background:#38bdf8; }
     .brand-eyebrow { color: #d7e5ff; font-weight: 800; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; }
-    .brand-title { color: #ffffff; font-size: 54px; line-height: 1.02; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.04em; }
-    .brand-sub { color: #edf4ff; font-size: 16px; line-height: 1.85; margin-top: 16px; max-width: 760px; }
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; margin-bottom: 22px; }
+    .brand-title { color: #ffffff; font-size: 44px; line-height: 1.02; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.04em; }
+    .brand-sub { color: #edf4ff; font-size: 14px; line-height: 1.7; margin-top: 12px; max-width: 760px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; margin-bottom: 16px; }
     .hero-chip {
-        display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px;
-        background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); color:#eff6ff; font-size:13px; font-weight:700;
+        display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px;
+        background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); color:#eff6ff; font-size:12px; font-weight:700;
     }
     .chip-dot { width:12px; height:12px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
     .chip-dot.secure::before { content:'⊞'; color:#dbeafe; }
     .chip-dot.map::before { content:'📍'; }
     .chip-dot.insight::before { content:'📈'; }
-    .feature-stack { display:grid; grid-template-columns: 1fr; gap:16px; margin-top: 6px; }
+    .feature-stack { display:grid; grid-template-columns: 1fr; gap:12px; margin-top: 2px; }
     .feature-item {
-        border-radius: 28px; padding: 18px 20px; background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.05) 100%);
-        border: 1px solid rgba(255,255,255,.09); min-height: 108px; display:flex; align-items:center; gap:16px;
+        border-radius: 24px; padding: 14px 18px; background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.05) 100%);
+        border: 1px solid rgba(255,255,255,.09); min-height: 92px; display:flex; align-items:center; gap:16px;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
     .feature-item:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.14); box-shadow: 0 14px 26px rgba(2,6,23,.10); }
     .feature-icon {
-        width:54px; height:54px; border-radius:18px; display:flex; align-items:center; justify-content:center;
-        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.10); color:#fff; font-size:26px; flex:0 0 54px;
+        width:40px; height:40px; border-radius:15px; display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.10); color:#fff; font-size:18px; flex:0 0 54px;
     }
-    .feature-copy { display:flex; flex-direction:column; gap:5px; }
-    .feature-title { color:#fff; font-size:18px; font-weight:800; line-height:1.25; }
-    .feature-text { color:#dce8ff; font-size:13.5px; line-height:1.7; }
+    .feature-copy { display:flex; flex-direction:column; gap:3px; }
+    .feature-title { color:#fff; font-size:15px; font-weight:800; line-height:1.25; }
+    .feature-text { color:#dce8ff; font-size:12.5px; line-height:1.55; }
     .auth-top { display:flex; flex-direction:column; }
     .auth-kicker { color:#deebff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:14px; }
-    .login-panel-title { color:#ffffff; font-size:52px; font-weight:900; margin-bottom:18px; line-height:1.02; letter-spacing:-.04em; }
-    .login-panel-sub { color:#edf4ff; font-size:15px; line-height:1.9; margin-bottom:24px; max-width: 460px; }
-    .auth-bottom { margin-top: auto; }
+    .login-panel-title { color:#ffffff; font-size: 42px; font-weight:900; margin-bottom:12px; line-height:1.02; letter-spacing:-.04em; }
+    .login-panel-sub { color:#edf4ff; font-size:14px; line-height:1.7; margin-bottom:14px; max-width: 460px; }
+    .auth-bottom { margin-top: 10px; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
         border:1px solid rgba(219,234,254,.95);
-        border-radius:28px;
-        padding:20px 20px 18px 20px;
+        border-radius:24px;
+        padding:16px 16px 14px 16px;
         box-shadow: 0 14px 28px rgba(15,23,42,.08);
     }
-    .login-mini-head { display:flex; align-items:flex-start; gap:14px; }
+    .login-mini-head { display:flex; align-items:flex-start; gap:12px; }
     .login-mini-icon {
-        width:46px; height:46px; border-radius:16px; flex:0 0 46px;
+        width:40px; height:40px; border-radius:14px; flex:0 0 40px;
         display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:22px; font-weight:800;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:18px; font-weight:800;
         box-shadow: 0 10px 18px rgba(37,99,235,.18);
     }
-    .login-mini-title { color:#0f172a; font-size:16px; font-weight:800; margin-bottom:6px; }
-    .login-mini-text { color:#5f6f86; font-size:13px; line-height:1.7; }
+    .login-mini-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
+    .login-mini-text { color:#5f6f86; font-size:12px; line-height:1.7; }
     .auth-divider {
         height: 1px; width:100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.20), rgba(255,255,255,0));
-        margin: 18px 0 16px 0;
+        margin: 12px 0 12px 0;
     }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
-        text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:800; font-size:16px;
+        text-align:center; padding:14px 16px; border-radius:20px; text-decoration:none; font-weight:800; font-size:15px;
         background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.09) 100%);
         color:#ffffff; border: 1px solid rgba(255,255,255,.20);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 28px rgba(2,6,23,.16);
@@ -1484,14 +1484,14 @@ def render_login_page(auth_ready: bool):
     .ms-logo-grid span:nth-child(3){ background:#00a4ef; }
     .ms-logo-grid span:nth-child(4){ background:#ffb900; }
     .trust-line {
-        display:flex; align-items:center; gap:10px; margin-top:14px; color:#dce8ff; font-size:12.8px; line-height:1.6;
+        display:flex; align-items:center; gap:10px; margin-top:10px; color:#dce8ff; font-size:11.8px; line-height:1.6;
     }
     .trust-badge {
         width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center;
         background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.12); font-size:12px;
     }
-    .login-note { color:#dce8ff; font-size:12.6px; line-height:1.65; margin-top:10px; opacity:.92; }
-    .login-footer { text-align:left; color:#dce8ff; font-size:12.6px; margin-top:16px; }
+    .login-note { color:#dce8ff; font-size:11.6px; line-height:1.5; margin-top:8px; opacity:.92; }
+    .login-footer { text-align:left; color:#dce8ff; font-size:11.8px; margin-top:10px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
     .loading-overlay {
         display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
@@ -1534,7 +1534,7 @@ def render_login_page(auth_ready: bool):
     </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.48, 0.92], gap="large")
+    left, right = st.columns([1.50, 0.88], gap="medium")
     with left:
         st.markdown(textwrap.dedent("""
         <div class="login-hero-card">
@@ -1568,7 +1568,7 @@ def render_login_page(auth_ready: bool):
             <div class="auth-top">
                 <div class="auth-kicker">Secure sign in</div>
                 <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
+                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
             </div>
             <div class="auth-bottom">
                 <div class="login-mini-card">
@@ -1576,7 +1576,7 @@ def render_login_page(auth_ready: bool):
                         <div class="login-mini-icon">🛡️</div>
                         <div>
                             <div class="login-mini-title">Role-based access</div>
-                            <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กรอย่างชัดเจน</div>
+                            <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
                         </div>
                     </div>
                 </div>
@@ -1586,12 +1586,12 @@ def render_login_page(auth_ready: bool):
             login_url = _build_login_url()
             st.markdown(
                 f"""
-                <div class="auth-divider"></div>
+                
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
                     <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
                     <span>Sign in with Microsoft 365</span>
                 </a>
-                <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365 พร้อมตรวจสอบสิทธิ์ก่อนเข้าใช้งาน</span></div>
+                <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
                 """,
                 unsafe_allow_html=True,
             )
@@ -1602,7 +1602,7 @@ def render_login_page(auth_ready: bool):
 
         st.markdown(textwrap.dedent("""
                 <div class="login-footer">
-                    Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
                 </div>
             </div>
         </div>
@@ -2476,14 +2476,14 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .page{{display:flex;flex-direction:column;gap:10px;padding:4px;}}
 .route-bar{{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
-  padding:12px 16px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
-.route-title{{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}}
-.route-steps{{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;}}
+  padding:10px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
+.route-title{{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}}
+.route-steps{{display:flex;align-items:center;gap:7px;font-size:12px;flex-wrap:wrap;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
-.route-arrow{{font-size:16px;opacity:.8;}}
+.route-arrow{{font-size:15px;opacity:.8;}}
 .route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
-.btn-gmaps{{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
+.btn-gmaps{{display:inline-flex;align-items:center;gap:3px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
   padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;
   text-decoration:none;white-space:nowrap;}}
@@ -2504,14 +2504,14 @@ tbody tr.clickable:hover{{background:#dbeafe;}}
 tbody tr.clickable.active{{background:#bfdbfe!important;box-shadow:inset 3px 0 0 #2563eb;}}
 tbody tr.no-map{{cursor:default;opacity:.55;}}
 td{{padding:9px 13px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}}
-.co{{font-weight:600;font-size:13px;}}
+.co{{font-weight:600;font-size:12px;}}
 .has-map{{color:#2563eb;}}
 .no-loc{{color:#94a3b8;}}
 .sp{{color:#64748b;font-size:11px;margin-top:2px;}}
 .ind{{color:#374151;font-size:12px;}}
 .sal{{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}}
 .loc{{color:#374151;font-size:11.5px;word-break:break-word;min-width:160px;line-height:1.5;}}
-.legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:14px;background:#f8fafc;}}
+.legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:12px;background:#f8fafc;}}
 </style>
 </head>
 <body><div class="page">
@@ -2581,7 +2581,7 @@ clusterGroup.addTo(map);
 
 var originIcon = L.divIcon({{
     html: '<div style="background:#1e3a5f;color:#fff;border-radius:50%;width:40px;height:40px;'
-        + 'display:flex;align-items:center;justify-content:center;font-size:22px;'
+        + 'display:flex;align-items:center;justify-content:center;font-size:18px;'
         + 'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">🏠</div>',
     iconSize:[40,40], iconAnchor:[20,20]
 }});
@@ -2766,7 +2766,7 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
     }}
     var destIcon = L.divIcon({{
         html:'<div style="background:#dc2626;color:#fff;border-radius:50%;width:40px;height:40px;'
-            +'display:flex;align-items:center;justify-content:center;font-size:22px;'
+            +'display:flex;align-items:center;justify-content:center;font-size:18px;'
             +'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">📍</div>',
         iconSize:[40,40], iconAnchor:[20,20]
     }});
@@ -3182,7 +3182,7 @@ else:
 
                 card_tpl = (
                     '<div style="border:{border};background:{bg};border-radius:12px;'
-                    'padding:12px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+                    'padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
                     '<div style="display:flex;justify-content:space-between;align-items:center">'
                     '<span style="font-weight:700;font-size:14px;color:#1e293b">{name}</span>'
                     '<span style="font-weight:600;color:#16a34a;font-size:13px">{sales}</span></div>'
