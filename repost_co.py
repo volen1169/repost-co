@@ -2039,9 +2039,26 @@ if menu == "📊 Team Dashboard":
         + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
         + team_df["Sales/Year"].rank(pct=True).fillna(0) * 20
     ).round(1)
-    team_df["Salesperson"] = team_df["Salesperson"].fillna("").astype(str).replace("", "Unassigned")
+    team_df["Salesperson"] = team_df.get("Salesperson", "").fillna("").astype(str).replace("", "Unassigned")
     team_df["Province"] = team_df.get("Province", "").fillna("").astype(str).replace("", "ไม่ระบุ")
     team_df["Region_TH"] = team_df.get("Region_TH", "ไม่ระบุ").fillna("ไม่ระบุ").astype(str)
+
+    toolbar1, toolbar2, toolbar3, toolbar4 = st.columns([1.25, 1.1, 1.1, 1.0])
+    all_salespeople = [x for x in sorted(team_df["Salesperson"].dropna().astype(str).unique().tolist()) if x]
+    all_regions = [x for x in sorted(team_df["Region_TH"].dropna().astype(str).unique().tolist()) if x]
+    selected_salespeople = toolbar1.multiselect("Salesperson", all_salespeople, default=[])
+    selected_regions = toolbar2.multiselect("Region", all_regions, default=[])
+    sort_mode = toolbar3.selectbox("Focus Mode", ["Executive Overview", "Risk Focus", "Growth Focus"], index=0)
+    show_details = toolbar4.toggle("Show detail table", value=False)
+
+    if selected_salespeople:
+        team_df = team_df[team_df["Salesperson"].isin(selected_salespeople)].copy()
+    if selected_regions:
+        team_df = team_df[team_df["Region_TH"].isin(selected_regions)].copy()
+
+    if team_df.empty:
+        st.warning("ไม่พบข้อมูลตาม filter ที่เลือก")
+        st.stop()
 
     total_sales = float(team_df["Sales/Year"].sum())
     total_budget = float(team_df["Budget_kg"].sum())
@@ -2049,8 +2066,9 @@ if menu == "📊 Team Dashboard":
     total_gap = float(team_df["gap_kg"].sum())
     team_ach = (total_actual / total_budget * 100) if total_budget > 0 else 0.0
     risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
+    active_customers = int(team_df["Customer Name"].astype(str).nunique())
     active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
-    positive_yoy = int((team_df["yoy_pct"] > 0).sum())
+    covered_provinces = int(team_df["Province"].astype(str).replace("", pd.NA).dropna().nunique())
     sales_delta_pct = ((total_actual - total_budget) / total_budget * 100) if total_budget > 0 else 0.0
 
     by_sp = team_df.groupby("Salesperson", dropna=False).agg(
@@ -2059,6 +2077,8 @@ if menu == "📊 Team Dashboard":
         budget_kg=("Budget_kg", "sum"),
         actual_kg=("Actual_kg", "sum"),
         avg_yoy=("yoy_pct", "mean"),
+        avg_achievement=("achievement_pct", "mean"),
+        total_gap=("gap_kg", "sum"),
     ).reset_index()
     by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
     by_sp = by_sp.sort_values(["total_sales", "achievement_pct"], ascending=[False, False])
@@ -2067,174 +2087,284 @@ if menu == "📊 Team Dashboard":
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
     ).reset_index().rename(columns={"Region_TH": "region"}).sort_values("total_sales", ascending=False)
 
     by_province = team_df.groupby("Province", dropna=False).agg(
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
     ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
 
-    top_sales = by_sp.head(4).copy()
-    top_sales["sales_label"] = top_sales["total_sales"].apply(lambda v: f"{v/1e6:.1f}M ฿") if not top_sales.empty else []
-    trend = by_sp.head(6).copy()
-    high_potential = by_province.head(3).copy()
-    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(3).copy()
-    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(3).copy()
-    region_cards = by_region.head(3).copy()
+    if sort_mode == "Risk Focus":
+        top_focus_df = team_df.sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).copy()
+    elif sort_mode == "Growth Focus":
+        top_focus_df = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).copy()
+    else:
+        top_focus_df = team_df.sort_values(["Sales/Year", "achievement_pct"], ascending=False).copy()
+
+    top_sales = by_sp.head(6).copy()
+    trend = by_sp.head(8).copy()
+    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(5).copy()
+    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(5).copy()
+    high_potential = by_province.head(5).copy()
+    region_cards = by_region.head(4).copy()
+    top_region = str(region_cards.iloc[0]["region"]) if not region_cards.empty else "ไม่ระบุ"
+
+    def _fmt_money_m(v):
+        return f"{v/1e6:,.1f}M ฿"
+
+    ai_lines = []
+    if not top_opp.empty:
+        ai_lines.append(f"โอกาสเติบโตสูงสุดอยู่ที่ {top_opp.iloc[0]['Customer Name']} ({_fmt_money_m(float(top_opp.iloc[0]['gap_kg']))} gap)")
+    if not at_risk.empty:
+        ai_lines.append(f"ลูกค้าที่ควรรีบ follow-up คือ {at_risk.iloc[0]['Customer Name']} ({float(at_risk.iloc[0]['yoy_pct']):+.1f}% YoY)")
+    ai_lines.append(f"Region ที่ทำยอดเด่นสุดตอนนี้คือ {top_region}")
+    if not top_sales.empty:
+        ai_lines.append(f"Sales ที่มีผลงานสูงสุดคือ {top_sales.iloc[0]['Salesperson']} ({_fmt_money_m(float(top_sales.iloc[0]['total_sales']))})")
+    ai_summary = " • ".join(ai_lines[:3]) if ai_lines else "ยังมีข้อมูลไม่เพียงพอสำหรับสรุป insight"
 
     st.markdown("""
     <style>
     .stApp {
-        background: radial-gradient(circle at top left, rgba(96,165,250,.14), transparent 18%), linear-gradient(180deg, #eef2ff 0%, #f8fbff 100%);
+        background:
+            radial-gradient(circle at 8% 4%, rgba(59,130,246,.18), transparent 22%),
+            radial-gradient(circle at 95% 10%, rgba(56,189,248,.12), transparent 20%),
+            linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
     }
-    .main .block-container {max-width: 1450px; padding-top: 1.0rem; padding-bottom: 2rem;}
-    .td-stage{background:linear-gradient(135deg,#132c7f 0%, #2b56c9 48%, #74b8ff 100%); border-radius:34px; border:1px solid rgba(255,255,255,.18); box-shadow:0 28px 60px rgba(17,24,39,.22); overflow:hidden; position:relative; padding:26px 28px 22px;}
-    .td-stage:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 78% 10%, rgba(255,255,255,.28), transparent 22%), radial-gradient(circle at 16% 86%, rgba(255,255,255,.12), transparent 24%); pointer-events:none;}
-    .td-top-title{position:relative; z-index:2; text-align:center; color:#fff; margin-bottom:18px;}
-    .td-top-title h1{font-size:52px; letter-spacing:-.03em; font-weight:900; margin:0; line-height:1;}
-    .td-top-title p{font-size:14px; color:#dbeafe; margin:8px 0 0 0;}
-    .td-line-title{display:flex; align-items:center; gap:14px; color:#fff; font-weight:800; font-size:18px; margin:16px 0 14px; position:relative; z-index:2;}
-    .td-line-title:before,.td-line-title:after{content:''; height:1px; flex:1; background:linear-gradient(90deg, rgba(255,255,255,.0), rgba(255,255,255,.7), rgba(255,255,255,.0));}
-    .td-line-title .dot{width:34px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center; background:rgba(15,23,42,.25); border:1px solid rgba(255,255,255,.24); box-shadow: inset 0 1px 0 rgba(255,255,255,.16);}
-    .td-grid-top{position:relative; z-index:2; display:grid; grid-template-columns: 1.9fr .95fr; gap:16px;}
-    .td-kpi-grid{display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:14px;}
-    .td-glass-card{position:relative; overflow:hidden; min-height:156px; border-radius:24px; padding:18px 20px; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.09)); border:1px solid rgba(255,255,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 18px 28px rgba(15,23,42,.16); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);}
-    .td-glass-card:after{content:''; position:absolute; left:-5%; right:-5%; bottom:-18px; height:70px; background:radial-gradient(ellipse at center, rgba(255,255,255,.38) 0%, rgba(255,255,255,.15) 40%, transparent 76%); opacity:.75;}
-    .td-kpi-label{font-size:14px; color:#eef2ff; font-weight:700; margin-bottom:12px;}
-    .td-kpi-value{font-size:54px; line-height:1; font-weight:900; color:#fff; letter-spacing:-.04em;}
-    .td-kpi-sub{margin-top:10px; font-size:13px; color:#f8fafc;}
-    .td-market-card{min-height:346px;}
-    .td-panel{background:linear-gradient(180deg, rgba(255,255,255,.82), rgba(241,245,249,.75)); border:1px solid rgba(255,255,255,.55); border-radius:22px; overflow:hidden; box-shadow:0 18px 30px rgba(15,23,42,.10);}
-    .td-panel-head{padding:14px 18px 10px; font-size:16px; font-weight:800; color:#173075; background:linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.03));}
-    .td-panel-body{padding:12px 16px 16px;}
-    .td-market-wrap{display:grid; grid-template-columns: 1.15fr .72fr; gap:12px; align-items:center;}
-    .td-thailand{height:270px; border-radius:18px; background:radial-gradient(circle at 30% 15%, rgba(255,199,94,.55), transparent 18%), radial-gradient(circle at 62% 42%, rgba(168,85,247,.48), transparent 18%), radial-gradient(circle at 70% 82%, rgba(96,165,250,.46), transparent 18%), linear-gradient(180deg, #244ea8 0%, #173986 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-size:100px; box-shadow: inset 0 0 30px rgba(255,255,255,.08);} 
-    .td-region-stack{display:flex; flex-direction:column; gap:14px;}
-    .td-region-pill{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:14px; color:#fff; background:linear-gradient(135deg, rgba(28,63,155,.92), rgba(38,101,208,.78)); box-shadow:0 12px 18px rgba(23,52,122,.18);}
-    .td-region-pill .r1{font-size:14px; font-weight:800;}
-    .td-region-pill .r2{font-size:16px; font-weight:900;}
-    .td-main-grid{position:relative; z-index:2; display:grid; grid-template-columns: 1.9fr .95fr; gap:16px; margin-top:16px;}
-    .td-left-stack,.td-right-stack{display:flex; flex-direction:column; gap:16px;}
-    .td-two{display:grid; grid-template-columns: 1fr 1.05fr; gap:14px;}
-    .td-bottom-two{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
-    .td-list-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid rgba(148,163,184,.16);} 
-    .td-list-row:last-child{border-bottom:none;}
-    .td-name{font-size:14px; font-weight:800; color:#173075;}
-    .td-meta{margin-top:4px; font-size:12px; color:#64748b;}
-    .td-pill-green,.td-pill-red{display:inline-flex; align-items:center; justify-content:center; min-width:102px; padding:8px 12px; border-radius:10px; color:#fff; font-size:13px; font-weight:900; box-shadow:0 10px 16px rgba(15,23,42,.12);} 
-    .td-pill-green{background:linear-gradient(135deg,#22c55e,#6ee7b7);} 
-    .td-pill-red{background:linear-gradient(135deg,#ef4444,#fb7185);} 
-    .td-bottom-actions{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
-    .td-action-wrap .stDownloadButton > button, .td-action-wrap .stButton > button{height:54px; border-radius:16px; font-weight:800; font-size:16px; border:1px solid rgba(255,255,255,.28); background:linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.08)); color:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 22px rgba(15,23,42,.16);} 
-    .td-detail-wrap{margin-top:22px;}
-    @media (max-width: 1200px){ .td-grid-top, .td-main-grid{grid-template-columns:1fr;} .td-market-card{min-height:auto;} }
-    @media (max-width: 860px){ .td-kpi-grid,.td-two,.td-bottom-two,.td-market-wrap{grid-template-columns:1fr;} .td-top-title h1{font-size:38px;} }
+    .main .block-container {max-width: 1500px; padding-top: 1rem; padding-bottom: 2.2rem;}
+    .crm-hero {
+        position: relative; overflow: hidden; border-radius: 30px; padding: 28px 30px;
+        background: linear-gradient(135deg, #081b4b 0%, #123a9a 52%, #38bdf8 100%);
+        border: 1px solid rgba(255,255,255,.15); box-shadow: 0 24px 54px rgba(15,23,42,.18);
+        color: white; margin-bottom: 14px;
+    }
+    .crm-hero:before {
+        content: ''; position:absolute; right:-60px; top:-60px; width:220px; height:220px; border-radius:999px;
+        background: rgba(255,255,255,.10);
+    }
+    .crm-hero:after {
+        content: ''; position:absolute; right:120px; bottom:-85px; width:240px; height:240px; border-radius:999px;
+        background: rgba(255,255,255,.06);
+    }
+    .crm-hero-grid {position:relative; z-index:1; display:grid; grid-template-columns: 1.45fr .75fr; gap:18px; align-items:stretch;}
+    .crm-kicker {font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#dbeafe; font-weight:800; margin-bottom:10px;}
+    .crm-title {font-size:40px; font-weight:900; line-height:1.02; letter-spacing:-.04em; margin-bottom:10px;}
+    .crm-sub {font-size:14px; line-height:1.7; color:#e0f2fe; max-width: 920px;}
+    .crm-mini-insight {
+        background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+        border:1px solid rgba(255,255,255,.18); border-radius:22px; padding:18px 18px 16px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .crm-mini-insight .head {font-size:12px; font-weight:800; letter-spacing:.08em; color:#dbeafe; text-transform:uppercase; margin-bottom:10px;}
+    .crm-mini-insight .big {font-size:28px; line-height:1.1; font-weight:900; margin-bottom:8px;}
+    .crm-mini-insight .small {font-size:12.5px; color:#e2e8f0; line-height:1.7;}
+    .crm-kpi-grid {display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:14px; margin: 12px 0 14px;}
+    .crm-kpi {
+        border-radius: 24px; padding: 18px 18px 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,245,249,.88));
+        border:1px solid rgba(219,234,254,.95); box-shadow: 0 14px 28px rgba(15,23,42,.08);
+        min-height: 138px;
+    }
+    .crm-kpi .label {font-size:12px; color:#475569; font-weight:800; margin-bottom:12px;}
+    .crm-kpi .value {font-size:30px; line-height:1.05; color:#0f172a; font-weight:900; letter-spacing:-.03em;}
+    .crm-kpi .sub {font-size:12px; color:#64748b; margin-top:8px; line-height:1.6;}
+    .crm-section-title {display:flex; align-items:center; gap:10px; margin: 18px 0 12px; color:#0f172a; font-weight:900; font-size:19px;}
+    .crm-section-title .dot {width:34px; height:34px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1d4ed8,#38bdf8); color:#fff; box-shadow:0 10px 20px rgba(37,99,235,.18);}
+    .crm-two {display:grid; grid-template-columns: 1.05fr .95fr; gap:14px;}
+    .crm-panel {background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%); border:1px solid #e2e8f0; border-radius:24px; box-shadow:0 16px 32px rgba(15,23,42,.06); overflow:hidden;}
+    .crm-panel-head {padding:15px 18px 11px; border-bottom:1px solid #edf2f7; font-weight:800; color:#16327c; font-size:15px;}
+    .crm-panel-body {padding:14px 16px 16px;}
+    .crm-list {display:flex; flex-direction:column; gap:10px;}
+    .crm-row {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:16px; background:#f8fbff; border:1px solid #e8eefc;}
+    .crm-name {font-size:13px; font-weight:800; color:#0f172a;}
+    .crm-meta {font-size:11.5px; color:#64748b; margin-top:4px;}
+    .crm-pill-blue, .crm-pill-red, .crm-pill-green {
+        border-radius:999px; padding:7px 11px; font-size:11px; font-weight:800; white-space:nowrap;
+    }
+    .crm-pill-blue {background:#dbeafe; color:#1d4ed8;}
+    .crm-pill-red {background:#fee2e2; color:#dc2626;}
+    .crm-pill-green {background:#dcfce7; color:#15803d;}
+    .crm-action-grid {display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:14px;}
+    .crm-map-shell {background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); border:1px solid #e2e8f0; border-radius:26px; overflow:hidden; box-shadow:0 18px 34px rgba(15,23,42,.06);}
+    .crm-map-head {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px; border-bottom:1px solid #eef2f7;}
+    .crm-map-title {font-weight:900; color:#0f172a; font-size:17px;}
+    .crm-map-sub {font-size:12px; color:#64748b;}
+    .crm-ai-box {background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 60%, #38bdf8 100%); color:white; border-radius:24px; padding:18px 20px; box-shadow:0 18px 36px rgba(30,64,175,.20);}
+    .crm-ai-head {font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:#dbeafe; font-weight:800; margin-bottom:10px;}
+    .crm-ai-text {font-size:14px; line-height:1.8; color:#eff6ff;}
+    @media (max-width: 1200px) {
+        .crm-kpi-grid {grid-template-columns: repeat(2, minmax(0,1fr));}
+        .crm-hero-grid, .crm-two {grid-template-columns: 1fr;}
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='td-stage'>", unsafe_allow_html=True)
-    st.markdown("""
-        <div class='td-top-title'>
-            <h1>TEAM DASHBOARD</h1>
-            <p>Sales Overview &amp; Performance Insights</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='td-line-title'><span class='dot'>✔</span><span>Overall KPIs</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-grid-top'>", unsafe_allow_html=True)
-
-    st.markdown("<div class='td-kpi-grid'>", unsafe_allow_html=True)
-    delta_prefix = "↑" if sales_delta_pct >= 0 else "↓"
     st.markdown(f"""
-        <div class='td-glass-card'>
-            <div class='td-kpi-label'>Total Sales</div>
-            <div class='td-kpi-value'>{total_sales/1e6:,.1f}M ฿ {delta_prefix}</div>
-            <div class='td-kpi-sub'>{sales_delta_pct:+.1f}% เทียบ Budget ทั้งทีม</div>
+    <div class="crm-hero">
+        <div class="crm-hero-grid">
+            <div>
+                <div class="crm-kicker">Executive CRM Team Dashboard</div>
+                <div class="crm-title">Team Performance Overview</div>
+                <div class="crm-sub">ภาพรวมทีมขายแบบ Executive + CRM ในหน้าเดียว เห็นยอดขาย Achievement ความเสี่ยง โอกาสเติบโต และ coverage ของลูกค้าทั้งแผนก พร้อม insight ที่พร้อมใช้ตัดสินใจทันที</div>
+            </div>
+            <div class="crm-mini-insight">
+                <div class="head">AI Insight</div>
+                <div class="big">{_fmt_money_m(total_sales)}</div>
+                <div class="small">{ai_summary}</div>
+            </div>
         </div>
-        <div class='td-glass-card'>
-            <div class='td-kpi-label'>Total Budget</div>
-            <div class='td-kpi-value'>{total_budget/1e6:,.1f}M ฿</div>
-            <div class='td-kpi-sub'>ลูกค้าทั้งหมด {len(team_df):,} ราย • {active_sales} sales</div>
-        </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    gauge_col1, gauge_col2 = st.columns([0.55,0.45])
-    with gauge_col1:
-        st.markdown(f"<div class='td-glass-card'><div class='td-kpi-label'>Achievement</div><div class='td-kpi-value'>{team_ach:,.0f}%</div><div class='td-kpi-sub'>Target 90%</div></div>", unsafe_allow_html=True)
-    with gauge_col2:
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=team_ach,
-            number={'suffix': "%", 'font': {'size': 34, 'color': '#ffffff'}},
-            gauge={
-                'axis': {'range': [0, 100], 'tickwidth': 0},
-                'bar': {'color': '#fb923c'},
-                'bgcolor': 'rgba(255,255,255,.12)',
-                'borderwidth': 0,
-                'steps': [
-                    {'range': [0, 60], 'color': 'rgba(148,163,184,.25)'},
-                    {'range': [60, 90], 'color': 'rgba(96,165,250,.32)'},
-                    {'range': [90, 100], 'color': 'rgba(239,68,68,.25)'}
-                ],
-            }
+    st.markdown("<div class='crm-kpi-grid'>", unsafe_allow_html=True)
+    for label, value, sub in [
+        ("Total Sales", _fmt_money_m(total_sales), f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales"),
+        ("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg"),
+        ("Gap to Close", _fmt_money_m(total_gap), f"Risk accounts {risk_accounts:,} ราย"),
+        ("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด"),
+        ("Top Region", top_region, f"{int(region_cards.iloc[0]['customers']):,} accounts" if not region_cards.empty else "ยังไม่มีข้อมูล"),
+    ]:
+        st.markdown(f"<div class='crm-kpi'><div class='label'>{label}</div><div class='value'>{value}</div><div class='sub'>{sub}</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='crm-section-title'><span class='dot'>📈</span><span>Executive Analytics</span></div>", unsafe_allow_html=True)
+    analytic_left, analytic_right = st.columns([1.02, 0.98])
+
+    with analytic_left:
+        st.markdown("<div class='crm-panel'><div class='crm-panel-head'>Sales Trend & Achievement by Salesperson</div><div class='crm-panel-body'>", unsafe_allow_html=True)
+        trend_fig = go.Figure()
+        trend_fig.add_trace(go.Scatter(
+            x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %",
+            line=dict(width=3, color="#2563eb"), fill="tozeroy", fillcolor="rgba(37,99,235,.12)"
         ))
-        fig_gauge.update_layout(height=180, margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
-        st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='td-panel td-market-card'><div class='td-panel-head'>Market Insights</div><div class='td-panel-body'><div class='td-market-wrap'><div class='td-thailand'>🗺️</div><div class='td-region-stack'>", unsafe_allow_html=True)
-    for _, row in region_cards.iterrows():
-        st.markdown(f"<div class='td-region-pill'><div class='r1'>{row['region']}</div><div class='r2'>{float(row['total_sales'])/1e6:.1f}M ฿</div></div>", unsafe_allow_html=True)
-    st.markdown("</div></div></div></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='td-main-grid'>", unsafe_allow_html=True)
-    st.markdown("<div class='td-left-stack'>", unsafe_allow_html=True)
-
-    st.markdown("<div class='td-line-title'><span class='dot'>✔</span><span>Sales Performance</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-two'>", unsafe_allow_html=True)
-
-    with st.container():
-        st.markdown("<div class='td-panel'><div class='td-panel-head'>Top Sales Reps</div><div class='td-panel-body'>", unsafe_allow_html=True)
-        fig_top = px.bar(top_sales, x="total_sales", y="Salesperson", orientation="h", text="sales_label", color="achievement_pct", color_continuous_scale=[[0, '#ef4444'], [0.5, '#60a5fa'], [1, '#8b5cf6']])
-        fig_top.update_traces(textposition="outside", marker_line_width=0)
-        fig_top.update_layout(height=250, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=8, r=12, t=8, b=8), xaxis_title=None, yaxis_title=None)
-        st.plotly_chart(fig_top, use_container_width=True, config={"displayModeBar": False})
+        trend_fig.add_trace(go.Scatter(
+            x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %",
+            line=dict(width=3, color="#f97316")
+        ))
+        trend_fig.update_layout(height=315, margin=dict(l=8, r=12, t=6, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", legend=dict(orientation="h", y=1.1, x=0), xaxis_title=None, yaxis_title=None)
+        st.plotly_chart(trend_fig, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown("<div class='td-panel'><div class='td-panel-head'>Win / Loss Trend</div><div class='td-panel-body'>", unsafe_allow_html=True)
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=3, color='#2563eb'), fill='tozeroy', fillcolor='rgba(37,99,235,.15)'))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=3, color='#f97316')))
-        fig_trend.update_layout(height=250, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=8, r=10, t=8, b=8), legend=dict(orientation='h', y=1.08, x=0), xaxis_title=None, yaxis_title=None)
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+    with analytic_right:
+        st.markdown("<div class='crm-panel'><div class='crm-panel-head'>Top Sales Ranking</div><div class='crm-panel-body'>", unsafe_allow_html=True)
+        bar_fig = px.bar(
+            top_sales,
+            x="total_sales",
+            y="Salesperson",
+            orientation="h",
+            text=top_sales["total_sales"].apply(_fmt_money_m),
+            color="achievement_pct",
+            color_continuous_scale=[[0, "#ef4444"], [0.55, "#60a5fa"], [1, "#8b5cf6"]],
+        )
+        bar_fig.update_traces(textposition="outside", marker_line_width=0)
+        bar_fig.update_layout(height=315, margin=dict(l=8, r=20, t=6, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, coloraxis_showscale=False)
+        st.plotly_chart(bar_fig, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='td-line-title'><span class='dot'>✔</span><span>Risk &amp; Opportunity</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-bottom-two'>", unsafe_allow_html=True)
-    opp_html = []
-    for _, row in top_opp.iterrows():
-        opp_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Customer Name']}</div><div class='td-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='td-pill-green'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
-    risk_html = []
-    for _, row in at_risk.iterrows():
-        risk_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Customer Name']}</div><div class='td-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='td-pill-red'>{float(row['yoy_pct']):+.1f}%</div></div>")
-    risk_body = ''.join(risk_html) if risk_html else "<div class='td-meta'>ไม่พบ account ที่เสี่ยงในเกณฑ์ปัจจุบัน</div>"
-    opp_body = ''.join(opp_html) if opp_html else "<div class='td-meta'>ยังไม่พบ account ที่เข้าเกณฑ์ growth สูง</div>"
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>At Risk Accounts</div><div class='td-panel-body'>{risk_body}</div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>Growth Opportunities</div><div class='td-panel-body'>{opp_body}</div></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='crm-section-title'><span class='dot'>🗺️</span><span>Smart Customer Coverage Map</span></div>", unsafe_allow_html=True)
+    map_points_json, map_points_no_coords_json = build_map_points(team_df)
+    map_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset='utf-8'>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'/>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'/>
+      <style>
+        html, body {{margin:0; padding:0; background:transparent; font-family:Arial,sans-serif;}}
+        .map-shell {{padding:0;}}
+        #map {{height:430px; width:100%; border-radius:0;}}
+        .legend {{display:flex; gap:10px; flex-wrap:wrap; padding:12px 14px; font-size:12px; color:#475569; background:#f8fbff; border-top:1px solid #e2e8f0;}}
+        .legend span {{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border:1px solid #e2e8f0; border-radius:999px;}}
+        .hint {{padding:8px 14px 0; font-size:11px; color:#64748b;}}
+      </style>
+    </head>
+    <body>
+      <div class='map-shell'>
+        <div id='map'></div>
+        <div class='legend'>
+          <span>📍 Cluster customer markers</span>
+          <span>🗺️ Click marker to open Google Maps</span>
+          <span>⚠️ No-coord accounts: {len(json.loads(map_points_no_coords_json))}</span>
+        </div>
+      </div>
+      <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+      <script src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js'></script>
+      <script>
+        const points = {map_points_json};
+        const map = L.map('map').setView([13.7563, 100.5018], 6);
+        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{maxZoom:19, attribution:'© OpenStreetMap contributors'}}).addTo(map);
+        const cluster = L.markerClusterGroup({{maxClusterRadius: 42, showCoverageOnHover:false}});
+        const bounds = [];
+        points.forEach(p => {{
+          const mk = L.marker([Number(p.lat), Number(p.lng)]);
+          const q = encodeURIComponent(p.query || ((p.plus_code || '') + ' Thailand'));
+          mk.bindPopup(`<b>${{String(p.name||'')}}</b><br><small>👤 ${{String(p.salesperson||'-')}}</small><br><small>📍 ${{String(p.province||'-')}}</small><br><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=${{q}}'>Open in Google Maps</a>`);
+          cluster.addLayer(mk);
+          bounds.push([Number(p.lat), Number(p.lng)]);
+        }});
+        map.addLayer(cluster);
+        if (bounds.length > 1) map.fitBounds(bounds, {{padding:[24,24]}});
+        else if (bounds.length === 1) map.setView(bounds[0], 10);
+      </script>
+    </body>
+    </html>
+    """
+    st.markdown("<div class='crm-map-shell'><div class='crm-map-head'><div><div class='crm-map-title'>Thailand Customer Coverage</div><div class='crm-map-sub'>ภาพรวมการกระจายลูกค้าแบบ cluster พร้อมลิงก์เปิด Google Maps</div></div><div class='crm-pill-blue'>หมุด {len(json.loads(map_points_json)):,}</div></div>", unsafe_allow_html=True)
+    components.html(map_html, height=500)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='td-right-stack'>", unsafe_allow_html=True)
-    hp_html = []
-    for _, row in high_potential.iterrows():
-        hp_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Province']}</div><div class='td-meta'>{int(row['customers']):,} accounts</div></div><div class='td-pill-red'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>High Potential Provinces</div><div class='td-panel-body'>{''.join(hp_html)}</div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='crm-section-title'><span class='dot'>🎯</span><span>Opportunity & Action Center</span></div>", unsafe_allow_html=True)
+    opp_left, opp_right = st.columns([1.05, 0.95])
 
-    st.markdown("<div class='td-bottom-actions'>", unsafe_allow_html=True)
-    st.markdown("<div class='td-action-wrap'>", unsafe_allow_html=True)
+    with opp_left:
+        st.markdown("<div class='crm-panel'><div class='crm-panel-head'>Top Opportunity Accounts</div><div class='crm-panel-body'><div class='crm-list'>", unsafe_allow_html=True)
+        opp_body = []
+        for _, row in top_opp.iterrows():
+            opp_body.append(f"<div class='crm-row'><div><div class='crm-name'>{row['Customer Name']}</div><div class='crm-meta'>{row['Salesperson']} • {row['Province']} • Score {float(row['opportunity_score']):.1f}</div></div><div class='crm-pill-green'>{_fmt_money_m(float(row['gap_kg']))}</div></div>")
+        st.markdown("".join(opp_body) if opp_body else "<div class='crm-meta'>ยังไม่พบข้อมูลโอกาส</div>", unsafe_allow_html=True)
+        st.markdown("</div></div></div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='crm-panel'><div class='crm-panel-head'>High Potential Provinces</div><div class='crm-panel-body'><div class='crm-list'>", unsafe_allow_html=True)
+        province_body = []
+        for _, row in high_potential.iterrows():
+            province_body.append(f"<div class='crm-row'><div><div class='crm-name'>{row['Province']}</div><div class='crm-meta'>{int(row['customers']):,} accounts • achievement {float(row['avg_achievement']):.0f}%</div></div><div class='crm-pill-blue'>{_fmt_money_m(float(row['gap_kg']))}</div></div>")
+        st.markdown("".join(province_body) if province_body else "<div class='crm-meta'>ยังไม่พบจังหวัดที่เข้าเกณฑ์</div>", unsafe_allow_html=True)
+        st.markdown("</div></div></div>", unsafe_allow_html=True)
+
+    with opp_right:
+        st.markdown("<div class='crm-panel'><div class='crm-panel-head'>At Risk Accounts</div><div class='crm-panel-body'><div class='crm-list'>", unsafe_allow_html=True)
+        risk_body = []
+        for _, row in at_risk.iterrows():
+            risk_body.append(f"<div class='crm-row'><div><div class='crm-name'>{row['Customer Name']}</div><div class='crm-meta'>{row['Salesperson']} • {row['Province']} • Achievement {float(row['achievement_pct']):.0f}%</div></div><div class='crm-pill-red'>{float(row['yoy_pct']):+.1f}% YoY</div></div>")
+        st.markdown("".join(risk_body) if risk_body else "<div class='crm-meta'>ไม่พบ account ที่เสี่ยงในเกณฑ์ปัจจุบัน</div>", unsafe_allow_html=True)
+        st.markdown("</div></div></div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='crm-ai-box'><div class='crm-ai-head'>AI Suggestion Panel</div><div class='crm-ai-text'>• {('<br>• '.join(ai_lines[:4])) if ai_lines else 'ยังมีข้อมูลไม่เพียงพอสำหรับสรุป insight'}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='crm-section-title'><span class='dot'>📋</span><span>CRM Opportunity Table</span></div>", unsafe_allow_html=True)
+    display_cols = ["Customer Name", "Salesperson", "Province", "Region_TH", "Sales/Year", "Budget_kg", "Actual_kg", "gap_kg", "achievement_pct", "yoy_pct", "opportunity_score"]
+    focus_show = top_focus_df[display_cols].copy().head(25)
+    focus_show = focus_show.rename(columns={
+        "Customer Name": "Customer",
+        "Salesperson": "Salesperson",
+        "Province": "Province",
+        "Region_TH": "Region",
+        "Sales/Year": "Sales/Year",
+        "Budget_kg": "Budget",
+        "Actual_kg": "Actual",
+        "gap_kg": "Gap",
+        "achievement_pct": "Achievement %",
+        "yoy_pct": "YoY %",
+        "opportunity_score": "Opportunity Score",
+    })
+    st.dataframe(style_rich_dataframe(focus_show, numeric_cols=["Sales/Year", "Budget", "Actual", "Gap"], pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=420 if show_details else 320)
+
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
         "Salesperson Summary": by_sp,
@@ -2242,32 +2372,41 @@ if menu == "📊 Team Dashboard":
         "At Risk": at_risk,
         "Province Focus": by_province,
     })
-    st.download_button("📁 Export Team Report", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-action-wrap'>", unsafe_allow_html=True)
-    if st.button("🔍 View Customer List", use_container_width=True):
-        st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
-        _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
-    with st.expander("📋 Detailed Team Performance", expanded=False):
-        sp_show = by_sp.rename(columns={"customers": "Customers", "total_sales": "Sales", "budget_kg": "Budget", "actual_kg": "Actual", "achievement_pct": "Achievement %", "avg_yoy": "Avg YoY %"}).copy()
-        st.dataframe(style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual"], pct_cols=["Achievement %", "Avg YoY %"]), use_container_width=True, hide_index=True, height=300)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.download_button("⬇️ Download Team Summary CSV", data=by_sp.to_csv(index=False, encoding="utf-8-sig"), file_name=f"team_summary_{st.session_state.get('dept') or 'ALL'}.csv", mime="text/csv", use_container_width=True)
-        with c2:
-            if st.button("☁️ Upload Team Dashboard to SharePoint", use_container_width=True):
-                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                if ok:
-                    append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
-                    st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
+    action1, action2, action3 = st.columns([1, 1, 1])
+    with action1:
+        st.download_button(
+            "📁 Export Executive CRM Report",
+            data=manager_report,
+            file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with action2:
+        if st.button("🔍 View Customer List", use_container_width=True):
+            st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
+            _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
+            st.rerun()
+    with action3:
+        if st.button("☁️ Upload Report to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
+
+    if show_details:
+        with st.expander("Detailed Team Performance", expanded=False):
+            sp_show = by_sp.rename(columns={
+                "customers": "Customers",
+                "total_sales": "Sales",
+                "budget_kg": "Budget",
+                "actual_kg": "Actual",
+                "achievement_pct": "Achievement %",
+                "avg_yoy": "Avg YoY %",
+                "total_gap": "Gap",
+            }).copy()
+            st.dataframe(style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual", "Gap"], pct_cols=["Achievement %", "Avg YoY %"]), use_container_width=True, hide_index=True, height=320)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 2 – CUSTOMER TABLE
