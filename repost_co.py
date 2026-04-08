@@ -1440,12 +1440,12 @@ def render_login_page(auth_ready: bool):
     .auth-kicker { color:#deebff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:14px; }
     .login-panel-title { color:#ffffff; font-size: 42px; font-weight:900; margin-bottom:12px; line-height:1.02; letter-spacing:-.04em; }
     .login-panel-sub { color:#edf4ff; font-size:14px; line-height:1.7; margin-bottom:14px; max-width: 460px; }
-    .auth-bottom { margin-top: 10px; }
+    .auth-bottom { margin-top: 14px; display:flex; flex-direction:column; gap:14px; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
         border:1px solid rgba(219,234,254,.95);
         border-radius:24px;
-        padding:16px 16px 14px 16px;
+        padding:18px 18px 16px 18px;
         box-shadow: 0 14px 28px rgba(15,23,42,.08);
     }
     .login-mini-head { display:flex; align-items:flex-start; gap:12px; }
@@ -1456,14 +1456,14 @@ def render_login_page(auth_ready: bool):
         box-shadow: 0 10px 18px rgba(37,99,235,.18);
     }
     .login-mini-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
-    .login-mini-text { color:#5f6f86; font-size:12px; line-height:1.7; }
+    .login-mini-text { color:#5f6f86; font-size:12.5px; line-height:1.7; }
     .auth-divider {
         height: 1px; width:100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.20), rgba(255,255,255,0));
-        margin: 12px 0 12px 0;
+        margin: 0 0 0 0;
     }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
-        text-align:center; padding:14px 16px; border-radius:20px; text-decoration:none; font-weight:800; font-size:15px;
+        text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:800; font-size:16px;
         background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.09) 100%);
         color:#ffffff; border: 1px solid rgba(255,255,255,.20);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 28px rgba(2,6,23,.16);
@@ -1484,14 +1484,14 @@ def render_login_page(auth_ready: bool):
     .ms-logo-grid span:nth-child(3){ background:#00a4ef; }
     .ms-logo-grid span:nth-child(4){ background:#ffb900; }
     .trust-line {
-        display:flex; align-items:center; gap:10px; margin-top:10px; color:#dce8ff; font-size:11.8px; line-height:1.6;
+        display:flex; align-items:center; gap:10px; margin-top:6px; color:#dce8ff; font-size:11.8px; line-height:1.6;
     }
     .trust-badge {
         width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center;
         background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.12); font-size:12px;
     }
-    .login-note { color:#dce8ff; font-size:11.6px; line-height:1.5; margin-top:8px; opacity:.92; }
-    .login-footer { text-align:left; color:#dce8ff; font-size:11.8px; margin-top:10px; }
+    .login-note { color:#dce8ff; font-size:11.6px; line-height:1.5; margin-top:4px; opacity:.92; }
+    .login-footer { text-align:left; color:#dce8ff; font-size:11.8px; margin-top:8px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
     .loading-overlay {
         display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
@@ -1563,50 +1563,63 @@ def render_login_page(auth_ready: bool):
         """), unsafe_allow_html=True)
 
     with right:
-        st.markdown(textwrap.dedent("""
-        <div class="login-auth-card">
-            <div class="auth-top">
-                <div class="auth-kicker">Secure sign in</div>
-                <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
-            </div>
-            <div class="auth-bottom">
-                <div class="login-mini-card">
-                    <div class="login-mini-head">
-                        <div class="login-mini-icon">🛡️</div>
-                        <div>
-                            <div class="login-mini-title">Role-based access</div>
-                            <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
-                        </div>
-                    </div>
-                </div>
-        """), unsafe_allow_html=True)
-
         if auth_ready:
             login_url = _build_login_url()
-            st.markdown(
-                f"""
-                
-                <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
-                    <span>Sign in with Microsoft 365</span>
-                </a>
-                <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
-        else:
-            st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
-            st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
-
-        st.markdown(textwrap.dedent("""
-                <div class="login-footer">
-                    Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+            st.markdown(textwrap.dedent(f"""
+            <div class="login-auth-card">
+                <div class="auth-top">
+                    <div class="auth-kicker">Secure sign in</div>
+                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                </div>
+                <div class="auth-bottom">
+                    <div class="login-mini-card">
+                        <div class="login-mini-head">
+                            <div class="login-mini-icon">🛡️</div>
+                            <div>
+                                <div class="login-mini-title">Role-based access</div>
+                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
+                        <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
+                        <span>Sign in with Microsoft 365</span>
+                    </a>
+                    <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
+                    <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
+                    <div class="login-footer">
+                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    </div>
                 </div>
             </div>
-        </div>
-        """), unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
+        else:
+            st.markdown(textwrap.dedent("""
+            <div class="login-auth-card">
+                <div class="auth-top">
+                    <div class="auth-kicker">Secure sign in</div>
+                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                </div>
+                <div class="auth-bottom">
+                    <div class="login-mini-card">
+                        <div class="login-mini-head">
+                            <div class="login-mini-icon">🛡️</div>
+                            <div>
+                                <div class="login-mini-title">Role-based access</div>
+                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>
+                    <div class="login-footer">
+                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    </div>
+                </div>
+            </div>
+            """), unsafe_allow_html=True)
+            st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
