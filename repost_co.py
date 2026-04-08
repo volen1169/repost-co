@@ -1265,6 +1265,130 @@ def filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
     mask = salesperson_norm.isin(allowed_names)
     return df_in.loc[mask].copy()
 
+
+def inject_production_ui():
+    st.markdown(textwrap.dedent("""
+    <style>
+    :root {
+        --ui-bg-1: #07162d;
+        --ui-bg-2: #173f97;
+        --ui-bg-3: #3aa6eb;
+        --ui-surface: #ffffff;
+        --ui-surface-soft: rgba(255,255,255,0.88);
+        --ui-stroke: rgba(191,219,254,0.72);
+        --ui-text: #0f172a;
+        --ui-muted: #5b6b84;
+        --ui-primary: #2563eb;
+        --ui-primary-2: #0ea5e9;
+        --ui-shadow-lg: 0 24px 56px rgba(15,23,42,0.14);
+        --ui-shadow-md: 0 14px 30px rgba(15,23,42,0.10);
+        --ui-radius-xl: 28px;
+        --ui-radius-lg: 22px;
+        --ui-radius-md: 16px;
+    }
+
+    .stApp {
+        background:
+            radial-gradient(circle at 12% 18%, rgba(147,197,253,.16) 0%, transparent 22%),
+            radial-gradient(circle at 84% 10%, rgba(56,189,248,.14) 0%, transparent 24%),
+            linear-gradient(135deg, var(--ui-bg-1) 0%, var(--ui-bg-2) 52%, var(--ui-bg-3) 100%);
+    }
+
+    [data-testid="stHeader"] {
+        background: rgba(255,255,255,.02);
+        backdrop-filter: blur(8px);
+    }
+
+    [data-testid="stAppViewBlockContainer"], .block-container {
+        max-width: 1440px !important;
+        padding-top: 1rem !important;
+        padding-bottom: 1.2rem !important;
+    }
+
+    div[data-testid="column"] {
+        padding-top: 0 !important;
+    }
+
+    .stButton > button {
+        border-radius: 16px !important;
+        border: 1px solid rgba(37,99,235,.18) !important;
+        background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%) !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        min-height: 2.85rem !important;
+        box-shadow: 0 10px 22px rgba(15,23,42,.08) !important;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(37,99,235,.30) !important;
+        box-shadow: 0 16px 30px rgba(15,23,42,.12) !important;
+    }
+
+    .stTextInput input, .stTextArea textarea, .stNumberInput input,
+    .stSelectbox [data-baseweb="select"] {
+        border-radius: 16px !important;
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(8,18,40,.96) 0%, rgba(15,50,120,.96) 100%);
+        border-right: 1px solid rgba(255,255,255,.08);
+    }
+    [data-testid="stSidebar"] * {
+        color: #eaf2ff;
+    }
+    [data-testid="stSidebar"] .stRadio > div {
+        gap: 8px;
+    }
+    [data-testid="stSidebar"] label[data-baseweb="radio"] {
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 16px;
+        padding: 10px 12px;
+        transition: all .18s ease;
+    }
+    [data-testid="stSidebar"] label[data-baseweb="radio"]:hover {
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.12);
+    }
+
+    [data-testid="stSidebar"] [data-testid="stAlert"] {
+        border-radius: 18px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .prod-sidebar-brand {
+        background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.08) 100%);
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 24px;
+        padding: 16px;
+        box-shadow: 0 16px 34px rgba(2,6,23,.18);
+        margin-bottom: 14px;
+    }
+    .prod-sidebar-role {
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+    }
+
+    [data-testid="stDataFrame"], .stTable {
+        background: rgba(255,255,255,.96);
+        border: 1px solid rgba(191,219,254,.78);
+        border-radius: 20px;
+        box-shadow: var(--ui-shadow-md);
+        overflow: hidden;
+    }
+
+    [data-testid="stAlert"] {
+        border-radius: 18px;
+        box-shadow: var(--ui-shadow-md);
+    }
+    </style>
+    """), unsafe_allow_html=True)
+
 def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊"):
     st.markdown(f"""
     <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
@@ -1525,6 +1649,7 @@ def render_login_page(auth_ready: bool):
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
+inject_production_ui()
 auth_ready = _auth_configured()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
@@ -1597,10 +1722,27 @@ if auth_ready and is_logged_in:
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
-st.sidebar.title("📂 เมนูหลัก")
+st.sidebar.markdown("""
+<div class="prod-sidebar-brand">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:52px; height:52px; border-radius:16px; background:linear-gradient(135deg, #ffffff 0%, #dbeafe 100%); display:flex; align-items:center; justify-content:center; font-size:26px;">📊</div>
+        <div>
+            <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#bfdbfe; font-weight:800;">Optimal Group</div>
+            <div style="font-size:18px; line-height:1.18; color:white; font-weight:900;">Sales Territory Dashboard</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+st.sidebar.markdown("### 📂 เมนูหลัก")
 
 role_label = _role_label()
+st.sidebar.markdown(f"""
+<div class="prod-sidebar-role">
+    <div style="font-size:11px; color:#bfdbfe; font-weight:800; text-transform:uppercase; letter-spacing:.10em;">Current Access</div>
+    <div style="font-size:14px; color:#ffffff; font-weight:800; margin-top:4px;">{role_label}</div>
+    <div style="font-size:12px; color:#dbeafe; margin-top:6px;">Department: {_dept_label(st.session_state.get('dept', '')) or '-'}</div>
+</div>
+""", unsafe_allow_html=True)
 if st.session_state.get("user_role") == "staff":
     allowed_menus = [
         "🎯 My Sales Intelligence",
