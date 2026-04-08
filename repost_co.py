@@ -1564,7 +1564,7 @@ def render_login_page(auth_ready: bool):
         display:flex; align-items:center; justify-content:center;
         background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
         color:#1d4ed8; font-size: 40px; font-weight: 900;
-        box-shadow: 0 18px 38px rgba(15,23,42,.18);
+        box-shadow: 0 18px 38px rgba(15,23,42,.18); flex: 0 0 88px;
     }
     .brand-eyebrow { color: #bfdbfe; font-weight: 800; letter-spacing: .14em; font-size: 12px; text-transform: uppercase; }
     .brand-title {
@@ -1668,6 +1668,74 @@ def render_login_page(auth_ready: bool):
         <div class="login-orb orb3"></div>
     </div>
     """), unsafe_allow_html=True)
+
+    left, right = st.columns([1.35, 0.9])
+    with left:
+        st.markdown(textwrap.dedent("""
+        <div class="login-hero-card">
+            <div class="hero-top-badge">✨ Modern workspace for sales operations</div>
+            <div class="brand-row">
+                <div class="brand-logo">📊</div>
+                <div>
+                    <div class="brand-eyebrow">Optimal Group Platform</div>
+                    <div class="brand-title">Sales Territory Dashboard</div>
+                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
+                </div>
+            </div>
+            <div class="hero-chip-row">
+                <div class="hero-chip">🔐 Microsoft 365 Security</div>
+                <div class="hero-chip">🗺️ Smart Customer Mapping</div>
+                <div class="hero-chip">📈 Budget & Performance Insight</div>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Executive Visibility</div><div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับแต่ละแผนก</div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในมุมมองที่เข้าใจง่ายและใช้งานได้ทันที</div></div>
+                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint Connected</div><div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีม</div></div>
+                <div class="feature-item"><div class="feature-icon">🧭</div><div class="feature-title">Route & Coverage Ready</div><div class="feature-text">ต่อยอดไปสู่แผนที่ลูกค้า การวาง route และการวางแผนเข้าพบได้สะดวก</div></div>
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+
+    with right:
+        st.markdown(textwrap.dedent("""
+        <div class="login-auth-card">
+            <div class="auth-kicker">Secure sign in</div>
+            <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+            <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
+            <div class="login-mini-card">
+                <div class="login-mini-title">Role-based access</div>
+                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กร</div>
+            </div>
+            <div class="login-mini-card">
+                <div class="login-mini-title">Fast and familiar</div>
+                <div class="login-mini-text">ใช้บัญชีองค์กรเดิม ไม่ต้องจำรหัสผ่านของระบบเพิ่มเติม</div>
+            </div>
+        """), unsafe_allow_html=True)
+
+        if auth_ready:
+            login_url = _build_login_url()
+            st.markdown(
+                f"""
+                <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
+                    <span>🔵</span>
+                    <span>Sign in with Microsoft 365</span>
+                </a>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
+        else:
+            st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
+            st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
+
+        st.markdown(textwrap.dedent("""
+            <div class="login-footer">
+                Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+
+inject_premium_ui()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
