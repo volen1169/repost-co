@@ -1394,7 +1394,7 @@ def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊
     <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <div style="font-size:13px; color:#475569; font-weight:700;">{label}</div>
-            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
+            <div style="width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
         </div>
         <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
         <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
@@ -1406,7 +1406,7 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
         <div style="display:flex; align-items:flex-start; gap:14px;">
-            <div style="width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
+            <div style="width:36px; height:36px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
             <div>
                 <div style="font-size:22px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
                 <div style="font-size:13px; color:#475569; margin-top:4px;">{subtitle}</div>
@@ -1419,7 +1419,7 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
 def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
     badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
     st.markdown(f"""
-    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:18px; color:white; overflow:hidden; position:relative;">
+    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:12px; color:white; overflow:hidden; position:relative;">
         <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
         <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
         <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
@@ -1474,8 +1474,8 @@ def render_login_page(auth_ready: bool):
         min-height:0 !important;
     }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: 1.2rem !important;
-        padding-bottom: 0.8rem !important;
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.3rem !important;
         max-width: 1380px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
@@ -1501,25 +1501,26 @@ def render_login_page(auth_ready: bool):
         -webkit-backdrop-filter: blur(16px);
     }
     .login-hero-card {
-        padding: 34px 34px 30px 34px;
-        min-height: 620px;
+        padding: 24px 26px 22px 26px;
+        min-height: min(540px, calc(100vh - 90px));
         background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.06) 100%);
     }
     .login-auth-card {
-        padding: 32px 30px;
-        min-height: 620px;
+        padding: 22px 24px;
+        min-height: min(540px, calc(100vh - 90px));
         background: linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.12) 100%);
     }
+    .login-auth-stack { display:flex; flex-direction:column; gap:12px; }
     .hero-top-badge {
         display:inline-flex; align-items:center; gap:10px; padding:11px 18px; border-radius:999px;
         background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
         color:#e7efff; font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
-        margin-bottom:28px;
+        margin-bottom:12px;
     }
     .hero-top-badge::before {
         content:'✨'; font-size:13px; line-height:1;
     }
-    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 24px; }
+    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 16px; }
     .brand-logo {
         width: 92px; height: 92px; border-radius: 28px; display:flex; align-items:center; justify-content:center;
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(224,231,255,.92) 100%);
@@ -1533,21 +1534,21 @@ def render_login_page(auth_ready: bool):
     .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
     .brand-logo-bars span:nth-child(4){ height:34px; background:#38bdf8; }
     .brand-eyebrow { color: #dbe7ff; font-weight: 800; letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #ffffff; font-size: 42px; line-height: 1.03; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.03em; }
-    .brand-sub { color: #e4efff; font-size: 15.5px; line-height: 1.82; margin-top: 14px; max-width: 690px; }
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
+    .brand-title { color: #ffffff; font-size: 38px; line-height: 1.03; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.03em; }
+    .brand-sub { color: #e4efff; font-size: 15.5px; line-height: 1.68; margin-top: 14px; max-width: 690px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
     .hero-chip {
         display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px;
         background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10); color:#f7fbff; font-size:13px; font-weight:700;
     }
     .chip-dot { font-size:14px; line-height:1; }
-    .feature-grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-top:28px; }
+    .feature-grid { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:16px; }
     .feature-item {
         border-radius: 22px;
-        padding: 20px 22px;
+        padding: 14px 16px;
         background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.04) 100%);
         border: 1px solid rgba(255,255,255,.10);
-        min-height: 114px;
+        min-height: 90px;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
@@ -1558,42 +1559,42 @@ def render_login_page(auth_ready: bool):
     }
     .feature-item-inner { display:flex; align-items:flex-start; gap:14px; }
     .feature-icon {
-        width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+        width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center;
         background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.10); color:#fff;
-        font-size:22px; flex:0 0 46px;
+        font-size:17px; flex:0 0 40px;
     }
-    .feature-title { color:#ffffff; font-size:18px; font-weight:800; margin-bottom:6px; line-height:1.3; }
-    .feature-text { color:#dce8ff; font-size:13px; line-height:1.7; }
+    .feature-title { color:#ffffff; font-size:15px; font-weight:800; margin-bottom:4px; line-height:1.3; }
+    .feature-text { color:#dce8ff; font-size:12.5px; line-height:1.55; }
     .auth-kicker { color:#d9e7ff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:12px; }
     .login-panel-title { color:#ffffff; font-size:44px; font-weight:900; margin-bottom:12px; line-height:1.04; letter-spacing:-.03em; }
-    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.85; margin-bottom:24px; max-width: 430px; }
+    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.85; margin-bottom:16px; max-width: 430px; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
         border:1px solid rgba(219,234,254,.95);
         border-radius:24px;
-        padding:20px 20px 18px 20px;
-        margin-bottom:18px;
+        padding:16px 16px 14px 16px;
+        margin-bottom:12px;
         box-shadow: 0 12px 28px rgba(15,23,42,.08);
     }
     .login-mini-head { display:flex; align-items:flex-start; gap:14px; }
     .login-mini-icon {
-        width:40px; height:40px; border-radius:12px; flex:0 0 40px;
+        width:36px; height:36px; border-radius:12px; flex:0 0 40px;
         display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:19px;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:17px;
     }
-    .login-mini-title { color:#0f172a; font-size:18px; font-weight:800; margin-bottom:5px; }
-    .login-mini-text { color:#5b6b84; font-size:13px; line-height:1.72; }
+    .login-mini-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:5px; }
+    .login-mini-text { color:#5b6b84; font-size:12.5px; line-height:1.6; }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
-        text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:900; font-size:16px;
+        text-align:center; padding:14px 16px; border-radius:20px; text-decoration:none; font-weight:900; font-size:15px;
         background: linear-gradient(135deg, #1d4ed8, #2563eb 46%, #22d3ee 100%); color:white; border: 1px solid rgba(255,255,255,.12);
         box-shadow: 0 16px 28px rgba(29,78,216,.22); transition: all .18s ease;
         margin-top: 0;
     }
     .ms-login-link:hover { transform: translateY(-2px); filter: brightness(1.03); box-shadow: 0 20px 32px rgba(29,78,216,.26); }
     .ms-logo { font-size:17px; line-height:1; }
-    .login-note { color:#dce8ff; font-size:12.8px; line-height:1.7; margin-top:14px; }
-    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:18px; }
+    .login-note { color:#dce8ff; font-size:12.8px; line-height:1.7; margin-top:8px; }
+    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:10px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
     .loading-overlay {
         display:none; position: fixed; inset:0; background: rgba(15,23,42,.30); backdrop-filter: blur(8px);
@@ -1635,7 +1636,7 @@ def render_login_page(auth_ready: bool):
     </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.22, 0.78], gap="large")
+    left, right = st.columns([1.34, 0.86], gap="medium")
     with left:
         st.markdown(textwrap.dedent("""
         <div class="login-hero-card">
@@ -1665,7 +1666,7 @@ def render_login_page(auth_ready: bool):
 
     with right:
         st.markdown(textwrap.dedent("""
-        <div class="login-auth-card">
+        <div class="login-auth-card"><div class="login-auth-stack">
             <div class="auth-kicker">Secure sign in</div>
             <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
             <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
@@ -1700,7 +1701,7 @@ def render_login_page(auth_ready: bool):
             <div class="login-footer">
                 Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
             </div>
-        </div>
+        </div></div>
         """), unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2594,7 +2595,7 @@ html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .route-steps{{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
-.route-arrow{{font-size:16px;opacity:.8;}}
+.route-arrow{{font-size:15px;opacity:.8;}}
 .route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
 .btn-gmaps{{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
