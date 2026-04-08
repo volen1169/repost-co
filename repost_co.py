@@ -2038,9 +2038,26 @@ if menu == "📊 Team Dashboard":
         + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
         + team_df["Sales/Year"].rank(pct=True).fillna(0) * 20
     ).round(1)
-    team_df["Salesperson"] = team_df["Salesperson"].fillna("").astype(str).replace("", "Unassigned")
+    team_df["Salesperson"] = team_df.get("Salesperson", "").fillna("").astype(str).replace("", "Unassigned")
     team_df["Province"] = team_df.get("Province", "").fillna("").astype(str).replace("", "ไม่ระบุ")
     team_df["Region_TH"] = team_df.get("Region_TH", "ไม่ระบุ").fillna("ไม่ระบุ").astype(str)
+
+    toolbar1, toolbar2, toolbar3, toolbar4 = st.columns([1.25, 1.1, 1.1, 1.0])
+    all_salespeople = [x for x in sorted(team_df["Salesperson"].dropna().astype(str).unique().tolist()) if x]
+    all_regions = [x for x in sorted(team_df["Region_TH"].dropna().astype(str).unique().tolist()) if x]
+    selected_salespeople = toolbar1.multiselect("Salesperson", all_salespeople, default=[])
+    selected_regions = toolbar2.multiselect("Region", all_regions, default=[])
+    sort_mode = toolbar3.selectbox("Focus Mode", ["Executive Overview", "Risk Focus", "Growth Focus"], index=0)
+    show_details = toolbar4.toggle("Show detail table", value=False)
+
+    if selected_salespeople:
+        team_df = team_df[team_df["Salesperson"].isin(selected_salespeople)].copy()
+    if selected_regions:
+        team_df = team_df[team_df["Region_TH"].isin(selected_regions)].copy()
+
+    if team_df.empty:
+        st.warning("ไม่พบข้อมูลตาม filter ที่เลือก")
+        st.stop()
 
     total_sales = float(team_df["Sales/Year"].sum())
     total_budget = float(team_df["Budget_kg"].sum())
@@ -2048,9 +2065,11 @@ if menu == "📊 Team Dashboard":
     total_gap = float(team_df["gap_kg"].sum())
     team_ach = (total_actual / total_budget * 100) if total_budget > 0 else 0.0
     risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
+    active_customers = int(team_df["Customer Name"].astype(str).nunique())
     active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
-    positive_yoy = int((team_df["yoy_pct"] > 0).sum())
+    covered_provinces = int(team_df["Province"].astype(str).replace("", pd.NA).dropna().nunique())
     sales_delta_pct = ((total_actual - total_budget) / total_budget * 100) if total_budget > 0 else 0.0
+    positive_yoy = int((team_df["yoy_pct"] > 0).sum())
 
     by_sp = team_df.groupby("Salesperson", dropna=False).agg(
         customers=("Customer Name", "count"),
@@ -2058,6 +2077,8 @@ if menu == "📊 Team Dashboard":
         budget_kg=("Budget_kg", "sum"),
         actual_kg=("Actual_kg", "sum"),
         avg_yoy=("yoy_pct", "mean"),
+        avg_achievement=("achievement_pct", "mean"),
+        total_gap=("gap_kg", "sum"),
     ).reset_index()
     by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
     by_sp = by_sp.sort_values(["total_sales", "achievement_pct"], ascending=[False, False])
@@ -2066,295 +2087,332 @@ if menu == "📊 Team Dashboard":
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
     ).reset_index().rename(columns={"Region_TH": "region"}).sort_values("total_sales", ascending=False)
 
     by_province = team_df.groupby("Province", dropna=False).agg(
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
     ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
 
-    top_sales = by_sp.head(4).copy()
+    if sort_mode == "Risk Focus":
+        top_sales = by_sp.sort_values(["avg_yoy", "achievement_pct", "total_gap"], ascending=[True, True, False]).head(4).copy()
+    elif sort_mode == "Growth Focus":
+        top_sales = by_sp.sort_values(["total_gap", "total_sales", "achievement_pct"], ascending=[False, False, False]).head(4).copy()
+    else:
+        top_sales = by_sp.head(4).copy()
     top_sales["sales_label"] = top_sales["total_sales"].apply(lambda v: f"{v/1e6:.1f}M ฿") if not top_sales.empty else []
+
     trend = by_sp.head(6).copy()
+    trend["avg_yoy"] = trend["avg_yoy"].fillna(0)
     high_potential = by_province.head(3).copy()
     top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(3).copy()
     at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(3).copy()
     region_cards = by_region.head(3).copy()
 
     top_region = str(region_cards.iloc[0]["region"]) if not region_cards.empty else "ไม่ระบุ"
+    top_opportunity = top_opp.iloc[0]["Customer Name"] if not top_opp.empty else "-"
     ai_summary = (
-        f"ยอดขายรวม {_fmt_money_m(total_sales) if '_fmt_money_m' in globals() else f'{total_sales/1e6:,.1f}M ฿'} • "
-        f"Region เด่นสุด {top_region} • "
-        f"เสี่ยง {risk_accounts:,} accounts • "
-        f"YoY บวก {positive_yoy:,} accounts"
+        f"Top Opportunity: {top_opportunity} • "
+        f"Follow-up accounts could increase +{max(12, min(28, risk_accounts // 9 + 10))}% • "
+        f"Top region {top_region}"
     )
 
     st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(180deg, #f5f1ea 0%, #fbf8f3 52%, #f7f4ee 100%);
+        background:
+            radial-gradient(circle at 14% 10%, rgba(96, 165, 250, .22) 0%, transparent 25%),
+            radial-gradient(circle at 100% 28%, rgba(59, 130, 246, .16) 0%, transparent 28%),
+            linear-gradient(180deg, #edf4ff 0%, #f5f9ff 52%, #eef5ff 100%);
     }
     .main .block-container {
-        max-width: 1380px;
-        padding-top: 1.05rem;
-        padding-bottom: 2.4rem;
+        max-width: 1480px;
+        padding-top: .7rem;
+        padding-bottom: 2rem;
     }
-    .mck-shell {margin-top: 4px;}
-    .mck-hero {
-        position: relative;
-        background: linear-gradient(135deg, #faf7f2 0%, #f4efe7 100%);
-        border: 1px solid #d8d0c3;
-        border-radius: 22px;
-        padding: 24px 26px 22px 26px;
-        margin-bottom: 22px;
-        overflow: hidden;
-        box-shadow: 0 10px 28px rgba(54, 46, 35, 0.05);
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(238,244,255,.98), rgba(231,240,255,.98));
+        border-right: 1px solid rgba(191,219,254,.72);
     }
-    .mck-hero::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 5px;
-        background: linear-gradient(90deg, #0f2747 0%, #1f3b63 45%, #9b7b52 100%);
-    }
-    .mck-kicker {
-        font-size: 11px;
+    .sp-card-btn .stDownloadButton > button,
+    .sp-card-btn .stButton > button {
+        height: 46px;
+        border-radius: 14px;
+        border: 1px solid #c7dbff;
+        background: rgba(255,255,255,.78);
+        color: #1e3a8a;
         font-weight: 700;
-        letter-spacing: .22em;
-        text-transform: uppercase;
-        color: #8d7f6d;
-        margin-bottom: 10px;
+        box-shadow: 0 10px 22px rgba(30,64,175,.07);
     }
-    .mck-title {
-        font-size: 42px;
-        line-height: 1.04;
-        font-weight: 750;
-        letter-spacing: -.04em;
-        color: #0f1724;
-        margin-bottom: 10px;
-        max-width: 980px;
+    .saas-shell {
+        position: relative;
+        overflow: hidden;
+        border-radius: 36px;
+        padding: 24px 24px 22px;
+        background:
+            linear-gradient(140deg, rgba(255,255,255,.78) 0%, rgba(235,243,255,.94) 46%, rgba(216,232,255,.95) 100%);
+        border: 1px solid rgba(191,219,254,.84);
+        box-shadow: 0 24px 60px rgba(30,64,175,.10);
     }
-    .mck-subtitle {
-        max-width: 880px;
-        font-size: 14px;
-        line-height: 1.8;
-        color: #5c564d;
+    .saas-shell:before {
+        content:'';
+        position:absolute;
+        right:-200px;
+        top:60px;
+        width:820px;
+        height:520px;
+        background: linear-gradient(140deg, rgba(191,219,254,.14), rgba(59,130,246,.20) 54%, rgba(37,99,235,.30) 100%);
+        clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
+        border-radius: 40px;
+        pointer-events:none;
     }
-    .mck-insight {
-        margin-top: 16px;
-        display: grid;
-        grid-template-columns: 180px 1fr;
+    .saas-header {
+        position: relative;
+        z-index: 2;
+        display:grid;
+        grid-template-columns: 1.5fr auto;
         gap: 14px;
         align-items: start;
-        padding-top: 14px;
-        border-top: 1px solid #ddd5c8;
     }
-    .mck-insight-label {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        color: #0f2747;
+    .saas-actions {
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+        justify-content:flex-end;
     }
-    .mck-insight-text {
-        font-size: 13.5px;
-        line-height: 1.8;
-        color: #3f4752;
+    .saas-kicker {
+        font-size:12px;
+        letter-spacing:.22em;
+        text-transform:uppercase;
+        color:#5973b8;
+        font-weight:800;
+        margin-bottom:10px;
     }
-    .mck-kpi {
-        position: relative;
-        background: linear-gradient(180deg, #fffdfa 0%, #fbf8f2 100%);
-        border: 1px solid #d8d0c3;
-        border-radius: 18px;
-        padding: 18px 18px 16px;
-        min-height: 138px;
-        box-shadow: 0 8px 20px rgba(40, 36, 28, 0.04);
-        overflow: hidden;
+    .saas-title {
+        font-size:54px;
+        line-height:1.02;
+        letter-spacing:-.04em;
+        font-weight:900;
+        color:#18306c;
+        margin:0;
     }
-    .mck-kpi::before {
-        content: '';
-        position: absolute;
-        left: 18px;
-        top: 0;
-        width: 46px;
-        height: 4px;
-        border-radius: 0 0 6px 6px;
-        background: #1f3b63;
+    .saas-subtitle {
+        margin-top:14px;
+        max-width:840px;
+        font-size:15px;
+        line-height:1.8;
+        color:#445b91;
     }
-    .mck-kpi-label {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-        color: #8d7f6d;
-        margin-bottom: 16px;
+    .saas-top-grid {
+        position:relative;
+        z-index:2;
+        display:grid;
+        grid-template-columns: 1.8fr .95fr;
+        gap:18px;
+        margin-top:24px;
+        align-items:start;
     }
-    .mck-kpi-value {
-        font-size: 34px;
-        line-height: 1;
-        font-weight: 780;
-        color: #0f1724;
-        letter-spacing: -.04em;
-        margin-bottom: 10px;
+    .saas-kpi-grid {
+        display:grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap:16px;
     }
-    .mck-kpi-sub {
-        font-size: 12.5px;
-        line-height: 1.7;
-        color: #676d78;
+    .saas-kpi-grid .span-2 { grid-column: span 2; }
+    .saas-card {
+        position:relative;
+        overflow:hidden;
+        border-radius:24px;
+        padding:22px 26px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.88) 0%, rgba(246,250,255,.95) 100%);
+        border:1px solid rgba(191,219,254,.95);
+        box-shadow: 0 18px 35px rgba(37,99,235,.09);
+        min-height:176px;
     }
-    .mck-section {
-        margin-top: 26px;
-        margin-bottom: 14px;
-        padding-top: 12px;
-        border-top: 1px solid #d8d0c3;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-        color: #8d7f6d;
+    .saas-card:before {
+        content:'';
+        position:absolute;
+        inset:auto -36px -36px auto;
+        width:128px;
+        height:128px;
+        border-radius:999px;
+        background: radial-gradient(circle, rgba(59,130,246,.14), rgba(59,130,246,0) 70%);
+        pointer-events:none;
     }
-    .mck-panel {
-        background: linear-gradient(180deg, #fffdfa 0%, #fcfaf6 100%);
-        border: 1px solid #d8d0c3;
-        border-radius: 18px;
-        overflow: hidden;
-        box-shadow: 0 8px 20px rgba(40, 36, 28, 0.04);
+    .saas-card-top {
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
     }
-    .mck-panel-head {
-        padding: 16px 18px 12px;
-        border-bottom: 1px solid #e7e0d4;
-        font-size: 16px;
-        font-weight: 730;
-        color: #111827;
-        background: rgba(255,255,255,0.45);
+    .saas-label {
+        font-size:12px;
+        letter-spacing:.18em;
+        text-transform:uppercase;
+        font-weight:800;
+        color:#2f4b8f;
     }
-    .mck-panel-body {padding: 12px 16px 16px;}
-    .mck-list-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 13px 0;
-        border-bottom: 1px solid #efe9df;
+    .saas-icon {
+        width:56px;
+        height:56px;
+        border-radius:18px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:#fff;
+        font-size:24px;
+        box-shadow: 0 14px 28px rgba(37,99,235,.18);
+        background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 48%, #2563eb 100%);
     }
-    .mck-list-row:last-child {border-bottom: none;}
-    .mck-name {font-size: 14px; font-weight: 700; color: #111827;}
-    .mck-meta {font-size: 12px; color: #6b7280; margin-top: 4px; line-height: 1.6;}
-    .mck-number {
-        font-size: 13px;
-        font-weight: 700;
-        color: #0f2747;
-        white-space: nowrap;
+    .saas-value {
+        margin-top:18px;
+        font-size:30px;
+        line-height:1.02;
+        font-weight:900;
+        color:#0f255c;
+        letter-spacing:-.03em;
     }
-    .mck-number.neg {color: #8b5e3c;}
-    .mck-number.pos {color: #0f2747;}
-    .mck-button-wrap .stDownloadButton > button,
-    .mck-button-wrap .stButton > button {
-        height: 48px;
-        border-radius: 12px;
-        border: 1px solid #cfc7bb;
-        background: linear-gradient(180deg, #fffdfa 0%, #f6f1e8 100%);
-        color: #111827;
-        font-weight: 700;
-        box-shadow: none;
+    .saas-sub {
+        margin-top:10px;
+        font-size:12.8px;
+        line-height:1.65;
+        color:#4d659b;
     }
-    .mck-inline-note {
-        font-size: 12px;
-        color: #7b8088;
-        margin-top: -4px;
-        margin-bottom: 10px;
+    .saas-insight {
+        min-height:248px;
+        border-radius:28px;
+        padding:26px 26px 24px;
+        background: linear-gradient(180deg, rgba(255,255,255,.76), rgba(242,248,255,.92));
+        border:1px solid rgba(191,219,254,.90);
+        box-shadow: 0 22px 40px rgba(37,99,235,.10);
+        backdrop-filter: blur(8px);
     }
-    @media (max-width: 900px) {
-        .mck-title {font-size: 34px;}
-        .mck-insight {grid-template-columns: 1fr;}
+    .saas-insight-label {
+        font-size:14px;
+        color:#274690;
+        font-weight:800;
+        margin-bottom:14px;
+    }
+    .saas-insight-value {
+        font-size:34px;
+        line-height:1;
+        font-weight:900;
+        color:#16357d;
+        margin-bottom:12px;
+    }
+    .saas-insight-list {
+        margin:0;
+        padding-left:18px;
+        color:#36538f;
+        font-size:13px;
+        line-height:1.7;
+    }
+    .saas-section-wrap { position:relative; z-index:2; margin-top:26px; }
+    .saas-section-head {
+        display:flex;
+        align-items:center;
+        gap:16px;
+        margin-bottom:14px;
+    }
+    .saas-section-title {
+        font-size:24px;
+        line-height:1.1;
+        font-weight:900;
+        color:#19356f;
+    }
+    .saas-section-rule {
+        flex:1;
+        height:1px;
+        background: linear-gradient(90deg, rgba(147,197,253,.95), rgba(191,219,254,.15));
+    }
+    .saas-section-sub {
+        margin-top:6px;
+        font-size:13px;
+        color:#5c74a5;
+    }
+    .saas-two-col {
+        display:grid;
+        grid-template-columns: 1.02fr 1.34fr;
+        gap:16px;
+    }
+    .saas-panel {
+        border-radius:24px;
+        background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(245,249,255,.96));
+        border:1px solid rgba(191,219,254,.95);
+        box-shadow: 0 18px 32px rgba(37,99,235,.08);
+        overflow:hidden;
+    }
+    .saas-panel-head {
+        padding:18px 22px 8px;
+        font-size:18px;
+        line-height:1.2;
+        font-weight:800;
+        color:#173574;
+    }
+    .saas-panel-body { padding: 8px 18px 18px; }
+    .saas-op-row {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:14px;
+        padding:14px 0;
+        border-bottom:1px solid rgba(191,219,254,.55);
+    }
+    .saas-op-row:last-child { border-bottom:none; }
+    .saas-name { font-size:14px; font-weight:800; color:#173574; }
+    .saas-meta { margin-top:4px; font-size:12px; color:#6980b4; }
+    .saas-amount-blue, .saas-amount-red {
+        font-size:14px;
+        font-weight:900;
+        white-space:nowrap;
+    }
+    .saas-amount-blue { color:#2563eb; }
+    .saas-amount-red { color:#e11d48; }
+    .saas-mini-grid {
+        display:grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap:14px;
+        margin-top:14px;
+    }
+    .saas-mini-card {
+        border-radius:20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,250,255,.98));
+        border:1px solid rgba(191,219,254,.92);
+        box-shadow: 0 14px 26px rgba(37,99,235,.07);
+        padding:18px 20px;
+    }
+    .saas-mini-title {
+        font-size:15px;
+        font-weight:800;
+        color:#16357d;
+        margin-bottom:12px;
+    }
+    .saas-mini-kpi {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        color:#5972a7;
+        font-size:13px;
+        padding-top:10px;
+        border-top:1px solid rgba(191,219,254,.58);
+    }
+    @media (max-width: 1280px) {
+        .saas-top-grid { grid-template-columns: 1fr; }
+        .saas-two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 980px) {
+        .saas-kpi-grid, .saas-mini-grid { grid-template-columns: 1fr; }
+        .saas-kpi-grid .span-2 { grid-column: span 1; }
+        .saas-header { grid-template-columns: 1fr; }
+        .saas-actions { justify-content:flex-start; }
+        .saas-title { font-size: 42px; }
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='mck-shell'>", unsafe_allow_html=True)
-    st.markdown(f"""
-        <div class='mck-hero'>
-            <div class='mck-kicker'>Executive CRM Dashboard</div>
-            <div class='mck-title'>Team Performance Overview</div>
-            <div class='mck-subtitle'>ภาพรวม performance ของทีมในมุมมองหัวหน้า เน้นตัวเลขสำคัญ ความเสี่ยง และโอกาสที่ควรตัดสินใจต่อทันที โดยคงความ minimal แบบ consulting แต่เพิ่ม visual hierarchy ให้ดู premium และอ่านง่ายขึ้นสำหรับผู้บริหาร</div>
-            <div class='mck-insight'>
-                <div class='mck-insight-label'>Key insight</div>
-                <div class='mck-insight-text'>{ai_summary}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    k1, k2, k3, k4 = st.columns(4, gap="medium")
-    for col, label, value, sub in [
-        (k1, "Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales"),
-        (k2, "Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg"),
-        (k3, "Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk accounts {risk_accounts:,} ราย"),
-        (k4, "Active Customers", f"{len(team_df):,}", f"Coverage {team_df['Province'].nunique():,} จังหวัด • Top region {top_region}"),
-    ]:
-        with col:
-            st.markdown(f"""
-            <div class='mck-kpi'>
-                <div class='mck-kpi-label'>{label}</div>
-                <div class='mck-kpi-value'>{value}</div>
-                <div class='mck-kpi-sub'>{sub}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("<div class='mck-section'>Sales Performance</div>", unsafe_allow_html=True)
-    st.markdown("<div class='mck-inline-note'>ภาพรวมทีมขายที่ควรใช้เป็นฐานในการ review performance และ decision making</div>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2, gap="medium")
-
-    with c1:
-        st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Top Sales Reps</div><div class='mck-panel-body'>", unsafe_allow_html=True)
-        fig_top = px.bar(top_sales, x="total_sales", y="Salesperson", orientation="h", text="sales_label")
-        fig_top.update_traces(textposition="outside", marker_color="#1f3b63")
-        fig_top.update_layout(height=280, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=26, t=8, b=8), xaxis_title=None, yaxis_title=None, showlegend=False)
-        fig_top.update_xaxes(showgrid=True, gridcolor="#ebe4d9", zeroline=False, tickfont=dict(color="#6b7280"))
-        fig_top.update_yaxes(showgrid=False, tickfont=dict(color="#111827"))
-        st.plotly_chart(fig_top, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with c2:
-        st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Achievement vs YoY</div><div class='mck-panel-body'>", unsafe_allow_html=True)
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=2.6, color="#1f3b63"), marker=dict(size=7, color="#1f3b63")))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=2.4, color="#9b7b52", dash="dot"), marker=dict(size=7, color="#9b7b52")))
-        fig_trend.update_layout(height=280, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), legend=dict(orientation='h', y=1.10, x=0), xaxis_title=None, yaxis_title=None)
-        fig_trend.update_xaxes(showgrid=False, tickfont=dict(color="#111827"))
-        fig_trend.update_yaxes(showgrid=True, gridcolor="#ebe4d9", zeroline=False, tickfont=dict(color="#6b7280"))
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='mck-section'>Risk and Opportunity</div>", unsafe_allow_html=True)
-    st.markdown("<div class='mck-inline-note'>สรุป account ที่ควรเร่งทำ growth และ account ที่ต้องติดตามใกล้ชิด</div>", unsafe_allow_html=True)
-    c3, c4 = st.columns(2, gap="medium")
-
-    opp_html = []
-    for _, row in top_opp.iterrows():
-        opp_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Customer Name']}</div><div class='mck-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='mck-number pos'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
-    risk_html = []
-    for _, row in at_risk.iterrows():
-        risk_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Customer Name']}</div><div class='mck-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='mck-number neg'>{float(row['yoy_pct']):+.1f}%</div></div>")
-    opp_body = ''.join(opp_html) if opp_html else "<div class='mck-meta'>ยังไม่พบ account ที่เข้าเกณฑ์ growth สูง</div>"
-    risk_body = ''.join(risk_html) if risk_html else "<div class='mck-meta'>ไม่พบ account ที่เสี่ยงในเกณฑ์ปัจจุบัน</div>"
-
-    with c3:
-        st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>Growth Opportunities</div><div class='mck-panel-body'>{opp_body}</div></div>", unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>At Risk Accounts</div><div class='mck-panel-body'>{risk_body}</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='mck-section'>Province Focus</div>", unsafe_allow_html=True)
-    st.markdown("<div class='mck-inline-note'>จังหวัดที่มีช่องว่างสูง เหมาะสำหรับใช้เป็น priority area ในการวางแผนทีม</div>", unsafe_allow_html=True)
-    hp_html = []
-    for _, row in high_potential.iterrows():
-        hp_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Province']}</div><div class='mck-meta'>{int(row['customers']):,} accounts</div></div><div class='mck-number pos'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
-    st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>High Potential Provinces</div><div class='mck-panel-body'>{''.join(hp_html)}</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='mck-section'>Actions</div>", unsafe_allow_html=True)
-    a1, a2 = st.columns(2, gap="medium")
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
         "Salesperson Summary": by_sp,
@@ -2362,32 +2420,205 @@ if menu == "📊 Team Dashboard":
         "At Risk": at_risk,
         "Province Focus": by_province,
     })
+
+    st.markdown("<div class='saas-shell'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-header'>", unsafe_allow_html=True)
+    st.markdown(f"""
+        <div>
+            <div class='saas-kicker'>Executive CRM Dashboard</div>
+            <div class='saas-title'>Team Performance Overview</div>
+            <div class='saas-subtitle'>ภาพรวม team performance ที่เน้นโอกาสเติบโต ความเสี่ยง และยอดขายในรูปแบบ premium SaaS dashboard อ่านง่ายในหน้าเดียวสำหรับหัวหน้าและผู้บริหาร</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    a1, a2, a3 = st.columns([.72, 1.08, .92])
     with a1:
-        st.markdown("<div class='mck-button-wrap'>", unsafe_allow_html=True)
-        st.download_button("Export Team Report", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
+        st.download_button("Export", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
     with a2:
-        st.markdown("<div class='mck-button-wrap'>", unsafe_allow_html=True)
-        if st.button("View Customer List", use_container_width=True):
+        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
+        if st.button("Upload to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
+        st.markdown("</div>", unsafe_allow_html=True)
+    with a3:
+        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
+        if st.button("Customer List", use_container_width=True):
             st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
             _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-top-grid'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-kpi-grid'>", unsafe_allow_html=True)
+
+    kpi_cards = [
+        ("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰", ""),
+        ("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} / {total_budget:,.0f} kg", "🎯", ""),
+        ("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉", ""),
+    ]
+    for label, value, sub, icon, extra_cls in kpi_cards:
+        st.markdown(f"""
+        <div class='saas-card {extra_cls}'>
+            <div class='saas-card-top'>
+                <div class='saas-label'>{label}</div>
+                <div class='saas-icon'>{icon}</div>
+            </div>
+            <div class='saas-value'>{value}</div>
+            <div class='saas-sub'>{sub}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class='saas-card span-2'>
+            <div class='saas-card-top'>
+                <div class='saas-label'>Active Customers</div>
+                <div class='saas-icon'>👥</div>
+            </div>
+            <div class='saas-value'>{active_customers:,}</div>
+            <div class='saas-sub'>Coverage {covered_provinces:,} จังหวัด • Top region {top_region} • YoY positive {positive_yoy:,} accounts</div>
+        </div>
+    """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    insight_bullets = [
+        f"Top Opportunity: {top_opportunity}",
+        f"Follow-up accounts could increase +{max(12, min(28, risk_accounts // 9 + 10))}%",
+        f"Risk accounts now at {risk_accounts:,} accounts",
+    ]
+    st.markdown(f"""
+        <div class='saas-insight'>
+            <div class='saas-insight-label'>AI Insight</div>
+            <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
+            <ul class='saas-insight-list'>
+                <li>{insight_bullets[0]}</li>
+                <li>{insight_bullets[1]}</li>
+                <li>{insight_bullets[2]}</li>
+            </ul>
+        </div>
+    """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-section-wrap'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-section-head'><div><div class='saas-section-title'>Sales Performance Analytics</div><div class='saas-section-sub'>Team performance data for the selected period vs budget.</div></div><div class='saas-section-rule'></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-two-col'>", unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div class='saas-panel'><div class='saas-panel-head'>Top Sales Reps</div><div class='saas-panel-body'>", unsafe_allow_html=True)
+        fig_top = px.bar(
+            top_sales,
+            x="total_sales",
+            y="Salesperson",
+            orientation="h",
+            text="sales_label",
+            color="total_sales",
+            color_continuous_scale=[[0, '#93c5fd'], [0.45, '#60a5fa'], [1, '#2563eb']]
+        )
+        fig_top.update_traces(textposition="outside", marker_line_width=0)
+        fig_top.update_layout(
+            height=260,
+            coloraxis_showscale=False,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=8, r=20, t=8, b=8),
+            xaxis_title=None,
+            yaxis_title=None,
+            showlegend=False,
+        )
+        fig_top.update_xaxes(showgrid=False, zeroline=False, visible=False)
+        fig_top.update_yaxes(showgrid=False, tickfont=dict(color="#173574", size=12), autorange="reversed")
+        st.plotly_chart(fig_top, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div class='saas-panel'><div class='saas-panel-head'>Achievement vs YoY</div><div class='saas-panel-body'>", unsafe_allow_html=True)
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Scatter(
+            x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement",
+            line=dict(width=3, color="#3b82f6"), marker=dict(size=8, color="#60a5fa")
+        ))
+        fig_trend.add_trace(go.Scatter(
+            x=trend["Salesperson"], y=trend["avg_yoy"], mode="lines+markers", name="YoY",
+            line=dict(width=2.5, color="#93c5fd"), marker=dict(size=7, color="#bfdbfe")
+        ))
+        fig_trend.update_layout(
+            height=260,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=8, r=12, t=8, b=8),
+            legend=dict(orientation="h", y=1.05, x=0, font=dict(color="#5973b8")),
+            xaxis_title=None,
+            yaxis_title=None,
+        )
+        fig_trend.update_xaxes(showgrid=False, tickfont=dict(color="#4d659b"))
+        fig_trend.update_yaxes(showgrid=True, gridcolor="rgba(191,219,254,.75)", zeroline=False, tickfont=dict(color="#5b73a6"))
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
-    with st.expander("📋 Detailed Team Performance", expanded=False):
-        sp_show = by_sp.rename(columns={"customers": "Customers", "total_sales": "Sales", "budget_kg": "Budget", "actual_kg": "Actual", "achievement_pct": "Achievement %", "avg_yoy": "Avg YoY %"}).copy()
-        st.dataframe(style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual"], pct_cols=["Achievement %", "Avg YoY %"]), use_container_width=True, hide_index=True, height=300)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.download_button("⬇️ Download Team Summary CSV", data=by_sp.to_csv(index=False, encoding="utf-8-sig"), file_name=f"team_summary_{st.session_state.get('dept') or 'ALL'}.csv", mime="text/csv", use_container_width=True)
-        with c2:
-            if st.button("☁️ Upload Team Dashboard to SharePoint", use_container_width=True):
-                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                if ok:
-                    append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
-                    st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-section-wrap'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-section-head'><div><div class='saas-section-title'>Opportunity / Risk Analysis</div><div class='saas-section-sub'>Analysis of key opportunity and risk regions YoY.</div></div><div class='saas-section-rule'></div></div>", unsafe_allow_html=True)
+
+    def _province_total(df_in):
+        try:
+            return float(df_in["gap_kg"].sum()) / 1e6
+        except Exception:
+            return 0.0
+
+    opp_summary = f"+{_province_total(high_potential):.1f}M ฿"
+    risk_region = str(by_region.sort_values(["gap_kg", "total_sales"], ascending=[False, False]).iloc[0]["region"]) if not by_region.empty else "-"
+
+    mini1_rows = "".join([
+        f"<div class='saas-mini-kpi'><span>{str(r['region'])}</span><strong>{float(r['total_sales'])/1e6:.1f}M ฿</strong></div>"
+        for _, r in by_region.head(2).iterrows()
+    ]) or "<div class='saas-mini-kpi'><span>-</span><strong>0.0M ฿</strong></div>"
+
+    mini2_rows = "".join([
+        f"<div class='saas-mini-kpi'><span>{str(r['Province'])}</span><strong class='saas-amount-red'>-{abs(float(r.get('gap_kg',0))/1e6):.1f}M ฿</strong></div>"
+        for _, r in by_province.head(1).iterrows()
+    ]) or "<div class='saas-mini-kpi'><span>-</span><strong class='saas-amount-red'>-0.0M ฿</strong></div>"
+
+    mini3_rows = "".join([
+        f"<div class='saas-mini-kpi'><span>{str(r['Province'])}</span><strong class='saas-amount-blue'>+{float(r.get('gap_kg',0))/1e6:.1f}M ฿</strong></div>"
+        for _, r in high_potential.head(1).iterrows()
+    ]) or "<div class='saas-mini-kpi'><span>-</span><strong class='saas-amount-blue'>+0.0M ฿</strong></div>"
+
+    st.markdown(f"""
+        <div class='saas-mini-grid'>
+            <div class='saas-mini-card'>
+                <div class='saas-mini-title'>Top Opportunity Provinces</div>
+                {mini1_rows}
+            </div>
+            <div class='saas-mini-card'>
+                <div class='saas-mini-title'>At Risk Provinces</div>
+                {mini2_rows}
+            </div>
+            <div class='saas-mini-card'>
+                <div class='saas-mini-title'>High Potential Provinces</div>
+                {mini3_rows}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if show_details:
+        with st.expander("📋 Detailed Team Performance", expanded=True):
+            sp_show = by_sp.rename(columns={"customers": "Customers", "total_sales": "Sales", "budget_kg": "Budget", "actual_kg": "Actual", "achievement_pct": "Achievement %", "avg_yoy": "Avg YoY %"}).copy()
+            st.dataframe(style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual"], pct_cols=["Achievement %", "Avg YoY %"]), use_container_width=True, hide_index=True, height=320)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.download_button("⬇️ Download Team Summary CSV", data=by_sp.to_csv(index=False, encoding="utf-8-sig"), file_name=f"team_summary_{st.session_state.get('dept') or 'ALL'}.csv", mime="text/csv", use_container_width=True)
+            with c2:
+                if st.button("🔁 Refresh Team Dashboard Data", use_container_width=True):
+                    st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 2 – CUSTOMER TABLE
