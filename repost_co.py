@@ -90,7 +90,7 @@ ADMIN_EMAILS = {
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "itsupport1@poonyaruk.co.th":"CO",
+    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2093,146 +2093,183 @@ if menu == "📊 Team Dashboard":
     st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(180deg, #f7f4ef 0%, #fbfaf7 100%);
+        background: linear-gradient(180deg, #f5f1ea 0%, #fbf8f3 52%, #f7f4ee 100%);
     }
     .main .block-container {
         max-width: 1380px;
-        padding-top: 1.2rem;
-        padding-bottom: 2.2rem;
+        padding-top: 1.05rem;
+        padding-bottom: 2.4rem;
     }
-    .mck-shell {margin-top: 2px;}
+    .mck-shell {margin-top: 4px;}
     .mck-hero {
-        background:#f7f4ef;
-        border-top:1px solid #d9d2c7;
-        border-bottom:1px solid #d9d2c7;
-        padding:20px 2px 18px 2px;
-        margin-bottom:22px;
+        position: relative;
+        background: linear-gradient(135deg, #faf7f2 0%, #f4efe7 100%);
+        border: 1px solid #d8d0c3;
+        border-radius: 22px;
+        padding: 24px 26px 22px 26px;
+        margin-bottom: 22px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(54, 46, 35, 0.05);
+    }
+    .mck-hero::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #0f2747 0%, #1f3b63 45%, #9b7b52 100%);
     }
     .mck-kicker {
-        font-size:11px;
-        font-weight:700;
-        letter-spacing:.18em;
-        text-transform:uppercase;
-        color:#9a8f80;
-        margin-bottom:8px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .22em;
+        text-transform: uppercase;
+        color: #8d7f6d;
+        margin-bottom: 10px;
     }
     .mck-title {
-        font-size:40px;
-        line-height:1.08;
-        font-weight:700;
-        letter-spacing:-.03em;
-        color:#171717;
-        margin-bottom:8px;
+        font-size: 42px;
+        line-height: 1.04;
+        font-weight: 750;
+        letter-spacing: -.04em;
+        color: #0f1724;
+        margin-bottom: 10px;
+        max-width: 980px;
     }
     .mck-subtitle {
-        max-width:900px;
-        font-size:14px;
-        line-height:1.7;
-        color:#5f5a52;
+        max-width: 880px;
+        font-size: 14px;
+        line-height: 1.8;
+        color: #5c564d;
     }
     .mck-insight {
-        margin-top:14px;
-        padding:14px 16px;
-        background:#fcfbf8;
-        border-left:3px solid #1f2937;
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 14px;
+        align-items: start;
+        padding-top: 14px;
+        border-top: 1px solid #ddd5c8;
     }
     .mck-insight-label {
-        font-size:12px;
-        font-weight:700;
-        color:#111827;
-        margin-bottom:6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #0f2747;
     }
     .mck-insight-text {
-        font-size:13px;
-        line-height:1.7;
-        color:#4b5563;
+        font-size: 13.5px;
+        line-height: 1.8;
+        color: #3f4752;
     }
     .mck-kpi {
-        background:#fffdfa;
-        border:1px solid #ddd6ca;
-        border-radius:12px;
-        padding:18px 18px 16px;
-        min-height:124px;
-        box-shadow:none;
+        position: relative;
+        background: linear-gradient(180deg, #fffdfa 0%, #fbf8f2 100%);
+        border: 1px solid #d8d0c3;
+        border-radius: 18px;
+        padding: 18px 18px 16px;
+        min-height: 138px;
+        box-shadow: 0 8px 20px rgba(40, 36, 28, 0.04);
+        overflow: hidden;
+    }
+    .mck-kpi::before {
+        content: '';
+        position: absolute;
+        left: 18px;
+        top: 0;
+        width: 46px;
+        height: 4px;
+        border-radius: 0 0 6px 6px;
+        background: #1f3b63;
     }
     .mck-kpi-label {
-        font-size:11px;
-        font-weight:700;
-        letter-spacing:.16em;
-        text-transform:uppercase;
-        color:#8b8172;
-        margin-bottom:14px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: #8d7f6d;
+        margin-bottom: 16px;
     }
     .mck-kpi-value {
-        font-size:31px;
-        line-height:1.02;
-        font-weight:700;
-        color:#111827;
-        letter-spacing:-.03em;
-        margin-bottom:8px;
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 780;
+        color: #0f1724;
+        letter-spacing: -.04em;
+        margin-bottom: 10px;
     }
     .mck-kpi-sub {
-        font-size:12.5px;
-        line-height:1.65;
-        color:#6b7280;
+        font-size: 12.5px;
+        line-height: 1.7;
+        color: #676d78;
     }
     .mck-section {
-        margin-top:24px;
-        margin-bottom:12px;
-        padding-top:10px;
-        border-top:1px solid #ddd6ca;
-        font-size:12px;
-        font-weight:700;
-        letter-spacing:.14em;
-        text-transform:uppercase;
-        color:#8b8172;
+        margin-top: 26px;
+        margin-bottom: 14px;
+        padding-top: 12px;
+        border-top: 1px solid #d8d0c3;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: #8d7f6d;
     }
     .mck-panel {
-        background:#fffdfa;
-        border:1px solid #ddd6ca;
-        border-radius:12px;
-        overflow:hidden;
+        background: linear-gradient(180deg, #fffdfa 0%, #fcfaf6 100%);
+        border: 1px solid #d8d0c3;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(40, 36, 28, 0.04);
     }
     .mck-panel-head {
-        padding:14px 16px 10px;
-        border-bottom:1px solid #ece6dc;
-        font-size:16px;
-        font-weight:700;
-        color:#111827;
-        background:#fffdfa;
+        padding: 16px 18px 12px;
+        border-bottom: 1px solid #e7e0d4;
+        font-size: 16px;
+        font-weight: 730;
+        color: #111827;
+        background: rgba(255,255,255,0.45);
     }
-    .mck-panel-body {padding:10px 14px 14px;}
+    .mck-panel-body {padding: 12px 16px 16px;}
     .mck-list-row {
-        display:flex;
-        align-items:flex-start;
-        justify-content:space-between;
-        gap:14px;
-        padding:12px 0;
-        border-bottom:1px solid #f0ebe3;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 0;
+        border-bottom: 1px solid #efe9df;
     }
-    .mck-list-row:last-child {border-bottom:none;}
-    .mck-name {font-size:14px; font-weight:700; color:#111827;}
-    .mck-meta {font-size:12px; color:#6b7280; margin-top:4px;}
+    .mck-list-row:last-child {border-bottom: none;}
+    .mck-name {font-size: 14px; font-weight: 700; color: #111827;}
+    .mck-meta {font-size: 12px; color: #6b7280; margin-top: 4px; line-height: 1.6;}
     .mck-number {
-        font-size:13px;
-        font-weight:700;
-        color:#111827;
-        white-space:nowrap;
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f2747;
+        white-space: nowrap;
     }
-    .mck-number.neg {color:#8b5e3c;}
-    .mck-number.pos {color:#1f2937;}
+    .mck-number.neg {color: #8b5e3c;}
+    .mck-number.pos {color: #0f2747;}
     .mck-button-wrap .stDownloadButton > button,
     .mck-button-wrap .stButton > button {
-        height:46px;
-        border-radius:10px;
-        border:1px solid #cfc7bb;
-        background:#fffdfa;
-        color:#111827;
-        font-weight:700;
-        box-shadow:none;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid #cfc7bb;
+        background: linear-gradient(180deg, #fffdfa 0%, #f6f1e8 100%);
+        color: #111827;
+        font-weight: 700;
+        box-shadow: none;
+    }
+    .mck-inline-note {
+        font-size: 12px;
+        color: #7b8088;
+        margin-top: -4px;
+        margin-bottom: 10px;
     }
     @media (max-width: 900px) {
-        .mck-title {font-size:32px;}
+        .mck-title {font-size: 34px;}
+        .mck-insight {grid-template-columns: 1fr;}
     }
     </style>
     """, unsafe_allow_html=True)
@@ -2242,7 +2279,7 @@ if menu == "📊 Team Dashboard":
         <div class='mck-hero'>
             <div class='mck-kicker'>Executive CRM Dashboard</div>
             <div class='mck-title'>Team Performance Overview</div>
-            <div class='mck-subtitle'>ภาพรวม performance ของทีมในมุมมองหัวหน้า เน้นตัวเลขสำคัญ ความเสี่ยง และโอกาสที่ควรตัดสินใจต่อทันที โดยลดองค์ประกอบที่ไม่จำเป็นออกเพื่อให้อ่านเร็วขึ้นแบบ report</div>
+            <div class='mck-subtitle'>ภาพรวม performance ของทีมในมุมมองหัวหน้า เน้นตัวเลขสำคัญ ความเสี่ยง และโอกาสที่ควรตัดสินใจต่อทันที โดยคงความ minimal แบบ consulting แต่เพิ่ม visual hierarchy ให้ดู premium และอ่านง่ายขึ้นสำหรับผู้บริหาร</div>
             <div class='mck-insight'>
                 <div class='mck-insight-label'>Key insight</div>
                 <div class='mck-insight-text'>{ai_summary}</div>
@@ -2267,14 +2304,15 @@ if menu == "📊 Team Dashboard":
             """, unsafe_allow_html=True)
 
     st.markdown("<div class='mck-section'>Sales Performance</div>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-inline-note'>ภาพรวมทีมขายที่ควรใช้เป็นฐานในการ review performance และ decision making</div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2, gap="medium")
 
     with c1:
         st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Top Sales Reps</div><div class='mck-panel-body'>", unsafe_allow_html=True)
         fig_top = px.bar(top_sales, x="total_sales", y="Salesperson", orientation="h", text="sales_label")
-        fig_top.update_traces(textposition="outside")
-        fig_top.update_layout(height=260, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), xaxis_title=None, yaxis_title=None, showlegend=False)
-        fig_top.update_xaxes(showgrid=True, gridcolor="#ece6dc", zeroline=False, tickfont=dict(color="#6b7280"))
+        fig_top.update_traces(textposition="outside", marker_color="#1f3b63")
+        fig_top.update_layout(height=280, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=26, t=8, b=8), xaxis_title=None, yaxis_title=None, showlegend=False)
+        fig_top.update_xaxes(showgrid=True, gridcolor="#ebe4d9", zeroline=False, tickfont=dict(color="#6b7280"))
         fig_top.update_yaxes(showgrid=False, tickfont=dict(color="#111827"))
         st.plotly_chart(fig_top, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
@@ -2282,15 +2320,16 @@ if menu == "📊 Team Dashboard":
     with c2:
         st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Achievement vs YoY</div><div class='mck-panel-body'>", unsafe_allow_html=True)
         fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=2.5), marker=dict(size=7)))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=2.5), marker=dict(size=7)))
-        fig_trend.update_layout(height=260, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), legend=dict(orientation='h', y=1.08, x=0), xaxis_title=None, yaxis_title=None)
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=2.6, color="#1f3b63"), marker=dict(size=7, color="#1f3b63")))
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=2.4, color="#9b7b52", dash="dot"), marker=dict(size=7, color="#9b7b52")))
+        fig_trend.update_layout(height=280, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), legend=dict(orientation='h', y=1.10, x=0), xaxis_title=None, yaxis_title=None)
         fig_trend.update_xaxes(showgrid=False, tickfont=dict(color="#111827"))
-        fig_trend.update_yaxes(showgrid=True, gridcolor="#ece6dc", zeroline=False, tickfont=dict(color="#6b7280"))
+        fig_trend.update_yaxes(showgrid=True, gridcolor="#ebe4d9", zeroline=False, tickfont=dict(color="#6b7280"))
         st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='mck-section'>Risk and Opportunity</div>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-inline-note'>สรุป account ที่ควรเร่งทำ growth และ account ที่ต้องติดตามใกล้ชิด</div>", unsafe_allow_html=True)
     c3, c4 = st.columns(2, gap="medium")
 
     opp_html = []
@@ -2308,6 +2347,7 @@ if menu == "📊 Team Dashboard":
         st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>At Risk Accounts</div><div class='mck-panel-body'>{risk_body}</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='mck-section'>Province Focus</div>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-inline-note'>จังหวัดที่มีช่องว่างสูง เหมาะสำหรับใช้เป็น priority area ในการวางแผนทีม</div>", unsafe_allow_html=True)
     hp_html = []
     for _, row in high_potential.iterrows():
         hp_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Province']}</div><div class='mck-meta'>{int(row['customers']):,} accounts</div></div><div class='mck-number pos'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
