@@ -1546,155 +1546,375 @@ def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None =
     return styler
 
 
+
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 10% 14%, rgba(59,130,246,.22) 0%, transparent 24%),
-            radial-gradient(circle at 84% 12%, rgba(56,189,248,.18) 0%, transparent 28%),
-            radial-gradient(circle at 76% 82%, rgba(255,255,255,.12) 0%, transparent 26%),
-            linear-gradient(135deg, #081225 0%, #123a8f 50%, #38bdf8 100%);
+            radial-gradient(circle at 14% 12%, rgba(96,165,250,.20) 0%, transparent 22%),
+            radial-gradient(circle at 84% 16%, rgba(125,211,252,.20) 0%, transparent 28%),
+            radial-gradient(circle at 76% 80%, rgba(255,255,255,.10) 0%, transparent 24%),
+            linear-gradient(135deg, #0a1f56 0%, #133f9a 56%, #39a6ef 100%);
     }
     [data-testid="stHeader"] { background: transparent; }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.25rem !important;
-        max-width: 1360px !important;
+        padding-top: 0.45rem !important;
+        padding-bottom: 0.30rem !important;
+        max-width: 1440px !important;
     }
-    div[data-testid="column"] { padding-top: 0 !important; }
+    div[data-testid="column"]{
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        padding-top: 0 !important;
+    }
+
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
-        position: fixed; border-radius: 999px; filter: blur(58px); opacity: .45;
-        pointer-events: none; z-index: 0; animation: floatOrb 12s ease-in-out infinite;
+        position: fixed;
+        border-radius: 999px;
+        filter: blur(62px);
+        opacity: .42;
+        pointer-events: none;
+        z-index: 0;
+        animation: floatOrb 13s ease-in-out infinite;
     }
-    .login-orb.orb1 { width: 300px; height: 300px; left: 3%; top: 8%; background: rgba(96,165,250,.38); }
-    .login-orb.orb2 { width: 360px; height: 360px; right: 5%; top: 14%; background: rgba(125,211,252,.28); animation-delay: 2.4s; }
-    .login-orb.orb3 { width: 320px; height: 320px; left: 24%; bottom: 2%; background: rgba(191,219,254,.22); animation-delay: 4.8s; }
+    .login-orb.orb1 { width: 320px; height: 320px; left: 3%; top: 7%; background: rgba(96,165,250,.32); }
+    .login-orb.orb2 { width: 360px; height: 360px; right: 4%; top: 11%; background: rgba(125,211,252,.24); animation-delay: 2.2s; }
+    .login-orb.orb3 { width: 320px; height: 320px; left: 23%; bottom: -2%; background: rgba(255,255,255,.14); animation-delay: 4.6s; }
     @keyframes floatOrb {
         0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(16px, -18px) scale(1.06); }
+        50% { transform: translate(12px, -16px) scale(1.05); }
         100% { transform: translate(0, 0) scale(1); }
     }
 
     .login-hero-card, .login-auth-card {
-        position: relative; z-index: 1; overflow: hidden;
-        border-radius: 32px;
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        border-radius: 34px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,.18);
+        box-shadow: 0 28px 80px rgba(2,6,23,.26);
     }
-    .login-hero-card {
-        padding: 32px;
-        min-height: 580px;
-        background: linear-gradient(180deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.08) 100%);
-        border: 1px solid rgba(255,255,255,.22);
-        box-shadow: 0 28px 80px rgba(15,23,42,.28);
+
+    .login-hero-card{
+        min-height: 600px;
+        padding: 34px 34px 38px 34px;
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.08) 100%),
+            linear-gradient(135deg, rgba(7,27,85,.92) 0%, rgba(34,77,169,.78) 100%);
     }
-    .login-auth-card {
-        padding: 28px;
-        background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.14) 100%);
-        border: 1px solid rgba(255,255,255,.24);
-        box-shadow: 0 26px 70px rgba(15,23,42,.24);
+
+    .login-auth-card{
+        min-height: 600px;
+        padding: 26px 26px 28px 26px;
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.10) 100%),
+            linear-gradient(135deg, rgba(13,43,118,.86) 0%, rgba(72,156,235,.68) 100%);
     }
-    .hero-top-badge {
-        display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px;
-        background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14);
-        color:#dbeafe; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
-        margin-bottom:18px;
-    }
-    .brand-row { display:flex; gap:18px; align-items:flex-start; margin-bottom: 18px; }
-    .brand-logo {
-        width: 88px; height: 88px; border-radius: 26px;
-        display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
-        color:#1d4ed8; font-size: 40px; font-weight: 900;
-        box-shadow: 0 18px 38px rgba(15,23,42,.18);
-    }
-    .brand-eyebrow { color: #bfdbfe; font-weight: 800; letter-spacing: .14em; font-size: 12px; text-transform: uppercase; }
-    .brand-title {
-        color: #fff; font-size: 42px; line-height: 1.02; font-weight: 900;
-        letter-spacing: -.02em;
-    }
-    .brand-sub {
-        color: #dbeafe; font-size: 15px; line-height: 1.85;
-        margin-top: 12px; max-width: 760px;
-    }
-    .hero-chip-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
-    .hero-chip {
-        display:inline-flex; align-items:center; gap:8px;
-        padding:10px 14px; border-radius:999px;
+
+    .hero-top-badge{
+        display:inline-flex;
+        align-items:center;
+        gap:10px;
+        padding:12px 18px;
+        border-radius:999px;
         background: rgba(255,255,255,.10);
         border:1px solid rgba(255,255,255,.14);
-        color:#eff6ff; font-size:12px; font-weight:800;
+        color:#e0ecff;
+        font-size:12px;
+        font-weight:800;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+        margin-bottom:22px;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     }
-    .feature-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; margin-top:24px; }
-    .feature-item {
-        border-radius: 24px;
-        padding: 18px 16px;
-        background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.08) 100%);
-        border: 1px solid rgba(255,255,255,.14);
-        min-height: 126px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-        transition: all .22s ease;
+
+    .brand-row{
+        display:flex;
+        gap:20px;
+        align-items:flex-start;
+        margin-bottom: 18px;
     }
-    .feature-item:hover {
-        transform: translateY(-3px);
-        background: linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.10) 100%);
-        box-shadow: 0 18px 28px rgba(15,23,42,.14);
+
+    .brand-logo{
+        width: 92px;
+        height: 92px;
+        border-radius: 28px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+        color:#1d4ed8;
+        font-size: 42px;
+        font-weight: 900;
+        box-shadow: 0 18px 38px rgba(15,23,42,.18);
+        flex: 0 0 92px;
     }
-    .feature-icon { font-size:24px; margin-bottom:8px; }
-    .feature-title { color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
-    .feature-text { color:#dbeafe; font-size:12.5px; line-height:1.6; }
-    .auth-kicker { color:#dbeafe; font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:12px; margin-bottom:8px; }
-    .login-panel-title { color:#ffffff; font-size:32px; font-weight:900; margin-bottom:8px; line-height:1.08; }
-    .login-panel-sub { color:#e0f2fe; font-size:14px; line-height:1.75; margin-bottom:20px; }
-    .login-mini-card {
-        background: rgba(255,255,255,.94);
-        border: 1px solid rgba(255,255,255,.55);
-        border-radius: 22px;
-        padding: 16px 16px 14px 16px;
+
+    .brand-eyebrow{
+        color: #d8e7ff;
+        font-weight: 800;
+        letter-spacing: .16em;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-top: 4px;
+        margin-bottom: 8px;
+    }
+
+    .brand-title{
+        color:#ffffff;
+        font-size: 56px;
+        line-height: 1.02;
+        font-weight: 900;
+        letter-spacing: -.03em;
         margin-bottom: 14px;
-        box-shadow: 0 14px 32px rgba(0,0,0,.10);
+    }
+
+    .brand-sub{
+        color:#e5f0ff;
+        font-size: 15.5px;
+        line-height: 1.9;
+        max-width: 760px;
+        font-weight: 600;
+    }
+
+    .hero-chip-row{
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-top:22px;
+        margin-bottom: 28px;
+    }
+
+    .hero-chip{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:11px 16px;
+        border-radius:999px;
+        background: rgba(255,255,255,.10);
+        border:1px solid rgba(255,255,255,.14);
+        color:#f8fbff;
+        font-size:13px;
+        font-weight:800;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 22px rgba(10,20,40,.10);
+    }
+
+    .feature-grid{
+        display:grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap:18px;
+        margin-top: 8px;
+    }
+
+    .feature-item{
+        min-height: 162px;
+        border-radius: 28px;
+        padding: 22px 20px 18px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.11) 0%, rgba(255,255,255,.07) 100%);
+        border: 1px solid rgba(255,255,255,.13);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 30px rgba(8,15,35,.12);
         transition: all .22s ease;
     }
-    .login-mini-card:hover {
+
+    .feature-item:hover{
+        transform: translateY(-3px);
+        background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.09) 100%);
+        box-shadow: 0 18px 34px rgba(8,15,35,.16);
+    }
+
+    .feature-icon{
+        font-size: 28px;
+        margin-bottom: 12px;
+    }
+
+    .feature-title{
+        color:#ffffff;
+        font-size: 17px;
+        font-weight: 900;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+
+    .feature-text{
+        color:#dbeafe;
+        font-size: 13px;
+        line-height: 1.72;
+        font-weight: 600;
+    }
+
+    .auth-kicker{
+        color:#edf6ff;
+        font-weight:900;
+        letter-spacing:.18em;
+        text-transform:uppercase;
+        font-size:12px;
+        margin-bottom:12px;
+        opacity:.98;
+    }
+
+    .login-panel-title{
+        color:#ffffff;
+        font-size:58px;
+        font-weight:900;
+        margin-bottom:12px;
+        line-height:1.02;
+        letter-spacing:-.03em;
+    }
+
+    .login-panel-sub{
+        color:#eaf4ff;
+        font-size:15px;
+        line-height:1.9;
+        margin-bottom:24px;
+        font-weight:600;
+        max-width: 610px;
+    }
+
+    .login-mini-card{
+        background: rgba(255,255,255,.92);
+        border: 1px solid rgba(255,255,255,.60);
+        border-radius: 26px;
+        padding: 22px 22px 18px 22px;
+        margin-bottom: 16px;
+        box-shadow: 0 16px 34px rgba(15,23,42,.12);
+        transition: all .22s ease;
+    }
+
+    .login-mini-card:hover{
         transform: translateY(-2px);
-        box-shadow: 0 18px 36px rgba(0,0,0,.14);
+        box-shadow: 0 22px 40px rgba(15,23,42,.16);
     }
-    .login-mini-title { color:#0f172a; font-size:15px; font-weight:900; margin-bottom:4px; }
-    .login-mini-text { color:#64748b; font-size:12.8px; line-height:1.65; }
-    .ms-login-link {
-        display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
-        text-align:center; padding:15px 18px; border-radius:20px; text-decoration:none;
-        font-weight:900; font-size:15px; color:white;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #06b6d4 100%);
+
+    .login-mini-title{
+        color:#0f172a;
+        font-size:16px;
+        font-weight:900;
+        margin-bottom:6px;
+    }
+
+    .login-mini-text{
+        color:#64748b;
+        font-size:13.2px;
+        line-height:1.72;
+        font-weight:600;
+    }
+
+    .ms-login-wrap{
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    .ms-login-link{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        width:100%;
+        text-align:center;
+        padding:18px 20px;
+        border-radius:24px;
+        text-decoration:none;
+        font-weight:900;
+        font-size:18px;
+        color:#ffffff;
+        background: linear-gradient(135deg, #265af0 0%, #2364f3 40%, #15b6df 100%);
         border: 1px solid rgba(255,255,255,.18);
-        box-shadow: 0 18px 34px rgba(37,99,235,.24);
+        box-shadow: 0 18px 34px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.20);
         transition: all .22s ease;
+        min-height: 72px;
     }
-    .ms-login-link:hover {
-        transform: translateY(-2px) scale(1.01);
+
+    .ms-login-link:hover{
+        transform: translateY(-2px);
         filter: brightness(1.03);
-        box-shadow: 0 22px 38px rgba(37,99,235,.30);
+        box-shadow: 0 24px 40px rgba(37,99,235,.30), 0 0 0 1px rgba(255,255,255,.14) inset;
     }
-    .login-note { color:#dbeafe; font-size:12.8px; line-height:1.65; margin-top:12px; }
-    .login-footer { text-align:center; color:#dbeafe; font-size:12.5px; margin-top:18px; }
-    .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
-    .loading-overlay {
-        display:none; position: fixed; inset:0; background: rgba(2,6,23,.34);
-        backdrop-filter: blur(9px); z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+
+    .ms-badge{
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: rgba(255,255,255,.18);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+        font-size: 18px;
+        flex: 0 0 36px;
+    }
+
+    .login-note{
+        color:#eef7ff;
+        font-size:13px;
+        line-height:1.75;
+        margin-top:16px;
+        font-weight:600;
+    }
+
+    .login-footer{
+        text-align:center;
+        color:#eef7ff;
+        font-size:13px;
+        margin-top:22px;
+        font-weight:700;
+    }
+
+    .login-footer a{
+        color:#ffffff;
+        text-decoration:none;
+        font-weight:900;
+    }
+
+    .loading-overlay{
+        display:none;
+        position: fixed;
+        inset:0;
+        background: rgba(2,6,23,.34);
+        backdrop-filter: blur(9px);
+        z-index: 99999;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        gap:12px;
     }
     .loading-overlay.show { display:flex; }
-    .loading-spinner {
-        width:58px; height:58px; border-radius:999px;
-        border:5px solid rgba(255,255,255,.24); border-top-color:#ffffff;
+
+    .loading-spinner{
+        width:58px;
+        height:58px;
+        border-radius:999px;
+        border:5px solid rgba(255,255,255,.24);
+        border-top-color:#ffffff;
         animation: spin 1s linear infinite;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color:#ffffff; font-weight:900; font-size:15px; }
-    @media (max-width: 980px) { .feature-grid { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 720px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:30px; } .login-hero-card { min-height:auto; } }
+
+    .loading-text{
+        color:#ffffff;
+        font-weight:900;
+        font-size:15px;
+    }
+
+    @media (max-width: 1180px){
+        .brand-title{ font-size: 48px; }
+        .login-panel-title{ font-size: 48px; }
+    }
+    @media (max-width: 980px){
+        .feature-grid { grid-template-columns: 1fr 1fr; }
+        .login-hero-card, .login-auth-card { min-height: auto; }
+    }
+    @media (max-width: 720px){
+        .feature-grid { grid-template-columns: 1fr; }
+        .brand-row { flex-direction: column; }
+        .brand-title{ font-size: 34px; }
+        .login-panel-title{ font-size: 38px; }
+        .hero-chip-row { gap: 10px; }
+    }
     </style>
     <div class="loading-overlay" id="login-loading-overlay">
         <div class="loading-spinner"></div>
@@ -1713,29 +1933,55 @@ def render_login_page(auth_ready: bool):
     </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.2, 1.0])
+    left, right = st.columns([1.15, 0.85], gap="large")
+
     with left:
         st.markdown(textwrap.dedent("""
         <div class="login-hero-card">
-            <div class="hero-top-badge">✨ Modern workspace for sales operations</div>
+            <div class="hero-top-badge">✨ Modern Workspace for Sales Operations</div>
+
             <div class="brand-row">
                 <div class="brand-logo">📊</div>
                 <div>
                     <div class="brand-eyebrow">Optimal Group Platform</div>
                     <div class="brand-title">Sales Territory Dashboard</div>
-                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
+                    <div class="brand-sub">
+                        รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว
+                        ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น
+                    </div>
                 </div>
             </div>
+
             <div class="hero-chip-row">
                 <div class="hero-chip">🔐 Microsoft 365 Security</div>
                 <div class="hero-chip">🗺️ Smart Customer Mapping</div>
-                <div class="hero-chip">📈 Budget & Performance Insight</div>
+                <div class="hero-chip">📈 Budget &amp; Performance Insight</div>
             </div>
+
             <div class="feature-grid">
-                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Executive Visibility</div><div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับแต่ละแผนก</div></div>
-                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในมุมมองที่เข้าใจง่ายและใช้งานได้ทันที</div></div>
-                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint Connected</div><div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีม</div></div>
-                <div class="feature-item"><div class="feature-icon">🧭</div><div class="feature-title">Route & Coverage Ready</div><div class="feature-text">ต่อยอดไปสู่แผนที่ลูกค้า การวาง route และการวางแผนเข้าพบได้สะดวก</div></div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Executive Visibility</div>
+                    <div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับทีมและแผนก</div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-title">My Sales Intelligence</div>
+                    <div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในมุมมองที่เข้าใจง่ายและใช้งานได้ทันที</div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">☁️</div>
+                    <div class="feature-title">SharePoint Connected</div>
+                    <div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีม</div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🧭</div>
+                    <div class="feature-title">Route &amp; Coverage Ready</div>
+                    <div class="feature-text">ต่อยอดไปสู่แผนที่ลูกค้า การวาง route และการวางแผนเข้าพบได้สะดวก</div>
+                </div>
             </div>
         </div>
         """), unsafe_allow_html=True)
@@ -1743,13 +1989,17 @@ def render_login_page(auth_ready: bool):
     with right:
         st.markdown(textwrap.dedent("""
         <div class="login-auth-card">
-            <div class="auth-kicker">Secure sign in</div>
+            <div class="auth-kicker">Secure Sign In</div>
             <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-            <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
+            <div class="login-panel-sub">
+                เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ
+            </div>
+
             <div class="login-mini-card">
                 <div class="login-mini-title">Role-based access</div>
                 <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กร</div>
             </div>
+
             <div class="login-mini-card">
                 <div class="login-mini-title">Fast and familiar</div>
                 <div class="login-mini-text">ใช้บัญชีองค์กรเดิม ไม่ต้องจำรหัสผ่านของระบบเพิ่มเติม</div>
@@ -1760,17 +2010,25 @@ def render_login_page(auth_ready: bool):
             login_url = _build_login_url()
             st.markdown(
                 f"""
-                <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    <span>🔵</span>
-                    <span>Sign in with Microsoft 365</span>
-                </a>
+                <div class="ms-login-wrap">
+                    <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
+                        <span class="ms-badge">🔵</span>
+                        <span>Sign in with Microsoft 365</span>
+                    </a>
+                </div>
                 """,
                 unsafe_allow_html=True,
             )
-            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>',
+                unsafe_allow_html=True,
+            )
         else:
             st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
-            st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown(textwrap.dedent("""
             <div class="login-footer">
