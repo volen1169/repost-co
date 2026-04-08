@@ -83,14 +83,14 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport1@poonyaruk.co.th",
+    "itsupport@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "itsupport@poonyaruk.co.th":"CO",
+    "Pornphavit.Bu@optimal.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2354,6 +2354,18 @@ if menu == "📊 Team Dashboard":
     }
     .saas-panel-body { padding: 8px 18px 18px; }
     .saas-info-card { width:100%; }
+    .saas-kpi-card { min-height: 188px; height: 188px; }
+    .saas-summary-row {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:18px;
+        min-height:68px;
+        padding:14px 2px;
+        border-bottom:1px solid rgba(191,219,254,.55);
+    }
+    .saas-summary-row:last-child { border-bottom:none; }
+    .saas-summary-copy { flex:1; min-width:0; }
     .saas-op-row {
         display:flex;
         align-items:center;
@@ -2423,42 +2435,43 @@ if menu == "📊 Team Dashboard":
         "Province Focus": by_province,
     })
 
+    # ===== Premium SaaS header / actions =====
     st.markdown("<div class='saas-shell'>", unsafe_allow_html=True)
-    st.markdown("<div class='saas-header'>", unsafe_allow_html=True)
-    st.markdown(f"""
-        <div>
+
+    header_left, header_right = st.columns([1.55, 1.05], gap="large")
+    with header_left:
+        st.markdown(f"""
             <div class='saas-kicker'>Executive CRM Dashboard</div>
             <div class='saas-title'>Team Performance Overview</div>
             <div class='saas-subtitle'>ภาพรวม team performance ที่เน้นโอกาสเติบโต ความเสี่ยง และยอดขายในรูปแบบ premium SaaS dashboard อ่านง่ายในหน้าเดียวสำหรับหัวหน้าและผู้บริหาร</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    a1, a2, a3 = st.columns([.72, 1.08, .92])
-    with a1:
-        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
-        st.download_button("Export", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-    with a2:
-        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
-        if st.button("Upload to SharePoint", use_container_width=True):
-            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-            ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            if ok:
-                append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
-                st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
-        st.markdown("</div>", unsafe_allow_html=True)
-    with a3:
-        st.markdown("<div class='sp-card-btn'>", unsafe_allow_html=True)
-        if st.button("Customer List", use_container_width=True):
-            st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
-            _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    with header_right:
+        b1, b2, b3 = st.columns([0.9, 1.3, 1.15], gap="small")
+        with b1:
+            st.download_button(
+                "Export",
+                data=manager_report,
+                file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="team_dash_export_btn"
+            )
+        with b2:
+            if st.button("Upload to SharePoint", use_container_width=True, key="team_dash_upload_btn"):
+                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if ok:
+                    append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
+                    st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
+        with b3:
+            if st.button("Customer List", use_container_width=True, key="team_dash_customer_btn"):
+                st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
+                _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
+                st.rerun()
 
     def _saas_kpi_card(label: str, value: str, sub: str, icon: str):
         st.markdown(f"""
-        <div class='saas-card' style='min-height:198px; height:198px;'>
+        <div class='saas-card saas-kpi-card'>
             <div class='saas-card-top'>
                 <div class='saas-label'>{label}</div>
                 <div class='saas-icon'>{icon}</div>
@@ -2468,12 +2481,24 @@ if menu == "📊 Team Dashboard":
         </div>
         """, unsafe_allow_html=True)
 
+    def _summary_row(title: str, subtitle: str, value: str, value_class: str = "saas-amount-blue"):
+        st.markdown(f"""
+        <div class='saas-summary-row'>
+            <div class='saas-summary-copy'>
+                <div class='saas-name'>{title}</div>
+                <div class='saas-meta'>{subtitle}</div>
+            </div>
+            <div class='{value_class}'>{value}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     insight_bullets = [
         f"Top Opportunity: {top_opportunity}",
         f"Follow-up accounts could increase +{max(12, min(28, risk_accounts // 9 + 10))}%",
         f"Risk accounts now at {risk_accounts:,} accounts",
     ]
 
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4, gap='medium')
     with k1:
         _saas_kpi_card("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰")
@@ -2484,11 +2509,11 @@ if menu == "📊 Team Dashboard":
     with k4:
         _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
 
-    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-    lower_left, lower_right = st.columns(2, gap='medium')
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+    lower_left, lower_right = st.columns([0.96, 1.84], gap='medium')
     with lower_left:
         st.markdown(f"""
-            <div class='saas-insight saas-info-card' style='min-height:234px; height:234px;'>
+            <div class='saas-insight saas-info-card'>
                 <div class='saas-insight-label'>AI Insight</div>
                 <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
                 <ul class='saas-insight-list'>
@@ -2499,34 +2524,11 @@ if menu == "📊 Team Dashboard":
             </div>
         """, unsafe_allow_html=True)
     with lower_right:
-        st.markdown(f"""
-            <div class='saas-panel saas-info-card' style='min-height:234px; height:234px;'>
-                <div class='saas-panel-head'>Executive Summary</div>
-                <div class='saas-panel-body'>
-                    <div class='saas-op-row'>
-                        <div>
-                            <div class='saas-name'>Top Region</div>
-                            <div class='saas-meta'>{top_region} • {covered_provinces:,} provinces covered</div>
-                        </div>
-                        <div class='saas-amount-blue'>{positive_yoy:,} YoY positive</div>
-                    </div>
-                    <div class='saas-op-row'>
-                        <div>
-                            <div class='saas-name'>Risk Exposure</div>
-                            <div class='saas-meta'>Accounts below target or negative YoY</div>
-                        </div>
-                        <div class='saas-amount-red'>{risk_accounts:,} accounts</div>
-                    </div>
-                    <div class='saas-op-row'>
-                        <div>
-                            <div class='saas-name'>Coverage Snapshot</div>
-                            <div class='saas-meta'>Active customers and sales footprint</div>
-                        </div>
-                        <div class='saas-amount-blue'>{active_customers:,} customers</div>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='saas-panel saas-info-card'><div class='saas-panel-head'>Executive Summary</div><div class='saas-panel-body'>", unsafe_allow_html=True)
+        _summary_row("Top Region", f"{top_region} • {covered_provinces:,} provinces covered", f"{positive_yoy:,} YoY positive", "saas-amount-blue")
+        _summary_row("Risk Exposure", "Accounts below target or negative YoY", f"{risk_accounts:,} accounts", "saas-amount-red")
+        _summary_row("Coverage Snapshot", "Active customers and sales footprint", f"{active_customers:,} customers", "saas-amount-blue")
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='saas-section-wrap'>", unsafe_allow_html=True)
     st.markdown("<div class='saas-section-head'><div><div class='saas-section-title'>Sales Performance Analytics</div><div class='saas-section-sub'>Team performance data for the selected period vs budget.</div></div><div class='saas-section-rule'></div></div>", unsafe_allow_html=True)
