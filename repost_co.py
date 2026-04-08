@@ -2087,24 +2087,22 @@ if menu == "📊 Team Dashboard":
     strongest_rep = by_sp.iloc[0] if not by_sp.empty else None
     most_risky_rep = by_sp.sort_values(["risk_accounts", "achievement_pct"], ascending=[False, True]).iloc[0] if not by_sp.empty else None
 
-    map_points_json, map_points_no_coords_json = build_map_points(top_opp if not top_opp.empty else team_df.head(20))
-    try:
-        map_points = json.loads(map_points_json)
-    except Exception:
-        map_points = []
 
     st.markdown("""
     <style>
+    [data-testid="stHeader"] {display:none !important; height:0 !important;}
+    [data-testid="stToolbar"] {display:none !important;}
     .stApp {
         background:
             radial-gradient(circle at 8% 6%, rgba(125,211,252,.20), transparent 18%),
             radial-gradient(circle at 92% 4%, rgba(196,181,253,.18), transparent 20%),
             linear-gradient(180deg, #f7fbff 0%, #edf5ff 42%, #f6f9ff 100%);
     }
-    .main .block-container{max-width:1460px; padding-top:0.8rem; padding-bottom:2rem;}
-    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+    section.main > div {padding-top:0 !important;}
+    .main .block-container{max-width:1460px; padding-top:0.15rem !important; padding-bottom:1.4rem;}
+    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 24px 22px 24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
     .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.10), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.10), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
-    .saas-topbar{position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; flex-wrap:wrap;}
     .saas-title-wrap{display:flex; align-items:center; gap:16px;}
     .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
     .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:4px;}
@@ -2112,7 +2110,7 @@ if menu == "📊 Team Dashboard":
     .saas-sub{font-size:13px; color:#334155; margin-top:6px;}
     .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px;}
     .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.72); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12); backdrop-filter:blur(8px);}
-    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px;}
     .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px 18px 16px 18px; background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(240,247,255,.90)); border:1px solid rgba(203,213,225,.70); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:146px;}
     .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.08);}
     .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
@@ -2120,7 +2118,7 @@ if menu == "📊 Team Dashboard":
     .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b;}
     .saas-kpi.good .saas-kpi-value{color:#15803d;}
     .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
-    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.55fr .95fr; gap:16px; margin-top:16px;}
+    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.62fr .94fr; gap:14px; margin-top:14px;}
     .saas-stack{display:flex; flex-direction:column; gap:16px;}
     .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,248,255,.92)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.12); overflow:hidden;}
     .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.96), rgba(224,242,254,.92)); border:1px solid rgba(186,230,253,.95); color:#0f172a;}
@@ -2249,82 +2247,20 @@ if menu == "📊 Team Dashboard":
     st.markdown(f"<table class='saas-priority-table'><thead><tr><th>Customer</th><th>Score</th><th>Sales</th><th>Achv.</th><th>Gap</th></tr></thead><tbody>{''.join(rows)}</tbody></table>", unsafe_allow_html=True)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
-    map_no_coords = []
-    try:
-        map_no_coords = json.loads(map_points_no_coords_json)
-    except Exception:
-        map_no_coords = []
-    map_component_id = f"saas-focus-map-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(st.session_state.get('dept') or 'all')).strip('-') or 'all'}"
-    top_priority_count = min(4, len(map_points))
-    normal_count = max(0, len(map_points) - top_priority_count)
-    map_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset='utf-8'/>
-      <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
-      <style>
-        * {{ box-sizing:border-box; }}
-        html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
-        .saas-real-map-shell {{ border-radius:22px; overflow:hidden; border:1px solid rgba(255,255,255,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.45); background:linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%); }}
-        .saas-real-map-toolbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(15,23,42,.92), rgba(37,99,235,.86)); color:#fff; flex-wrap:wrap; }}
-        .saas-real-map-title {{ font-size:13px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }}
-        .saas-real-map-meta {{ font-size:11px; color:#dbeafe; margin-top:4px; }}
-        .saas-real-map-legend {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }}
-        .saas-real-map-legend span {{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12); font-size:11px; font-weight:800; color:#eff6ff; }}
-        .saas-real-map-dot {{ width:9px; height:9px; border-radius:999px; display:inline-block; }}
-        #${map_component_id} {{ width:100%; height:360px; background:#dbeafe; }}
-        .focus-pin {{ width:18px; height:18px; border-radius:999px; border:3px solid rgba(255,255,255,.95); box-shadow:0 10px 20px rgba(15,23,42,.24); }}
-        .focus-pin.priority {{ background:linear-gradient(135deg,#ef4444,#fb7185); }}
-        .focus-pin.coverage {{ background:linear-gradient(135deg,#2563eb,#38bdf8); }}
-        .saas-real-map-note {{ padding:10px 14px 12px 14px; font-size:11.5px; color:#64748b; background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,252,.92)); }}
-        .leaflet-popup-content-wrapper {{ border-radius:16px; box-shadow:0 18px 32px rgba(15,23,42,.18); }}
-        .leaflet-popup-content {{ margin:12px 14px; }}
-      </style>
-    </head>
-    <body>
-      <div class='saas-real-map-shell'>
-        <div class='saas-real-map-toolbar'>
-          <div>
-            <div class='saas-real-map-title'>Live Coverage View</div>
-            <div class='saas-real-map-meta'>Priority {top_priority_count} จุด • Coverage {normal_count} จุด • Missing coords {len(map_no_coords)}</div>
-          </div>
-          <div class='saas-real-map-legend'>
-            <span><i class='saas-real-map-dot' style='background:#ef4444;'></i>Priority</span>
-            <span><i class='saas-real-map-dot' style='background:#2563eb;'></i>Coverage</span>
-          </div>
-        </div>
-        <div id='{map_component_id}'></div>
-        <div class='saas-real-map-note'>คลิกหมุดเพื่อดูชื่อบริษัทและผู้รับผิดชอบ • ระบบจะ auto-fit ตามจุดที่พบพิกัด</div>
-      </div>
-      <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
-      <script>
-        const MAP_POINTS = {map_points_json};
-        const map = L.map('{map_component_id}', {{ zoomControl: true, scrollWheelZoom: false }}).setView([13.7563, 100.5018], 6);
-        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{ attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }}).addTo(map);
-        const bounds = [];
-        MAP_POINTS.forEach((item, index) => {{
-          if (typeof item.lat !== 'number' || typeof item.lng !== 'number') return;
-          const priority = index < {top_priority_count};
-          const icon = L.divIcon({{ className: '', html: `<div class="focus-pin ${{priority ? 'priority' : 'coverage'}}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10] }});
-          const marker = L.marker([item.lat, item.lng], {{ icon }}).addTo(map);
-          marker.bindPopup(`
-            <div style="min-width:180px">
-              <div style="font-weight:800;color:#0f172a;font-size:13px;">${{item.name || 'Account'}}</div>
-              <div style="font-size:11px;color:#475569;margin-top:6px;">👤 ${{item.salesperson || '-'}}</div>
-              <div style="font-size:11px;color:#475569;margin-top:4px;">📍 ${{item.province || '-'}}</div>
-              <div style="font-size:11px;color:${{priority ? '#dc2626' : '#2563eb'}};font-weight:700;margin-top:8px;">${{priority ? 'Priority account' : 'Coverage account'}}</div>
-            </div>
-          `);
-          bounds.push([item.lat, item.lng]);
-        }});
-        if (bounds.length) {{ map.fitBounds(bounds, {{ padding: [26, 26] }}); }}
-      </script>
-    </body>
-    </html>
-    """
-    components.html(map_html, height=420)
+
+    st.markdown("<div class='saas-card dark'><div class='saas-card-head'><div><div class='saas-card-title'>Manager Command Center</div><div class='saas-card-sub'>สรุปสิ่งที่หัวหน้าควรทำต่อทันทีในมุมมองเดียว</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    command_rows = []
+    if strongest_rep is not None:
+        command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Top performer</div><div class='saas-meta'>{strongest_rep['Salesperson']} • Achievement {float(strongest_rep['achievement_pct']):,.1f}%</div></div><div class='saas-pill good'>Lead</div></div>")
+    if most_risky_rep is not None:
+        command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Coaching needed</div><div class='saas-meta'>{most_risky_rep['Salesperson']} • Risk accounts {int(most_risky_rep['risk_accounts'])}</div></div><div class='saas-pill bad'>Act now</div></div>")
+    if not top_opp.empty:
+        first_opp = top_opp.iloc[0]
+        command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Priority account</div><div class='saas-meta'>{first_opp['Customer Name']} • {first_opp['Salesperson']} • Gap {float(first_opp['gap_kg'])/1e6:,.2f}M kg</div></div><div class='saas-pill warn'>Focus</div></div>")
+    if not high_potential.empty:
+        first_hp = high_potential.iloc[0]
+        command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Province to push</div><div class='saas-meta'>{first_hp['Province']} • {int(first_hp['customers'])} accounts • Achv. {float(first_hp['avg_achievement']):,.1f}%</div></div><div class='saas-pill info'>Expand</div></div>")
+    st.markdown("".join(command_rows), unsafe_allow_html=True)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div><div class='saas-stack'>", unsafe_allow_html=True)
