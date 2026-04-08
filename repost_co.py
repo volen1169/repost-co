@@ -1464,148 +1464,137 @@ def render_login_page(auth_ready: bool):
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 14% 18%, rgba(96,165,250,.12) 0%, transparent 24%),
-            radial-gradient(circle at 85% 16%, rgba(56,189,248,.10) 0%, transparent 22%),
-            linear-gradient(135deg, #081325 0%, #14357a 56%, #2c7dd8 100%);
+            radial-gradient(circle at 14% 16%, rgba(110,168,255,.12) 0%, transparent 24%),
+            radial-gradient(circle at 84% 14%, rgba(56,189,248,.12) 0%, transparent 24%),
+            linear-gradient(135deg, #09162d 0%, #173a88 54%, #3aa1e8 100%);
     }
-    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stHeader"], [data-testid="stToolbar"], .stAppToolbar {
+        display:none !important;
+        height:0 !important;
+        min-height:0 !important;
+    }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: 0.85rem !important;
-        padding-bottom: 0.85rem !important;
-        max-width: 1340px !important;
+        padding-top: 1.2rem !important;
+        padding-bottom: 0.8rem !important;
+        max-width: 1380px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
-
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
-        position: fixed; border-radius: 999px; filter: blur(78px); opacity: .22;
-        pointer-events: none; z-index: 0; animation: floatOrb 16s ease-in-out infinite;
+        position: fixed; border-radius: 999px; filter: blur(82px); opacity: .22;
+        pointer-events: none; z-index: 0; animation: floatOrb 18s ease-in-out infinite;
     }
-    .login-orb.orb1 { width: 320px; height: 320px; left: -4%; top: 12%; background: rgba(96,165,250,.30); }
-    .login-orb.orb2 { width: 380px; height: 380px; right: -2%; top: 18%; background: rgba(56,189,248,.22); animation-delay: 3s; }
-    .login-orb.orb3 { width: 300px; height: 300px; left: 34%; bottom: 4%; background: rgba(255,255,255,.08); animation-delay: 6s; }
+    .login-orb.orb1 { width: 320px; height: 320px; left: -2%; top: 14%; background: rgba(96,165,250,.26); }
+    .login-orb.orb2 { width: 300px; height: 300px; right: 3%; top: 20%; background: rgba(56,189,248,.22); animation-delay: 2.8s; }
+    .login-orb.orb3 { width: 260px; height: 260px; left: 34%; bottom: 4%; background: rgba(255,255,255,.08); animation-delay: 5.6s; }
     @keyframes floatOrb {
         0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(18px, -18px) scale(1.04); }
+        50% { transform: translate(18px, -16px) scale(1.04); }
         100% { transform: translate(0, 0) scale(1); }
     }
-
     .login-hero-card, .login-auth-card {
         position: relative; z-index: 1; overflow: hidden;
         border-radius: 30px;
-        border: 1px solid rgba(255,255,255,.13);
+        border: 1px solid rgba(255,255,255,.12);
         box-shadow: 0 22px 54px rgba(2,6,23,.18);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
     }
     .login-hero-card {
-        padding: 34px;
+        padding: 34px 34px 30px 34px;
         min-height: 620px;
-        background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.05) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.06) 100%);
     }
     .login-auth-card {
-        padding: 34px;
+        padding: 32px 30px;
         min-height: 620px;
-        background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.10) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.12) 100%);
     }
-
     .hero-top-badge {
         display:inline-flex; align-items:center; gap:10px; padding:11px 18px; border-radius:999px;
         background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
-        color:#dbeafe; font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+        color:#e7efff; font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
         margin-bottom:28px;
     }
     .hero-top-badge::before {
-        content:''; width:8px; height:8px; border-radius:999px;
-        background: linear-gradient(135deg, #f59e0b, #fb7185);
+        content:'✨'; font-size:13px; line-height:1;
     }
-    .brand-row { display:flex; gap:22px; align-items:flex-start; margin-bottom:24px; }
+    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 24px; }
     .brand-logo {
-        width:92px; height:92px; border-radius:28px; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(180deg, rgba(255,255,255,.97) 0%, rgba(224,231,255,.92) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 16px 36px rgba(15,23,42,.14);
+        width: 92px; height: 92px; border-radius: 28px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(224,231,255,.92) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 16px 34px rgba(15,23,42,.16);
         flex: 0 0 92px;
     }
     .brand-logo-bars { display:flex; align-items:flex-end; gap:6px; height:42px; }
     .brand-logo-bars span { width:10px; border-radius:999px; display:block; }
     .brand-logo-bars span:nth-child(1){ height:28px; background:#7c3aed; }
-    .brand-logo-bars span:nth-child(2){ height:36px; background:#22c55e; }
+    .brand-logo-bars span:nth-child(2){ height:38px; background:#22c55e; }
     .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
-    .brand-logo-bars span:nth-child(4){ height:32px; background:#38bdf8; }
-    .brand-eyebrow { color:#c6d7ff; font-weight:800; letter-spacing:.16em; font-size:12px; text-transform:uppercase; }
-    .brand-title { color:#ffffff; font-size:42px; line-height:1.04; font-weight:900; margin:6px 0 0 0; letter-spacing:-.03em; }
-    .brand-sub { color:#e2edff; font-size:16px; line-height:1.82; margin-top:14px; max-width:690px; }
-
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:22px; }
+    .brand-logo-bars span:nth-child(4){ height:34px; background:#38bdf8; }
+    .brand-eyebrow { color: #dbe7ff; font-weight: 800; letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
+    .brand-title { color: #ffffff; font-size: 42px; line-height: 1.03; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.03em; }
+    .brand-sub { color: #e4efff; font-size: 15.5px; line-height: 1.82; margin-top: 14px; max-width: 690px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
     .hero-chip {
         display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px;
-        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
-        color:#f8fbff; font-size:13px; font-weight:700;
+        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10); color:#f7fbff; font-size:13px; font-weight:700;
     }
-    .chip-dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
-    .chip-dot.secure { background:#f59e0b; }
-    .chip-dot.map { background:#34d399; }
-    .chip-dot.insight { background:#93c5fd; }
-
-    .feature-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-top:28px; }
+    .chip-dot { font-size:14px; line-height:1; }
+    .feature-grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-top:28px; }
     .feature-item {
         border-radius: 22px;
-        padding: 18px 20px;
-        background: linear-gradient(180deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.045) 100%);
-        border: 1px solid rgba(255,255,255,.09);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        padding: 20px 22px;
+        background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.04) 100%);
+        border: 1px solid rgba(255,255,255,.10);
+        min-height: 114px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
     .feature-item:hover {
         transform: translateY(-2px);
         border-color: rgba(255,255,255,.14);
-        box-shadow: 0 14px 28px rgba(15,23,42,.10);
+        box-shadow: 0 14px 24px rgba(15,23,42,.10);
     }
-    .feature-line { display:flex; align-items:flex-start; gap:14px; }
+    .feature-item-inner { display:flex; align-items:flex-start; gap:14px; }
     .feature-icon {
-        width:46px; height:46px; border-radius:14px; flex:0 0 46px;
-        display:flex; align-items:center; justify-content:center;
+        width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;
         background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.10); color:#fff;
-        font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+        font-size:22px; flex:0 0 46px;
     }
-    .feature-title { color:#ffffff; font-size:17px; font-weight:800; margin-bottom:6px; line-height:1.35; }
-    .feature-text { color:#dce8ff; font-size:13px; line-height:1.72; }
-
+    .feature-title { color:#ffffff; font-size:18px; font-weight:800; margin-bottom:6px; line-height:1.3; }
+    .feature-text { color:#dce8ff; font-size:13px; line-height:1.7; }
     .auth-kicker { color:#d9e7ff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:12px; }
-    .login-panel-title { color:#ffffff; font-size:44px; font-weight:900; margin-bottom:14px; line-height:1.04; letter-spacing:-.03em; }
-    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.88; margin-bottom:28px; max-width: 430px; }
+    .login-panel-title { color:#ffffff; font-size:44px; font-weight:900; margin-bottom:12px; line-height:1.04; letter-spacing:-.03em; }
+    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.85; margin-bottom:24px; max-width: 430px; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
-        border:1px solid rgba(219,234,254,.92);
-        border-radius:24px; padding:18px 18px 16px 18px; margin-bottom:18px;
-        box-shadow: 0 12px 26px rgba(15,23,42,.07);
+        border:1px solid rgba(219,234,254,.95);
+        border-radius:24px;
+        padding:20px 20px 18px 20px;
+        margin-bottom:18px;
+        box-shadow: 0 12px 28px rgba(15,23,42,.08);
     }
-    .login-mini-head { display:flex; align-items:flex-start; gap:12px; }
+    .login-mini-head { display:flex; align-items:flex-start; gap:14px; }
     .login-mini-icon {
-        width:40px; height:40px; border-radius:13px; flex:0 0 40px;
+        width:40px; height:40px; border-radius:12px; flex:0 0 40px;
         display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:11px; font-weight:800; letter-spacing:.06em;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:19px;
     }
-    .login-mini-title { color:#0f172a; font-size:17px; font-weight:800; margin-bottom:5px; }
+    .login-mini-title { color:#0f172a; font-size:18px; font-weight:800; margin-bottom:5px; }
     .login-mini-text { color:#5b6b84; font-size:13px; line-height:1.72; }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
         text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:900; font-size:16px;
-        background: linear-gradient(135deg, #1d4ed8, #2563eb 45%, #22d3ee 100%); color:white; border: 1px solid rgba(255,255,255,.14);
-        box-shadow: 0 18px 32px rgba(29,78,216,.24); transition: all .2s ease; margin-top: 26px;
+        background: linear-gradient(135deg, #1d4ed8, #2563eb 46%, #22d3ee 100%); color:white; border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 16px 28px rgba(29,78,216,.22); transition: all .18s ease;
+        margin-top: 0;
     }
-    .ms-login-link:hover { transform: translateY(-2px); filter: brightness(1.03); box-shadow: 0 22px 38px rgba(29,78,216,.28); }
-    .ms-logo {
-        width:22px; height:22px; border-radius:6px; background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
-        position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
-    }
-    .ms-logo::before, .ms-logo::after { content:''; position:absolute; background:#2563eb; }
-    .ms-logo::before { width:2px; height:14px; left:10px; top:4px; opacity:.3; }
-    .ms-logo::after { width:14px; height:2px; left:4px; top:10px; opacity:.3; }
+    .ms-login-link:hover { transform: translateY(-2px); filter: brightness(1.03); box-shadow: 0 20px 32px rgba(29,78,216,.26); }
+    .ms-logo { font-size:17px; line-height:1; }
     .login-note { color:#dce8ff; font-size:12.8px; line-height:1.7; margin-top:14px; }
-    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:22px; }
+    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:18px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
-
     .loading-overlay {
         display:none; position: fixed; inset:0; background: rgba(15,23,42,.30); backdrop-filter: blur(8px);
         z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
@@ -1617,7 +1606,6 @@ def render_login_page(auth_ready: bool):
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
-
     @media (max-width: 1024px) {
         .login-hero-card, .login-auth-card { min-height: auto; }
         .brand-title { font-size: 36px; }
@@ -1647,7 +1635,7 @@ def render_login_page(auth_ready: bool):
     </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.28, 0.92], gap="large")
+    left, right = st.columns([1.22, 0.78], gap="large")
     with left:
         st.markdown(textwrap.dedent("""
         <div class="login-hero-card">
@@ -1659,18 +1647,18 @@ def render_login_page(auth_ready: bool):
                 <div>
                     <div class="brand-eyebrow">Optimal Group Platform</div>
                     <div class="brand-title">Sales Territory Dashboard</div>
-                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ Budget และยอดขายในมุมมองเดียว ช่วยให้ทีมงานเห็นภาพรวมและตัดสินใจได้เร็วขึ้น</div>
+                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
                 </div>
             </div>
             <div class="hero-chip-row">
-                <div class="hero-chip"><span class="chip-dot secure"></span>Microsoft 365 Security</div>
-                <div class="hero-chip"><span class="chip-dot map"></span>Smart Customer Mapping</div>
-                <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
+                <div class="hero-chip"><span class="chip-dot">🪟</span>Microsoft 365</div>
+                <div class="hero-chip"><span class="chip-dot">📍</span>Smart Mapping</div>
+                <div class="hero-chip"><span class="chip-dot">📈</span>Performance Insight</div>
             </div>
-            <div class="feature-stack">
-                <div class="feature-item"><div class="feature-line"><div class="feature-icon">DB</div><div><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมสำหรับยอดขาย Budget และโอกาสทางธุรกิจในรูปแบบที่อ่านง่ายและพร้อมใช้งาน</div></div></div></div>
-                <div class="feature-item"><div class="feature-line"><div class="feature-icon">MI</div><div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI ลูกค้าหลัก และโอกาสที่ควรติดตามต่อ ช่วยให้โฟกัสงานขายได้ชัดเจนยิ่งขึ้น</div></div></div></div>
-                <div class="feature-item"><div class="feature-line"><div class="feature-icon">RT</div><div><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การครอบคลุมพื้นที่ และการวางแผนเข้าพบลูกค้าได้อย่างเป็นระบบ</div></div></div></div>
+            <div class="feature-grid">
+                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">📊</div><div><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมยอดขาย Budget และโอกาสสำคัญในหน้าจอเดียว</div></div></div></div>
+                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">🎯</div><div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, โอกาสขาย และลูกค้าสำคัญในมุมมองที่เข้าใจง่ายและพร้อมใช้งาน</div></div></div></div>
+                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">🗺️</div><div><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div></div>
             </div>
         </div>
         """), unsafe_allow_html=True)
@@ -1683,10 +1671,10 @@ def render_login_page(auth_ready: bool):
             <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
             <div class="login-mini-card">
                 <div class="login-mini-head">
-                    <div class="login-mini-icon">RB</div>
+                    <div class="login-mini-icon">🛡️</div>
                     <div>
                         <div class="login-mini-title">Role-based access</div>
-                        <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กรอย่างชัดเจนและปลอดภัย</div>
+                        <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กรอย่างชัดเจน</div>
                     </div>
                 </div>
             </div>
@@ -1697,7 +1685,7 @@ def render_login_page(auth_ready: bool):
             st.markdown(
                 f"""
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    <span class="ms-logo"></span>
+                    <span class="ms-logo">🪟</span>
                     <span>Sign in with Microsoft 365</span>
                 </a>
                 """,
@@ -1714,6 +1702,7 @@ def render_login_page(auth_ready: bool):
             </div>
         </div>
         """), unsafe_allow_html=True)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
