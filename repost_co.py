@@ -2159,8 +2159,10 @@ if menu == "📊 Team Dashboard":
             radial-gradient(circle at 92% 4%, rgba(196,181,253,.14), transparent 20%),
             linear-gradient(180deg, #f8fbff 0%, #eef5ff 42%, #f7fbff 100%);
     }
+    [data-testid="stAppViewContainer"] > .main {padding-top:0 !important;}
     section.main > div {padding-top:0 !important;}
-    .main .block-container{max-width:1480px; padding-top:0.35rem !important; padding-bottom:2.2rem;}
+    [data-testid="stAppViewBlockContainer"] {padding-top:0.08rem !important; padding-bottom:0.8rem !important;}
+    .main .block-container{max-width:1480px; padding-top:0.08rem !important; padding-bottom:2.2rem;}
     div[data-testid="stVerticalBlock"]{gap:1.25rem;}
     div[data-testid="column"] > div{gap:1.25rem;}
     [data-testid="stExpander"]{border:1px solid rgba(219,234,254,.95); border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.94)); box-shadow:0 14px 30px rgba(148,163,184,.10); margin-top:0.4rem;}
@@ -2173,14 +2175,14 @@ if menu == "📊 Team Dashboard":
     [data-testid="stDataFrame"]{border:1px solid rgba(219,234,254,.9); border-radius:18px; overflow:hidden; box-shadow:0 12px 24px rgba(148,163,184,.10);}
     [data-testid="stDataFrame"] [role="columnheader"]{background:#eff6ff !important; color:#1e3a5f !important; font-weight:800 !important; border-bottom:1px solid #dbeafe !important;}
     [data-testid="stDataFrame"] [role="gridcell"]{border-color:#eef2ff !important;}
-    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:22px 28px 26px 28px; margin-bottom:1.8rem; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+     .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 28px 26px 28px; margin-top:-0.2rem; margin-bottom:1.8rem; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
     .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.08), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.08), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
-    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:24px; flex-wrap:wrap;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:20px; flex-wrap:wrap;}
     .saas-title-wrap{display:flex; align-items:flex-start; gap:16px;}
     .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
-    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:4px;}
-    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0; letter-spacing:-.04em;}
-    .saas-sub{font-size:13px; color:#334155; margin-top:8px; line-height:1.65; max-width:920px;}
+    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:2px;}
+    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0 0 2px 0; letter-spacing:-.04em;}
+    .saas-sub{font-size:13px; color:#334155; margin-top:6px; line-height:1.65; max-width:920px;}
     .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px; align-self:flex-end;}
     .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12);}
     .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-top:4px;}
