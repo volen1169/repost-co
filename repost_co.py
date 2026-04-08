@@ -1265,160 +1265,262 @@ def filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
     mask = salesperson_norm.isin(allowed_names)
     return df_in.loc[mask].copy()
 
+def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊"):
+    st.markdown(f"""
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div style="font-size:13px; color:#475569; font-weight:700;">{label}</div>
+            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
+        </div>
+        <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
+        <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_section_header(title: str, subtitle: str = "", icon: str = "✨", accent: str = "#2563eb"):
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div style="width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
+            <div>
+                <div style="font-size:22px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
+                <div style="font-size:13px; color:#475569; margin-top:4px;">{subtitle}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
+    badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
+    st.markdown(f"""
+    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:18px; color:white; overflow:hidden; position:relative;">
+        <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
+        <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
+        <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+            <div style="max-width:860px;">
+                <div style="font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
+                <div style="font-size:34px; line-height:1.08; font-weight:800; margin-bottom:8px;">{title}</div>
+                <div style="font-size:14px; line-height:1.7; color:#e0f2fe;">{subtitle}</div>
+            </div>
+            <div>{badge_html}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
+    numeric_cols = numeric_cols or []
+    pct_cols = pct_cols or []
+    styler = df_show.style
+    styler = styler.set_properties(**{
+        "background-color": "#ffffff",
+        "border-color": "#e2e8f0",
+        "font-size": "13px",
+    })
+    styler = styler.set_table_styles([
+        {"selector": "thead th", "props": [("background", "#eff6ff"), ("color", "#0f172a"), ("font-weight", "700"), ("border", "1px solid #dbeafe")]},
+        {"selector": "tbody tr:hover", "props": [("background-color", "#f8fbff")]},
+        {"selector": "tbody td", "props": [("border", "1px solid #eef2ff"), ("padding", "8px 10px")]},
+    ])
+    if numeric_cols:
+        existing = [c for c in numeric_cols if c in df_show.columns]
+        if existing:
+            styler = styler.format({c: "{:,.0f}" for c in existing})
+    if pct_cols:
+        existing_pct = [c for c in pct_cols if c in df_show.columns]
+        if existing_pct:
+            styler = styler.format({c: "{:.1f}%" for c in existing_pct})
+    return styler
+
+
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 12% 18%, rgba(147, 197, 253, 0.34) 0%, transparent 24%),
-            radial-gradient(circle at 85% 16%, rgba(191, 219, 254, 0.30) 0%, transparent 26%),
-            radial-gradient(circle at 72% 78%, rgba(125, 211, 252, 0.22) 0%, transparent 28%),
-            linear-gradient(135deg, #dbeafe 0%, #bfdbfe 38%, #93c5fd 100%);
+            radial-gradient(circle at 10% 14%, rgba(59,130,246,.28) 0%, transparent 24%),
+            radial-gradient(circle at 84% 12%, rgba(56,189,248,.20) 0%, transparent 28%),
+            radial-gradient(circle at 76% 82%, rgba(255,255,255,.18) 0%, transparent 26%),
+            linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #38bdf8 100%);
     }
     [data-testid="stHeader"] { background: transparent; }
-    .block-container {
-        padding-top: 0.05rem !important;
-        padding-bottom: 0.2rem !important;
+    [data-testid="stAppViewBlockContainer"], .block-container {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.25rem !important;
         max-width: 1320px !important;
     }
+    div[data-testid="column"] { padding-top: 0 !important; }
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
-        position: fixed; border-radius: 999px; filter: blur(56px); opacity: 0.45;
-        pointer-events: none; z-index: 0; animation: floatOrb 11s ease-in-out infinite;
+        position: fixed; border-radius: 999px; filter: blur(58px); opacity: .45;
+        pointer-events: none; z-index: 0; animation: floatOrb 12s ease-in-out infinite;
     }
-    .login-orb.orb1 { width: 250px; height: 250px; left: 4%; top: 10%; background: rgba(96, 165, 250, 0.45); }
-    .login-orb.orb2 { width: 320px; height: 320px; right: 6%; top: 16%; background: rgba(125, 211, 252, 0.35); animation-delay: 2s; }
-    .login-orb.orb3 { width: 300px; height: 300px; left: 26%; bottom: 4%; background: rgba(191, 219, 254, 0.42); animation-delay: 4s; }
+    .login-orb.orb1 { width: 300px; height: 300px; left: 3%; top: 8%; background: rgba(96,165,250,.38); }
+    .login-orb.orb2 { width: 360px; height: 360px; right: 5%; top: 14%; background: rgba(125,211,252,.28); animation-delay: 2.4s; }
+    .login-orb.orb3 { width: 320px; height: 320px; left: 24%; bottom: 2%; background: rgba(191,219,254,.22); animation-delay: 4.8s; }
     @keyframes floatOrb {
         0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(14px, -18px) scale(1.05); }
+        50% { transform: translate(16px, -18px) scale(1.06); }
         100% { transform: translate(0, 0) scale(1); }
     }
-    .glass-card {
-        position: relative; z-index: 1;
-        background: rgba(255,255,255,0.28);
-        border: 1px solid rgba(255,255,255,0.46);
-        box-shadow: 0 18px 60px rgba(30, 64, 175, 0.16);
+    .login-hero-card, .login-auth-card {
+        position: relative; z-index: 1; overflow: hidden;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.24);
+        box-shadow: 0 24px 70px rgba(15,23,42,.24);
         border-radius: 30px;
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
-        padding: 28px;
     }
-    .brand-row { display:flex; gap:18px; align-items:center; margin-bottom: 14px; }
+    .login-hero-card { padding: 30px; min-height: 560px; }
+    .login-auth-card { padding: 28px; }
+    .hero-top-badge {
+        display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px;
+        background: rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14);
+        color:#dbeafe; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+        margin-bottom:18px;
+    }
+    .brand-row { display:flex; gap:18px; align-items:flex-start; margin-bottom: 18px; }
     .brand-logo {
-        width: 78px; height: 78px; border-radius: 22px; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size: 34px; font-weight: 800;
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+        width: 84px; height: 84px; border-radius: 24px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(219,234,254,.96));
+        color:#1d4ed8; font-size: 38px; font-weight: 900;
+        box-shadow: 0 16px 36px rgba(15,23,42,.16); flex: 0 0 84px;
     }
-    .brand-eyebrow { color: #1d4ed8; font-weight: 800; letter-spacing: .12em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #0f172a; font-size: 34px; line-height: 1.05; font-weight: 800; margin: 2px 0 0 0; }
-    .brand-sub { color: #334155; font-size: 15px; line-height: 1.75; margin-top: 8px; }
-    .feature-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top:22px; }
-    .feature-item { border-radius: 20px; padding: 16px 14px; background: rgba(255,255,255,0.34); border: 1px solid rgba(255,255,255,0.52); min-height:112px; }
+    .brand-eyebrow { color: #bfdbfe; font-weight: 800; letter-spacing: .14em; font-size: 12px; text-transform: uppercase; }
+    .brand-title { color: #fff; font-size: 38px; line-height: 1.04; font-weight: 900; margin: 4px 0 0 0; }
+    .brand-sub { color: #dbeafe; font-size: 15px; line-height: 1.8; margin-top: 10px; max-width: 760px; }
+    .hero-chip-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .hero-chip {
+        display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background: rgba(255,255,255,.10);
+        border:1px solid rgba(255,255,255,.14); color:#eff6ff; font-size:12px; font-weight:700;
+    }
+    .feature-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; margin-top:24px; }
+    .feature-item {
+        border-radius: 22px; padding: 18px 16px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14);
+        min-height:124px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
     .feature-icon { font-size:24px; margin-bottom:8px; }
-    .feature-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
-    .feature-text { color:#475569; font-size:12.5px; line-height:1.55; }
-    .login-right-panel { padding: 10px 2px 0 2px; }
-    .login-panel-title { color:#0f172a; font-size:26px; font-weight:800; margin-bottom:8px; }
-    .login-panel-sub { color:#334155; font-size:14px; line-height:1.65; margin-bottom:18px; }
-    .login-footer { text-align:center; color:#334155; font-size:12.5px; margin-top:16px; padding-bottom: 8px; }
-    .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
-    .ms-login-link {
-        display:block; text-align:center; padding:12px 16px; border-radius:14px; text-decoration:none; font-weight:800;
-        background: linear-gradient(135deg, #2563eb, #3b82f6); color:white; border: 1px solid rgba(37,99,235,0.2);
-        box-shadow: 0 10px 22px rgba(37,99,235,0.18);
+    .feature-title { color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
+    .feature-text { color:#dbeafe; font-size:12.5px; line-height:1.6; }
+    .auth-kicker { color:#1d4ed8; font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:12px; margin-bottom:8px; }
+    .login-panel-title { color:#0f172a; font-size:30px; font-weight:900; margin-bottom:8px; line-height:1.08; }
+    .login-panel-sub { color:#475569; font-size:14px; line-height:1.7; margin-bottom:20px; }
+    .login-mini-card {
+        background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%); border:1px solid #dbeafe; border-radius:20px;
+        padding:14px 14px 12px 14px; margin-bottom:12px;
     }
-    .ms-login-link:hover { filter: brightness(1.03); }
+    .login-mini-title { color:#0f172a; font-size:14px; font-weight:800; margin-bottom:4px; }
+    .login-mini-text { color:#64748b; font-size:12.5px; line-height:1.55; }
+    .ms-login-link {
+        display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+        text-align:center; padding:14px 18px; border-radius:18px; text-decoration:none; font-weight:900; font-size:15px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8 55%, #38bdf8 100%); color:white; border: 1px solid rgba(37,99,235,.18);
+        box-shadow: 0 14px 28px rgba(37,99,235,.20); transition: all .2s ease;
+    }
+    .ms-login-link:hover { transform: translateY(-1px); filter: brightness(1.03); box-shadow: 0 18px 34px rgba(37,99,235,.24); }
+    .login-note { color:#64748b; font-size:12.5px; line-height:1.6; margin-top:12px; }
+    .login-footer { text-align:center; color:#64748b; font-size:12.5px; margin-top:18px; }
+    .login-footer a { color:#1d4ed8; text-decoration:none; font-weight:700; }
     .loading-overlay {
-        display:none; position: fixed; inset:0; background: rgba(219, 234, 254, 0.72); backdrop-filter: blur(8px);
+        display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
         z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
     }
     .loading-overlay.show { display:flex; }
     .loading-spinner {
-        width:54px; height:54px; border-radius:999px; border:5px solid rgba(37,99,235,0.18); border-top-color:#2563eb;
+        width:56px; height:56px; border-radius:999px; border:5px solid rgba(255,255,255,.28); border-top-color:#ffffff;
         animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color:#1e3a8a; font-weight:800; font-size:15px; }
-    @media (max-width: 980px) { .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:28px; } }
-    
-[data-testid="stAppViewBlockContainer"], .block-container {
-    padding-top: 0.15rem !important;
-    padding-bottom: 0 !important;
-}
-div[data-testid="column"] {
-    padding-top: 0 !important;
-}
-.glass-card {
-    margin-top: 0 !important;
-}
-
-</style>
-<div class="loading-overlay" id="login-loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
-</div>
-<script>
-function showLoginLoading(){
-    const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
-    if(el){ el.classList.add('show'); }
-}
-</script>
-<div class="login-shell">
-    <div class="login-orb orb1"></div>
-    <div class="login-orb orb2"></div>
-    <div class="login-orb orb3"></div>
-</div>
+    .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
+    @media (max-width: 980px) { .feature-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .feature-grid { grid-template-columns: 1fr; } .brand-title { font-size:30px; } .login-hero-card { min-height:auto; } }
+    </style>
+    <div class="loading-overlay" id="login-loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
+    </div>
+    <script>
+    function showLoginLoading(){
+        const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
+        if(el){ el.classList.add('show'); }
+    }
+    </script>
+    <div class="login-shell">
+        <div class="login-orb orb1"></div>
+        <div class="login-orb orb2"></div>
+        <div class="login-orb orb3"></div>
+    </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.35, 1])
+    left, right = st.columns([1.35, 0.9])
     with left:
         st.markdown(textwrap.dedent("""
-        <div class="glass-card">
+        <div class="login-hero-card">
+            <div class="hero-top-badge">✨ Modern workspace for sales operations</div>
             <div class="brand-row">
                 <div class="brand-logo">📊</div>
                 <div>
                     <div class="brand-eyebrow">Optimal Group Platform</div>
                     <div class="brand-title">Sales Territory Dashboard</div>
-                    <div class="brand-sub">ระบบบริหารข้อมูลลูกค้า แผนที่ Budget การเข้าถึงข้อมูล และการส่งออกไฟล์ สำหรับทีมงานในแต่ละแผนกของบริษัท</div>
+                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
                 </div>
             </div>
+            <div class="hero-chip-row">
+                <div class="hero-chip">🔐 Microsoft 365 Security</div>
+                <div class="hero-chip">🗺️ Smart Customer Mapping</div>
+                <div class="hero-chip">📈 Budget & Performance Insight</div>
+            </div>
             <div class="feature-grid">
-                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Dashboard</div><div class="feature-text">ดูภาพรวมยอดขาย ลูกค้า และ Insight แยกตามแผนก</div></div>
-                <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-title">แผนที่</div><div class="feature-text">ดูหมุดลูกค้า เส้นทาง และข้อมูล Plus Code</div></div>
-                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">Budget</div><div class="feature-text">เปรียบเทียบ Budget และ Actual พร้อมวิเคราะห์ Gap</div></div>
-                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint</div><div class="feature-text">โหลดและบันทึกไฟล์แยกตามแผนกจาก SharePoint</div></div>
-                <div class="feature-item"><div class="feature-icon">🔐</div><div class="feature-title">สิทธิ์</div><div class="feature-text">ควบคุมการเข้าถึงตาม Microsoft 365, Group และ Role</div></div>
-                <div class="feature-item"><div class="feature-icon">📤</div><div class="feature-title">Export</div><div class="feature-text">ส่งออก Template, ข้อมูลลูกค้า และ Audit Log ได้ทันที</div></div>
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-title">Executive Visibility</div><div class="feature-text">เห็นภาพรวมยอดขาย โอกาส และความเสี่ยงได้เร็ว พร้อมใช้งานกับแต่ละแผนก</div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, top opportunities และลูกค้าเสี่ยงในมุมมองที่เข้าใจง่ายและใช้งานได้ทันที</div></div>
+                <div class="feature-item"><div class="feature-icon">☁️</div><div class="feature-title">SharePoint Connected</div><div class="feature-text">โหลด บันทึก และส่งออกรายงานจาก SharePoint ได้โดยตรง ลดงานซ้ำซ้อนของทีม</div></div>
+                <div class="feature-item"><div class="feature-icon">🧭</div><div class="feature-title">Route & Coverage Ready</div><div class="feature-text">ต่อยอดไปสู่แผนที่ลูกค้า การวาง route และการวางแผนเข้าพบได้สะดวก</div></div>
             </div>
         </div>
         """), unsafe_allow_html=True)
 
     with right:
-        st.markdown('<div class="login-right-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="login-panel-title">เข้าสู่ระบบ</div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อกำหนดสิทธิ์และแผนกอัตโนมัติจากบัญชีองค์กร</div>', unsafe_allow_html=True)
-        st.markdown('#### Microsoft 365')
+        st.markdown(textwrap.dedent("""
+        <div class="login-auth-card">
+            <div class="auth-kicker">Secure sign in</div>
+            <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+            <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
+            <div class="login-mini-card">
+                <div class="login-mini-title">Role-based access</div>
+                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนดไว้ในองค์กร</div>
+            </div>
+            <div class="login-mini-card">
+                <div class="login-mini-title">Fast and familiar</div>
+                <div class="login-mini-text">ใช้บัญชีองค์กรเดิม ไม่ต้องจำรหัสผ่านของระบบเพิ่มเติม</div>
+            </div>
+        """), unsafe_allow_html=True)
+
         if auth_ready:
             login_url = _build_login_url()
             st.markdown(
                 f"""
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    🔵 Sign in with Microsoft 365
+                    <span>🔵</span>
+                    <span>Sign in with Microsoft 365</span>
                 </a>
                 """,
                 unsafe_allow_html=True,
             )
-            st.caption('ใช้บัญชีองค์กรเพื่อตรวจสอบสิทธิ์และดึงกลุ่มแผนกอัตโนมัติ')
+            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
         else:
             st.button('🔵 Microsoft 365 Not Configured', disabled=True, use_container_width=True)
-            st.caption('ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI')
+            st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
+
         st.markdown(textwrap.dedent("""
-        <div class="login-footer">
-            Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+            <div class="login-footer">
+                Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+            </div>
         </div>
         """), unsafe_allow_html=True)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
@@ -2612,14 +2714,15 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
 
 elif menu == "🎯 My Sales Intelligence":
     _scroll_top()
-    st.title("🎯 My Sales Intelligence")
 
     if df.empty or "Customer Name" not in df.columns:
+        st.title("🎯 My Sales Intelligence")
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
     exec_source_df = filter_df_for_current_user(df)
     if exec_source_df.empty:
+        st.title("🎯 My Sales Intelligence")
         st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
         st.stop()
 
@@ -2634,16 +2737,20 @@ elif menu == "🎯 My Sales Intelligence":
     rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
 
     role = str(st.session_state.get("user_role") or "").strip().lower()
+    role_badge = "👨‍💻 Staff View" if role == "staff" else ("🧑‍💼 Manager View" if role == "manager" else "👑 Admin View")
     if role == "staff":
-        st.caption("ภาพรวมผลงานและโอกาสขายเฉพาะข้อมูลของคุณ")
+        hero_subtitle = "โฟกัสเฉพาะข้อมูลลูกค้าและผลงานของคุณ เพื่อช่วยลำดับความสำคัญในการดูแลลูกค้าและโอกาสขาย"
     elif role == "manager":
-        st.caption("ภาพรวมผลงานและโอกาสขายของทีมในแผนกที่คุณดูแล")
+        hero_subtitle = "เห็นภาพรวมผลงานของทีม พร้อมโอกาสขายและกลุ่มลูกค้าเสี่ยงของแผนกที่คุณดูแล"
     else:
-        st.caption("ภาพรวมผลงานและโอกาสขายของแผนกที่กำลังเปิดอยู่")
+        hero_subtitle = "ภาพรวมเชิงกลยุทธ์ของแผนกที่กำลังเปิดอยู่ พร้อมข้อมูลสำหรับติดตามโอกาสและความเสี่ยง"
 
-    # Section 1: My / Team Performance
-    section_1_title = "📊 My Performance" if role == "staff" else "📊 Team Performance"
-    st.subheader(section_1_title)
+    render_info_banner(
+        title="My Sales Intelligence",
+        subtitle=hero_subtitle,
+        badge=f"{role_badge} • {_dept_label(st.session_state.get('dept') or '')}",
+    )
+
     total_sales = float(rep["Sales/Year"].sum())
     total_budget = float(rep["Budget_kg"].sum())
     total_actual = float(rep["Actual_kg"].sum())
@@ -2651,16 +2758,27 @@ elif menu == "🎯 My Sales Intelligence":
     avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
 
     k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("💰 Sales", f"฿{total_sales/1e6:,.1f} M")
-    k2.metric("🎯 Budget", f"{int(total_budget):,} kg")
-    k3.metric("✅ Actual", f"{int(total_actual):,} kg")
-    k4.metric("📉 Gap", f"{int(total_gap):,} kg")
-    k5.metric("📈 Achievement", f"{avg_ach:,.1f}%")
+    with k1:
+        render_kpi_card("Sales", f"฿{total_sales/1e6:,.1f}M", "มูลค่ายอดขายรวมในมุมมองปัจจุบัน", "💰")
+    with k2:
+        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
+    with k3:
+        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
+    with k4:
+        render_kpi_card("Gap", f"{int(total_gap):,}", "ส่วนต่าง Budget ที่ยังเหลือ", "📉")
+    with k5:
+        render_kpi_card("Achievement", f"{avg_ach:,.1f}%", "ค่าเฉลี่ย Achievement", "📈")
 
     perf_by_month_placeholder = rep[["Customer Name", "Salesperson", "Sales/Year", "Budget_kg", "Actual_kg", "achievement_pct"]].copy()
     perf_by_month_placeholder = perf_by_month_placeholder.sort_values(["Sales/Year", "Actual_kg"], ascending=False).head(12)
 
-    p1, p2 = st.columns([1.15, 1])
+    render_section_header(
+        title="Performance Overview",
+        subtitle="ภาพรวมผลงานล่าสุดในรูปแบบที่อ่านง่าย ทั้งตารางและกราฟสรุป",
+        icon="📊",
+        accent="#2563eb",
+    )
+    p1, p2 = st.columns([1.1, 1])
     with p1:
         st.markdown("**Performance Snapshot**")
         perf_view = perf_by_month_placeholder.rename(columns={
@@ -2671,11 +2789,12 @@ elif menu == "🎯 My Sales Intelligence":
             "Actual_kg": "Actual",
             "achievement_pct": "Achievement %",
         }).copy()
-        perf_view["Sales/Year"] = perf_view["Sales/Year"].apply(lambda v: f"฿{v:,.0f}")
-        perf_view["Budget"] = perf_view["Budget"].apply(lambda v: f"{int(v):,}")
-        perf_view["Actual"] = perf_view["Actual"].apply(lambda v: f"{int(v):,}")
-        perf_view["Achievement %"] = perf_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
-        st.dataframe(perf_view, use_container_width=True, hide_index=True, height=360)
+        st.dataframe(
+            style_rich_dataframe(perf_view, numeric_cols=["Sales/Year", "Budget", "Actual"], pct_cols=["Achievement %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=388,
+        )
     with p2:
         st.markdown("**Achievement by Salesperson**")
         by_sp = rep.groupby("Salesperson", dropna=False).agg(
@@ -2692,16 +2811,25 @@ elif menu == "🎯 My Sales Intelligence":
             color_continuous_scale="Blues",
             labels={"total_sales": "Total Sales", "avg_achievement": "Achievement %"}
         )
-        fig_sp.update_traces(textposition="outside")
-        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_sp.update_traces(textposition="outside", marker_line_width=0)
+        fig_sp.update_layout(
+            height=388,
+            coloraxis_showscale=False,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=10, r=10, t=18, b=10),
+            xaxis_title="",
+            yaxis_title="Sales",
+        )
         st.plotly_chart(fig_sp, use_container_width=True)
 
-    st.divider()
-
-    # Section 2: Opportunities
-    section_2_title = "🔥 My Top Opportunities" if role == "staff" else "🔥 Team Opportunities"
-    st.subheader(section_2_title)
     opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(10).copy()
+    render_section_header(
+        title="Top Opportunities",
+        subtitle="ลูกค้าที่มีโอกาสต่อยอดมากที่สุดจาก gap, achievement และมูลค่ายอดขาย",
+        icon="🔥",
+        accent="#f97316",
+    )
     if opp.empty:
         st.info("ยังไม่มีข้อมูลโอกาสขายให้แสดง")
     else:
@@ -2721,20 +2849,45 @@ elif menu == "🎯 My Sales Intelligence":
             "achievement_pct": "Achievement %",
             "opportunity_score": "Score",
         }).copy()
-        opp_view["Sales/Year"] = opp_view["Sales/Year"].apply(lambda v: f"฿{v:,.0f}")
-        for col in ["Budget", "Actual", "Gap"]:
-            opp_view[col] = opp_view[col].apply(lambda v: f"{int(v):,}")
-        opp_view["Achievement %"] = opp_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
-        opp_view["Score"] = opp_view["Score"].apply(lambda v: f"{v:.1f}")
-        st.dataframe(opp_view, use_container_width=True, hide_index=True, height=360)
 
-    st.divider()
+        oc1, oc2 = st.columns([1.15, 0.85])
+        with oc1:
+            st.dataframe(
+                style_rich_dataframe(opp_view, numeric_cols=["Sales/Year", "Budget", "Actual", "Gap", "Score"], pct_cols=["Achievement %"]),
+                use_container_width=True,
+                hide_index=True,
+                height=380,
+            )
+        with oc2:
+            opp_chart = opp.head(8).sort_values("opportunity_score", ascending=True)
+            fig_opp = px.bar(
+                opp_chart,
+                x="opportunity_score",
+                y="Customer Name",
+                orientation="h",
+                text=opp_chart["opportunity_score"].apply(lambda v: f"{v:.1f}"),
+                color="gap_kg",
+                color_continuous_scale="Sunsetdark",
+                labels={"Customer Name": "", "opportunity_score": "Opportunity Score", "gap_kg": "Gap"},
+            )
+            fig_opp.update_traces(textposition="outside", marker_line_width=0)
+            fig_opp.update_layout(
+                height=380,
+                coloraxis_showscale=False,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=10, r=10, t=18, b=10),
+            )
+            st.plotly_chart(fig_opp, use_container_width=True)
 
-    # Section 3: At Risk
-    section_3_title = "⚠️ My At-Risk Customers" if role == "staff" else "⚠️ Team At-Risk Customers"
-    st.subheader(section_3_title)
     risk = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].copy()
     risk = risk.sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(15)
+    render_section_header(
+        title="At-Risk Customers",
+        subtitle="ลูกค้าที่ควรติดตามใกล้ชิดจาก achievement ต่ำ หรือ YoY ลดลง",
+        icon="⚠️",
+        accent="#dc2626",
+    )
     if risk.empty:
         st.success("ยังไม่พบลูกค้าที่อยู่ในกลุ่มเสี่ยงตามเงื่อนไขปัจจุบัน")
     else:
@@ -2751,14 +2904,44 @@ elif menu == "🎯 My Sales Intelligence":
             "achievement_pct": "Achievement %",
             "yoy_pct": "YoY %",
         }).copy()
-        for col in ["Budget", "Actual", "Gap"]:
-            risk_view[col] = risk_view[col].apply(lambda v: f"{int(v):,}")
-        risk_view["Achievement %"] = risk_view["Achievement %"].apply(lambda v: f"{v:.1f}%")
-        risk_view["YoY %"] = risk_view["YoY %"].apply(lambda v: f"{v:.1f}%")
-        st.dataframe(risk_view, use_container_width=True, hide_index=True, height=360)
 
-    st.divider()
-    st.subheader("📦 Export + Report")
+        rc1, rc2 = st.columns([1.15, 0.85])
+        with rc1:
+            st.dataframe(
+                style_rich_dataframe(risk_view, numeric_cols=["Budget", "Actual", "Gap"], pct_cols=["Achievement %", "YoY %"]),
+                use_container_width=True,
+                hide_index=True,
+                height=380,
+            )
+        with rc2:
+            risk_chart = risk.head(10).sort_values("achievement_pct", ascending=True)
+            fig_risk = px.scatter(
+                risk_chart,
+                x="achievement_pct",
+                y="yoy_pct",
+                size="gap_kg",
+                hover_name="Customer Name",
+                color="gap_kg",
+                color_continuous_scale="Reds",
+                labels={"achievement_pct": "Achievement %", "yoy_pct": "YoY %", "gap_kg": "Gap"},
+            )
+            fig_risk.update_layout(
+                height=380,
+                coloraxis_showscale=False,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=10, r=10, t=18, b=10),
+            )
+            fig_risk.add_vline(x=50, line_dash="dash", line_color="#f97316", opacity=0.7)
+            fig_risk.add_hline(y=0, line_dash="dash", line_color="#94a3b8", opacity=0.7)
+            st.plotly_chart(fig_risk, use_container_width=True)
+
+    render_section_header(
+        title="Export & Reporting",
+        subtitle="ดาวน์โหลดรายงาน หรืออัปโหลดผลลัพธ์กลับขึ้น SharePoint ได้ทันที",
+        icon="📦",
+        accent="#0f766e",
+    )
     report_xlsx = to_excel_bytes_multi({
         "Sales Intelligence": rep,
         "Top Opportunities": opp,
@@ -2789,8 +2972,12 @@ elif menu == "🎯 My Sales Intelligence":
                 append_audit_log("upload_sales_intelligence", remote_path, st.session_state.get("dept") or "")
                 st.success("✅ ส่ง Sales Intelligence ขึ้น SharePoint สำเร็จ")
 
-    st.divider()
-    st.subheader("🧭 Smart Customer Map Export")
+    render_section_header(
+        title="Smart Customer Map Export",
+        subtitle="ส่งออกรายชื่อลูกค้าเพื่อใช้ต่อกับ Map, Route Planning หรือการวิเคราะห์พื้นที่",
+        icon="🧭",
+        accent="#7c3aed",
+    )
     map_export = rep[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score"]].copy()
     st.download_button(
         "⬇️ Download Map Customer List",
