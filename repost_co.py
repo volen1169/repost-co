@@ -1265,136 +1265,12 @@ def filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
     mask = salesperson_norm.isin(allowed_names)
     return df_in.loc[mask].copy()
 
-
-def inject_production_ui():
-    st.markdown(textwrap.dedent("""
-    <style>
-    :root {
-        --ui-bg-1: #07162d;
-        --ui-bg-2: #173f97;
-        --ui-bg-3: #3aa6eb;
-        --ui-surface: #ffffff;
-        --ui-surface-soft: rgba(255,255,255,0.88);
-        --ui-stroke: rgba(191,219,254,0.72);
-        --ui-text: #0f172a;
-        --ui-muted: #5b6b84;
-        --ui-primary: #2563eb;
-        --ui-primary-2: #0ea5e9;
-        --ui-shadow-lg: 0 24px 56px rgba(15,23,42,0.14);
-        --ui-shadow-md: 0 14px 30px rgba(15,23,42,0.10);
-        --ui-radius-xl: 28px;
-        --ui-radius-lg: 22px;
-        --ui-radius-md: 16px;
-    }
-
-    .stApp {
-        background:
-            radial-gradient(circle at 12% 18%, rgba(147,197,253,.16) 0%, transparent 22%),
-            radial-gradient(circle at 84% 10%, rgba(56,189,248,.14) 0%, transparent 24%),
-            linear-gradient(135deg, var(--ui-bg-1) 0%, var(--ui-bg-2) 52%, var(--ui-bg-3) 100%);
-    }
-
-    [data-testid="stHeader"] {
-        background: rgba(255,255,255,.02);
-        backdrop-filter: blur(8px);
-    }
-
-    [data-testid="stAppViewBlockContainer"], .block-container {
-        max-width: 1440px !important;
-        padding-top: 1rem !important;
-        padding-bottom: 1.2rem !important;
-    }
-
-    div[data-testid="column"] {
-        padding-top: 0 !important;
-    }
-
-    .stButton > button {
-        border-radius: 16px !important;
-        border: 1px solid rgba(37,99,235,.18) !important;
-        background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%) !important;
-        color: #0f172a !important;
-        font-weight: 800 !important;
-        min-height: 2.85rem !important;
-        box-shadow: 0 10px 22px rgba(15,23,42,.08) !important;
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
-    }
-    .stButton > button:hover {
-        transform: translateY(-1px);
-        border-color: rgba(37,99,235,.30) !important;
-        box-shadow: 0 16px 30px rgba(15,23,42,.12) !important;
-    }
-
-    .stTextInput input, .stTextArea textarea, .stNumberInput input,
-    .stSelectbox [data-baseweb="select"] {
-        border-radius: 16px !important;
-    }
-
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(8,18,40,.96) 0%, rgba(15,50,120,.96) 100%);
-        border-right: 1px solid rgba(255,255,255,.08);
-    }
-    [data-testid="stSidebar"] * {
-        color: #eaf2ff;
-    }
-    [data-testid="stSidebar"] .stRadio > div {
-        gap: 8px;
-    }
-    [data-testid="stSidebar"] label[data-baseweb="radio"] {
-        background: rgba(255,255,255,.08);
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 16px;
-        padding: 10px 12px;
-        transition: all .18s ease;
-    }
-    [data-testid="stSidebar"] label[data-baseweb="radio"]:hover {
-        transform: translateY(-1px);
-        background: rgba(255,255,255,.12);
-    }
-
-    [data-testid="stSidebar"] [data-testid="stAlert"] {
-        border-radius: 18px;
-        background: rgba(255,255,255,.10);
-        border: 1px solid rgba(255,255,255,.10);
-    }
-
-    .prod-sidebar-brand {
-        background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.08) 100%);
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 24px;
-        padding: 16px;
-        box-shadow: 0 16px 34px rgba(2,6,23,.18);
-        margin-bottom: 14px;
-    }
-    .prod-sidebar-role {
-        background: rgba(255,255,255,.08);
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 18px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-    }
-
-    [data-testid="stDataFrame"], .stTable {
-        background: rgba(255,255,255,.96);
-        border: 1px solid rgba(191,219,254,.78);
-        border-radius: 20px;
-        box-shadow: var(--ui-shadow-md);
-        overflow: hidden;
-    }
-
-    [data-testid="stAlert"] {
-        border-radius: 18px;
-        box-shadow: var(--ui-shadow-md);
-    }
-    </style>
-    """), unsafe_allow_html=True)
-
 def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊"):
     st.markdown(f"""
     <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <div style="font-size:13px; color:#475569; font-weight:700;">{label}</div>
-            <div style="width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
+            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
         </div>
         <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
         <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
@@ -1406,7 +1282,7 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
         <div style="display:flex; align-items:flex-start; gap:14px;">
-            <div style="width:36px; height:36px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
+            <div style="width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:22px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 46px;">{icon}</div>
             <div>
                 <div style="font-size:22px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
                 <div style="font-size:13px; color:#475569; margin-top:4px;">{subtitle}</div>
@@ -1419,7 +1295,7 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
 def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
     badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
     st.markdown(f"""
-    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:12px; color:white; overflow:hidden; position:relative;">
+    <div style="background:{gradient}; border-radius:28px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:18px; color:white; overflow:hidden; position:relative;">
         <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
         <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
         <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
@@ -1464,153 +1340,161 @@ def render_login_page(auth_ready: bool):
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 14% 16%, rgba(110,168,255,.12) 0%, transparent 24%),
-            radial-gradient(circle at 84% 14%, rgba(56,189,248,.12) 0%, transparent 24%),
-            linear-gradient(135deg, #09162d 0%, #173a88 54%, #3aa1e8 100%);
+            radial-gradient(circle at 12% 16%, rgba(96,165,250,.14) 0%, transparent 24%),
+            radial-gradient(circle at 86% 12%, rgba(56,189,248,.10) 0%, transparent 26%),
+            linear-gradient(135deg, #0a1b3d 0%, #1c469e 55%, #46a8e8 100%);
     }
-    [data-testid="stHeader"], [data-testid="stToolbar"], .stAppToolbar {
-        display:none !important;
-        height:0 !important;
-        min-height:0 !important;
-    }
+    [data-testid="stHeader"] { background: transparent; }
     [data-testid="stAppViewBlockContainer"], .block-container {
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.3rem !important;
+        padding-top: .45rem !important;
+        padding-bottom: .35rem !important;
         max-width: 1380px !important;
     }
     div[data-testid="column"] { padding-top: 0 !important; }
     .login-shell { position: relative; min-height: 0; height: 0; }
     .login-orb {
-        position: fixed; border-radius: 999px; filter: blur(82px); opacity: .22;
+        position: fixed; border-radius: 999px; filter: blur(80px); opacity: .22;
         pointer-events: none; z-index: 0; animation: floatOrb 18s ease-in-out infinite;
     }
-    .login-orb.orb1 { width: 320px; height: 320px; left: -2%; top: 14%; background: rgba(96,165,250,.26); }
-    .login-orb.orb2 { width: 300px; height: 300px; right: 3%; top: 20%; background: rgba(56,189,248,.22); animation-delay: 2.8s; }
-    .login-orb.orb3 { width: 260px; height: 260px; left: 34%; bottom: 4%; background: rgba(255,255,255,.08); animation-delay: 5.6s; }
+    .login-orb.orb1 { width: 320px; height: 320px; left: -4%; top: 10%; background: rgba(96,165,250,.24); }
+    .login-orb.orb2 { width: 360px; height: 360px; right: 2%; top: 18%; background: rgba(56,189,248,.20); animation-delay: 3s; }
+    .login-orb.orb3 { width: 300px; height: 300px; left: 34%; bottom: 2%; background: rgba(255,255,255,.08); animation-delay: 6s; }
     @keyframes floatOrb {
         0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(18px, -16px) scale(1.04); }
+        50% { transform: translate(16px, -14px) scale(1.04); }
         100% { transform: translate(0, 0) scale(1); }
     }
     .login-hero-card, .login-auth-card {
         position: relative; z-index: 1; overflow: hidden;
-        border-radius: 30px;
-        border: 1px solid rgba(255,255,255,.12);
-        box-shadow: 0 22px 54px rgba(2,6,23,.18);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        border-radius: 34px;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 24px 60px rgba(2,6,23,.18);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
     }
     .login-hero-card {
-        padding: 24px 26px 22px 26px;
-        min-height: min(540px, calc(100vh - 90px));
+        padding: 28px 30px 26px 30px;
+        min-height: 700px;
         background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.06) 100%);
     }
     .login-auth-card {
-        padding: 22px 24px;
-        min-height: min(540px, calc(100vh - 90px));
-        background: linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.12) 100%);
-        display:flex;
-        flex-direction:column;
-    }
-    .login-auth-stack {
-        display:flex;
-        flex-direction:column;
-        gap:12px;
-        margin-top:auto;
+        padding: 28px;
+        min-height: 700px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.10) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .hero-top-badge {
-        display:inline-flex; align-items:center; gap:10px; padding:11px 18px; border-radius:999px;
+        display:inline-flex; align-items:center; gap:10px; padding:10px 18px; border-radius:999px;
         background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
-        color:#e7efff; font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
-        margin-bottom:12px;
+        color:#e6eefc; font-size:11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+        margin-bottom:22px;
     }
     .hero-top-badge::before {
-        content:'✨'; font-size:13px; line-height:1;
+        content:'';
+        width:8px; height:8px; border-radius:999px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        box-shadow: 0 0 0 5px rgba(255,255,255,.05);
     }
-    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 16px; }
+    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 18px; }
     .brand-logo {
-        width: 92px; height: 92px; border-radius: 28px; display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(224,231,255,.92) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 16px 34px rgba(15,23,42,.16);
-        flex: 0 0 92px;
+        width: 108px; height: 108px; border-radius: 30px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(229,237,255,.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 34px rgba(15,23,42,.12); flex: 0 0 108px;
     }
-    .brand-logo-bars { display:flex; align-items:flex-end; gap:6px; height:42px; }
-    .brand-logo-bars span { width:10px; border-radius:999px; display:block; }
-    .brand-logo-bars span:nth-child(1){ height:28px; background:#7c3aed; }
-    .brand-logo-bars span:nth-child(2){ height:38px; background:#22c55e; }
-    .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
-    .brand-logo-bars span:nth-child(4){ height:34px; background:#38bdf8; }
-    .brand-eyebrow { color: #dbe7ff; font-weight: 800; letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
-    .brand-title { color: #ffffff; font-size: 38px; line-height: 1.03; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.03em; }
-    .brand-sub { color: #e4efff; font-size: 15.5px; line-height: 1.68; margin-top: 14px; max-width: 690px; }
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+    .brand-logo-bars { display:flex; align-items:flex-end; gap:8px; height:50px; }
+    .brand-logo-bars span { width:11px; border-radius:999px; display:block; }
+    .brand-logo-bars span:nth-child(1){ height:32px; background:#7c3aed; }
+    .brand-logo-bars span:nth-child(2){ height:44px; background:#22c55e; }
+    .brand-logo-bars span:nth-child(3){ height:26px; background:#f59e0b; }
+    .brand-logo-bars span:nth-child(4){ height:38px; background:#38bdf8; }
+    .brand-eyebrow { color: #d7e5ff; font-weight: 800; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; }
+    .brand-title { color: #ffffff; font-size: 54px; line-height: 1.02; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.04em; }
+    .brand-sub { color: #edf4ff; font-size: 16px; line-height: 1.85; margin-top: 16px; max-width: 760px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; margin-bottom: 22px; }
     .hero-chip {
         display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px;
-        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10); color:#f7fbff; font-size:13px; font-weight:700;
+        background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); color:#eff6ff; font-size:13px; font-weight:700;
     }
-    .chip-dot { font-size:14px; line-height:1; }
-    .feature-grid { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:16px; }
+    .chip-dot { width:12px; height:12px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+    .chip-dot.secure::before { content:'⊞'; color:#dbeafe; }
+    .chip-dot.map::before { content:'📍'; }
+    .chip-dot.insight::before { content:'📈'; }
+    .feature-stack { display:grid; grid-template-columns: 1fr; gap:16px; margin-top: 6px; }
     .feature-item {
-        border-radius: 22px;
-        padding: 14px 16px;
-        background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.04) 100%);
-        border: 1px solid rgba(255,255,255,.10);
-        min-height: 90px;
+        border-radius: 28px; padding: 18px 20px; background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.05) 100%);
+        border: 1px solid rgba(255,255,255,.09); min-height: 108px; display:flex; align-items:center; gap:16px;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
-    .feature-item:hover {
-        transform: translateY(-2px);
-        border-color: rgba(255,255,255,.14);
-        box-shadow: 0 14px 24px rgba(15,23,42,.10);
-    }
-    .feature-item-inner { display:flex; align-items:flex-start; gap:14px; }
+    .feature-item:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.14); box-shadow: 0 14px 26px rgba(2,6,23,.10); }
     .feature-icon {
-        width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center;
-        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.10); color:#fff;
-        font-size:17px; flex:0 0 40px;
+        width:54px; height:54px; border-radius:18px; display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.10); color:#fff; font-size:26px; flex:0 0 54px;
     }
-    .feature-title { color:#ffffff; font-size:15px; font-weight:800; margin-bottom:4px; line-height:1.3; }
-    .feature-text { color:#dce8ff; font-size:12.5px; line-height:1.55; }
-    .auth-kicker { color:#d9e7ff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:12px; }
-    .login-panel-title { color:#ffffff; font-size:44px; font-weight:900; margin-bottom:12px; line-height:1.04; letter-spacing:-.03em; }
-    .login-panel-sub { color:#e4efff; font-size:15px; line-height:1.85; margin-bottom:16px; max-width: 430px; }
+    .feature-copy { display:flex; flex-direction:column; gap:5px; }
+    .feature-title { color:#fff; font-size:18px; font-weight:800; line-height:1.25; }
+    .feature-text { color:#dce8ff; font-size:13.5px; line-height:1.7; }
+    .auth-top { display:flex; flex-direction:column; }
+    .auth-kicker { color:#deebff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:14px; }
+    .login-panel-title { color:#ffffff; font-size:52px; font-weight:900; margin-bottom:18px; line-height:1.02; letter-spacing:-.04em; }
+    .login-panel-sub { color:#edf4ff; font-size:15px; line-height:1.9; margin-bottom:24px; max-width: 460px; }
+    .auth-bottom { margin-top: auto; }
     .login-mini-card {
         background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
         border:1px solid rgba(219,234,254,.95);
-        border-radius:24px;
-        padding:16px 16px 14px 16px;
-        margin-bottom:12px;
-        box-shadow: 0 12px 28px rgba(15,23,42,.08);
+        border-radius:28px;
+        padding:20px 20px 18px 20px;
+        box-shadow: 0 14px 28px rgba(15,23,42,.08);
     }
     .login-mini-head { display:flex; align-items:flex-start; gap:14px; }
     .login-mini-icon {
-        width:36px; height:36px; border-radius:12px; flex:0 0 40px;
+        width:46px; height:46px; border-radius:16px; flex:0 0 46px;
         display:flex; align-items:center; justify-content:center;
-        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:17px;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:22px; font-weight:800;
+        box-shadow: 0 10px 18px rgba(37,99,235,.18);
     }
-    .login-mini-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:5px; }
-    .login-mini-text { color:#5b6b84; font-size:12.5px; line-height:1.6; }
+    .login-mini-title { color:#0f172a; font-size:16px; font-weight:800; margin-bottom:6px; }
+    .login-mini-text { color:#5f6f86; font-size:13px; line-height:1.7; }
+    .auth-divider {
+        height: 1px; width:100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.20), rgba(255,255,255,0));
+        margin: 18px 0 16px 0;
+    }
     .ms-login-link {
         display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
-        text-align:center; padding:14px 18px; border-radius:18px; text-decoration:none; font-weight:800; font-size:15px;
-        background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.04) 100%), linear-gradient(135deg, #155eef 0%, #2563eb 48%, #1fb6ff 100%);
-        color:white; border: 1px solid rgba(255,255,255,.18);
-        box-shadow: 0 10px 24px rgba(18,40,92,.22), inset 0 1px 0 rgba(255,255,255,.24); transition: all .18s ease;
-        margin-top: 2px;
+        text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:800; font-size:16px;
+        background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.09) 100%);
+        color:#ffffff; border: 1px solid rgba(255,255,255,.20);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 28px rgba(2,6,23,.16);
+        transition: all .22s ease; position:relative; overflow:hidden;
     }
-    .ms-login-link:hover { transform: translateY(-1px); filter: brightness(1.02); box-shadow: 0 14px 30px rgba(18,40,92,.26), inset 0 1px 0 rgba(255,255,255,.26); }
-    .ms-logo { width:20px; height:20px; display:grid; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); gap:2px; flex:0 0 20px; }
-    .ms-logo span { border-radius:2px; display:block; }
-    .ms-logo span:nth-child(1){ background:#f35325; }
-    .ms-logo span:nth-child(2){ background:#81bc06; }
-    .ms-logo span:nth-child(3){ background:#05a6f0; }
-    .ms-logo span:nth-child(4){ background:#ffba08; }
-    .login-note { color:#dce8ff; font-size:12.4px; line-height:1.65; margin-top:4px; text-align:center; }
-    .login-footer { text-align:center; color:#dce8ff; font-size:12.8px; margin-top:10px; }
+    .ms-login-link::after {
+        content:''; position:absolute; inset:0; background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.18) 45%, transparent 100%);
+        transform: translateX(-120%); transition: transform .45s ease;
+    }
+    .ms-login-link:hover::after { transform: translateX(120%); }
+    .ms-login-link:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 18px 30px rgba(2,6,23,.18); }
+    .ms-logo-grid {
+        width:22px; height:22px; display:grid; grid-template-columns:repeat(2,1fr); gap:2px; flex:0 0 22px;
+    }
+    .ms-logo-grid span { border-radius:3px; display:block; }
+    .ms-logo-grid span:nth-child(1){ background:#f25022; }
+    .ms-logo-grid span:nth-child(2){ background:#7fba00; }
+    .ms-logo-grid span:nth-child(3){ background:#00a4ef; }
+    .ms-logo-grid span:nth-child(4){ background:#ffb900; }
+    .trust-line {
+        display:flex; align-items:center; gap:10px; margin-top:14px; color:#dce8ff; font-size:12.8px; line-height:1.6;
+    }
+    .trust-badge {
+        width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.12); font-size:12px;
+    }
+    .login-note { color:#dce8ff; font-size:12.6px; line-height:1.65; margin-top:10px; opacity:.92; }
+    .login-footer { text-align:left; color:#dce8ff; font-size:12.6px; margin-top:16px; }
     .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
     .loading-overlay {
-        display:none; position: fixed; inset:0; background: rgba(15,23,42,.30); backdrop-filter: blur(8px);
+        display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
         z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
     }
     .loading-overlay.show { display:flex; }
@@ -1620,16 +1504,17 @@ def render_login_page(auth_ready: bool):
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
-    @media (max-width: 1024px) {
-        .login-hero-card, .login-auth-card { min-height: auto; }
-        .brand-title { font-size: 36px; }
-        .login-panel-title { font-size: 38px; }
+    @media (max-width: 1100px) {
+        .brand-title { font-size: 44px; }
+        .login-panel-title { font-size: 44px; }
+        .login-hero-card, .login-auth-card { min-height:auto; }
     }
     @media (max-width: 720px) {
-        .brand-row { flex-direction: column; gap: 18px; }
-        .brand-title { font-size:30px; }
-        .login-panel-title { font-size: 32px; }
-        .login-hero-card, .login-auth-card { padding: 24px; }
+        .brand-row { flex-direction:column; gap:16px; }
+        .brand-title { font-size:34px; }
+        .login-panel-title { font-size: 34px; }
+        .login-hero-card, .login-auth-card { padding:24px; }
+        .feature-item { min-height:auto; }
     }
     </style>
     <div class="loading-overlay" id="login-loading-overlay">
@@ -1649,7 +1534,7 @@ def render_login_page(auth_ready: bool):
     </div>
     """), unsafe_allow_html=True)
 
-    left, right = st.columns([1.34, 0.86], gap="medium")
+    left, right = st.columns([1.48, 0.92], gap="large")
     with left:
         st.markdown(textwrap.dedent("""
         <div class="login-hero-card">
@@ -1665,14 +1550,14 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             <div class="hero-chip-row">
-                <div class="hero-chip"><span class="chip-dot">🪟</span>Microsoft 365</div>
-                <div class="hero-chip"><span class="chip-dot">📍</span>Smart Mapping</div>
-                <div class="hero-chip"><span class="chip-dot">📈</span>Performance Insight</div>
+                <div class="hero-chip"><span class="chip-dot secure"></span>Microsoft 365</div>
+                <div class="hero-chip"><span class="chip-dot map"></span>Smart Mapping</div>
+                <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
             </div>
-            <div class="feature-grid">
-                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">📊</div><div><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมยอดขาย Budget และโอกาสสำคัญในหน้าจอเดียว</div></div></div></div>
-                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">🎯</div><div><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, โอกาสขาย และลูกค้าสำคัญในมุมมองที่เข้าใจง่ายและพร้อมใช้งาน</div></div></div></div>
-                <div class="feature-item"><div class="feature-item-inner"><div class="feature-icon">🗺️</div><div><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div></div>
+            <div class="feature-stack">
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-copy"><div class="feature-title">Dashboard</div><div class="feature-text">มุมมองภาพรวมยอดขาย Budget และโอกาสสำคัญในหน้าจอเดียว</div></div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-copy"><div class="feature-title">My Sales Intelligence</div><div class="feature-text">รวม KPI, โอกาสขาย และลูกค้าสำคัญในมุมมองที่เข้าใจง่ายและพร้อมใช้งาน</div></div></div>
+                <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-copy"><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div>
             </div>
         </div>
         """), unsafe_allow_html=True)
@@ -1680,10 +1565,12 @@ def render_login_page(auth_ready: bool):
     with right:
         st.markdown(textwrap.dedent("""
         <div class="login-auth-card">
-            <div class="auth-kicker">Secure sign in</div>
-            <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-            <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
-            <div class="login-auth-stack">
+            <div class="auth-top">
+                <div class="auth-kicker">Secure sign in</div>
+                <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์ แผนก และประสบการณ์ใช้งานที่ตรงกับบทบาทของคุณโดยอัตโนมัติ</div>
+            </div>
+            <div class="auth-bottom">
                 <div class="login-mini-card">
                     <div class="login-mini-head">
                         <div class="login-mini-icon">🛡️</div>
@@ -1699,22 +1586,24 @@ def render_login_page(auth_ready: bool):
             login_url = _build_login_url()
             st.markdown(
                 f"""
+                <div class="auth-divider"></div>
                 <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
-                    <span class="ms-logo"><span></span><span></span><span></span><span></span></span>
+                    <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
                     <span>Sign in with Microsoft 365</span>
                 </a>
-                <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
+                <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365 พร้อมตรวจสอบสิทธิ์ก่อนเข้าใช้งาน</span></div>
                 """,
                 unsafe_allow_html=True,
             )
+            st.markdown('<div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>', unsafe_allow_html=True)
         else:
             st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
             st.markdown('<div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>', unsafe_allow_html=True)
 
         st.markdown(textwrap.dedent("""
-            </div>
-            <div class="login-footer">
-                Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                <div class="login-footer">
+                    Version 2026.04 • IT Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                </div>
             </div>
         </div>
         """), unsafe_allow_html=True)
@@ -1722,7 +1611,6 @@ def render_login_page(auth_ready: bool):
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
-inject_production_ui()
 auth_ready = _auth_configured()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
@@ -1795,27 +1683,10 @@ if auth_ready and is_logged_in:
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.sidebar.markdown("""
-<div class="prod-sidebar-brand">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:52px; height:52px; border-radius:16px; background:linear-gradient(135deg, #ffffff 0%, #dbeafe 100%); display:flex; align-items:center; justify-content:center; font-size:26px;">📊</div>
-        <div>
-            <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#bfdbfe; font-weight:800;">Optimal Group</div>
-            <div style="font-size:18px; line-height:1.18; color:white; font-weight:900;">Sales Territory Dashboard</div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-st.sidebar.markdown("### 📂 เมนูหลัก")
+st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
+st.sidebar.title("📂 เมนูหลัก")
 
 role_label = _role_label()
-st.sidebar.markdown(f"""
-<div class="prod-sidebar-role">
-    <div style="font-size:11px; color:#bfdbfe; font-weight:800; text-transform:uppercase; letter-spacing:.10em;">Current Access</div>
-    <div style="font-size:14px; color:#ffffff; font-weight:800; margin-top:4px;">{role_label}</div>
-    <div style="font-size:12px; color:#dbeafe; margin-top:6px;">Department: {_dept_label(st.session_state.get('dept', '')) or '-'}</div>
-</div>
-""", unsafe_allow_html=True)
 if st.session_state.get("user_role") == "staff":
     allowed_menus = [
         "🎯 My Sales Intelligence",
@@ -2610,7 +2481,7 @@ html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .route-steps{{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
-.route-arrow{{font-size:15px;opacity:.8;}}
+.route-arrow{{font-size:16px;opacity:.8;}}
 .route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
 .btn-gmaps{{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
