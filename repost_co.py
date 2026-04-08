@@ -90,6 +90,7 @@ ADMIN_EMAILS = {
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
+    "Pornphavit.Bu@optimal.co.th":"CO",
     "itsupport@poonyaruk.co.th":"CO",
 }
 
@@ -1313,16 +1314,46 @@ def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient
 def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
     numeric_cols = numeric_cols or []
     pct_cols = pct_cols or []
-    styler = df_show.style
+    styler = df_show.style.hide(axis="index")
     styler = styler.set_properties(**{
         "background-color": "#ffffff",
-        "border-color": "#e2e8f0",
+        "border-color": "#e5eefb",
         "font-size": "13px",
+        "color": "#0f172a",
+        "padding": "10px 12px",
+        "white-space": "nowrap",
     })
     styler = styler.set_table_styles([
-        {"selector": "thead th", "props": [("background", "#eff6ff"), ("color", "#0f172a"), ("font-weight", "700"), ("border", "1px solid #dbeafe")]},
-        {"selector": "tbody tr:hover", "props": [("background-color", "#f8fbff")]},
-        {"selector": "tbody td", "props": [("border", "1px solid #eef2ff"), ("padding", "8px 10px")]},
+        {"selector": "table", "props": [
+            ("border-collapse", "separate"),
+            ("border-spacing", "0"),
+            ("width", "100%"),
+            ("border", "1px solid #dbe7f7"),
+            ("border-radius", "18px"),
+            ("overflow", "hidden"),
+            ("box-shadow", "0 14px 28px rgba(148,163,184,.10)")
+        ]},
+        {"selector": "thead th", "props": [
+            ("background", "linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%)"),
+            ("color", "#334155"),
+            ("font-weight", "800"),
+            ("font-size", "12px"),
+            ("text-transform", "uppercase"),
+            ("letter-spacing", ".04em"),
+            ("padding", "12px 12px"),
+            ("border-bottom", "1px solid #dbe7f7"),
+            ("position", "sticky"),
+            ("top", "0"),
+            ("z-index", "1")
+        ]},
+        {"selector": "tbody td", "props": [
+            ("border-bottom", "1px solid #edf3fb"),
+            ("padding", "10px 12px"),
+            ("vertical-align", "middle")
+        ]},
+        {"selector": "tbody tr:nth-child(even) td", "props": [("background-color", "#fbfdff")]},
+        {"selector": "tbody tr:hover td", "props": [("background-color", "#f3f8ff")]},
+        {"selector": "tbody tr:last-child td", "props": [("border-bottom", "none")]},
     ])
     if numeric_cols:
         existing = [c for c in numeric_cols if c in df_show.columns]
@@ -2099,18 +2130,27 @@ if menu == "📊 Team Dashboard":
             linear-gradient(180deg, #f7fbff 0%, #edf5ff 42%, #f6f9ff 100%);
     }
     section.main > div {padding-top:0 !important;}
-    .main .block-container{max-width:1460px; padding-top:0.15rem !important; padding-bottom:1.4rem;}
-    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 24px 22px 24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+    .main .block-container{max-width:1460px; padding-top:0.05rem !important; padding-bottom:1.15rem;}
+    div[data-testid="stVerticalBlock"]{gap:0.6rem;}
+    div[data-testid="column"] > div{gap:0.65rem;}
+    [data-testid="stExpander"]{border:1px solid rgba(219,234,254,.95); border-radius:20px; background:linear-gradient(180deg, rgba(255,255,255,.94), rgba(247,250,255,.92)); box-shadow:0 12px 24px rgba(148,163,184,.10); margin:0 0 0.35rem 0;}
+    [data-testid="stExpander"] details summary{padding:0.85rem 1rem; font-weight:800; color:#0f172a;}
+    [data-testid="stExpanderDetails"]{padding:0.25rem 0.9rem 0.9rem 0.9rem;}
+    [data-testid="stMetric"]{background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,248,255,.94)); border:1px solid #dbe7f7; border-radius:18px; padding:14px 16px; box-shadow:0 12px 24px rgba(148,163,184,.08);}
+    [data-testid="stMetricLabel"]{font-weight:800; color:#475569;}
+    [data-testid="stMetricValue"]{font-weight:900; color:#0f172a;}
+    .stDownloadButton > button, .stButton > button{border-radius:16px;}
+    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:16px 24px 20px 24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12); margin-bottom:10px;}
     .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.10), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.10), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
-    .saas-topbar{position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; flex-wrap:wrap;}
-    .saas-title-wrap{display:flex; align-items:center; gap:16px;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:16px; flex-wrap:wrap;}
+    .saas-title-wrap{display:flex; align-items:flex-start; gap:16px;}
     .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
     .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:4px;}
     .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0; letter-spacing:-.04em;}
-    .saas-sub{font-size:13px; color:#334155; margin-top:6px;}
-    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px;}
+    .saas-sub{font-size:13px; color:#334155; margin-top:8px; line-height:1.6; max-width:920px;}
+    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px; align-self:flex-end; margin-top:4px;}
     .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.72); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12); backdrop-filter:blur(8px);}
-    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px;}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:2px;}
     .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px 18px 16px 18px; background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(240,247,255,.90)); border:1px solid rgba(203,213,225,.70); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:146px;}
     .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.08);}
     .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
@@ -2118,23 +2158,23 @@ if menu == "📊 Team Dashboard":
     .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b;}
     .saas-kpi.good .saas-kpi-value{color:#15803d;}
     .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
-    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.62fr .94fr; gap:14px; margin-top:14px;}
-    .saas-stack{display:flex; flex-direction:column; gap:16px;}
+    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.62fr .94fr; gap:16px; margin-top:16px;}
+    .saas-stack{display:flex; flex-direction:column; gap:18px;}
     .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,248,255,.92)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.12); overflow:hidden;}
     .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.96), rgba(224,242,254,.92)); border:1px solid rgba(186,230,253,.95); color:#0f172a;}
-    .saas-card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px 18px;}
+    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 10px 20px;}
     .saas-card-title{font-size:17px; font-weight:900; color:#10224d;}
     .saas-card.dark .saas-card-title{color:#0f172a;}
     .saas-card-sub{font-size:12px; color:#64748b; margin-top:3px;}
     .saas-card.dark .saas-card-sub{color:#475569;}
-    .saas-card-body{padding:0 18px 18px 18px;}
-    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-card-body{padding:0 20px 20px 20px;}
+    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
     .saas-mini-stat{border-radius:18px; padding:14px 14px; background:linear-gradient(135deg, #ffffff, #eef6ff); border:1px solid rgba(191,219,254,.65);}
     .saas-mini-stat.purple{background:linear-gradient(135deg, #fdf4ff, #f5f3ff);}
     .saas-mini-label{font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.05em;}
     .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
     .saas-mini-sub{font-size:12px; color:#64748b; margin-top:6px;}
-    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid rgba(148,163,184,.14);}
+    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0; border-bottom:1px solid rgba(148,163,184,.14);}
     .saas-list-row:last-child{border-bottom:none;}
     .saas-name{font-size:14px; font-weight:800; color:#10224d;}
     .saas-meta{font-size:12px; color:#64748b; margin-top:4px;}
@@ -2154,7 +2194,7 @@ if menu == "📊 Team Dashboard":
     .saas-map-chip.red{background:linear-gradient(135deg,#ef4444,#fb7185);}
     .saas-map-base{position:absolute; inset:0; background:radial-gradient(circle at 18% 20%, rgba(59,130,246,.20), transparent 18%), radial-gradient(circle at 78% 74%, rgba(168,85,247,.18), transparent 18%), radial-gradient(circle at 82% 16%, rgba(251,191,36,.18), transparent 16%), linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.24));}
     .saas-map-svg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:.18; color:#0f172a; font-size:240px;}
-    .saas-actions{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-actions{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px;}
     .saas-actions .stDownloadButton > button, .saas-actions .stButton > button{height:52px; border-radius:18px; font-size:15px; font-weight:800; border:0; box-shadow:0 14px 26px rgba(37,99,235,.18);}
     .saas-actions .stDownloadButton > button{background:linear-gradient(135deg,#38bdf8,#818cf8); color:#fff;}
     .saas-actions .stButton > button{background:linear-gradient(135deg,#0ea5e9,#3b82f6); color:#fff;}
@@ -2615,7 +2655,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
-.page{{display:flex;flex-direction:column;gap:10px;padding:4px;}}
+.page{{display:flex;flex-direction:column;gap:12px;padding:6px 4px 4px 4px;}}
 .route-bar{{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
   padding:10px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
 .route-title{{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}}
@@ -2632,19 +2672,19 @@ html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .map-wrap{{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;
   box-shadow:0 2px 12px rgba(0,0,0,0.08);}}
 #leaflet-map{{width:100%;height:340px;}}
-.wrap{{max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.06);}}
+.wrap{{max-height:380px;overflow-y:auto;border:1px solid #dbe7f7;border-radius:16px;
+  box-shadow:0 12px 24px rgba(148,163,184,.10); background:#ffffff;}}
 table{{width:100%;border-collapse:collapse;}}
 thead tr{{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;
   position:sticky;top:0;z-index:10;}}
-thead th{{padding:11px 13px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap;}}
+thead th{{padding:12px 14px;text-align:left;font-size:11.5px;font-weight:800;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;}}
 tbody tr{{transition:background .12s;}}
-tbody tr:nth-child(even){{background:#f8fafc;}}
+tbody tr:nth-child(even){{background:#fbfdff;}}
 tbody tr.clickable{{cursor:pointer;}}
-tbody tr.clickable:hover{{background:#dbeafe;}}
+tbody tr.clickable:hover{{background:#eef5ff;}}
 tbody tr.clickable.active{{background:#bfdbfe!important;box-shadow:inset 3px 0 0 #2563eb;}}
 tbody tr.no-map{{cursor:default;opacity:.55;}}
-td{{padding:9px 13px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}}
+td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
 .co{{font-weight:600;font-size:12px;}}
 .has-map{{color:#2563eb;}}
 .no-loc{{color:#94a3b8;}}
