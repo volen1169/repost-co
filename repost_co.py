@@ -2038,20 +2038,9 @@ if menu == "📊 Team Dashboard":
         + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
         + team_df["Sales/Year"].rank(pct=True).fillna(0) * 20
     ).round(1)
-    team_df["risk_score"] = (
-        team_df["gap_kg"].rank(pct=True).fillna(0) * 35
-        + (-team_df["yoy_pct"]).clip(lower=0).rank(pct=True).fillna(0) * 35
-        + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 30
-    ).round(1)
-    team_df["status_tag"] = team_df.apply(
-        lambda r: "Growth" if (r["achievement_pct"] >= 90 and r["yoy_pct"] >= 5)
-        else ("At Risk" if (r["achievement_pct"] < 60 or r["yoy_pct"] < 0) else "Watchlist"),
-        axis=1,
-    )
     team_df["Salesperson"] = team_df["Salesperson"].fillna("").astype(str).replace("", "Unassigned")
     team_df["Province"] = team_df.get("Province", "").fillna("").astype(str).replace("", "ไม่ระบุ")
     team_df["Region_TH"] = team_df.get("Region_TH", "ไม่ระบุ").fillna("ไม่ระบุ").astype(str)
-    team_df["Industry"] = team_df.get("Industry", "").fillna("").astype(str).replace("", "Unspecified")
 
     total_sales = float(team_df["Sales/Year"].sum())
     total_budget = float(team_df["Budget_kg"].sum())
@@ -2063,8 +2052,6 @@ if menu == "📊 Team Dashboard":
     risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
     positive_yoy = int((team_df["yoy_pct"] > 0).sum())
     active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
-    growth_accounts = int((team_df["status_tag"] == "Growth").sum())
-    watch_accounts = int((team_df["status_tag"] == "Watchlist").sum())
 
     by_sp = team_df.groupby("Salesperson", dropna=False).agg(
         customers=("Customer Name", "count"),
@@ -2072,36 +2059,19 @@ if menu == "📊 Team Dashboard":
         budget_kg=("Budget_kg", "sum"),
         actual_kg=("Actual_kg", "sum"),
         avg_yoy=("yoy_pct", "mean"),
-        avg_opportunity=("opportunity_score", "mean"),
-        risk_accounts=("status_tag", lambda s: int((pd.Series(s) == "At Risk").sum())),
-        growth_accounts=("status_tag", lambda s: int((pd.Series(s) == "Growth").sum())),
+        risk_accounts=("achievement_pct", lambda s: int((s < 50).sum())),
     ).reset_index()
     by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
-    by_sp["manager_score"] = (
-        by_sp["achievement_pct"].rank(pct=True).fillna(0) * 45
-        + by_sp["total_sales"].rank(pct=True).fillna(0) * 25
-        + by_sp["growth_accounts"].rank(pct=True).fillna(0) * 15
-        + (1 - by_sp["risk_accounts"].rank(pct=True).fillna(0)) * 15
-    ).round(1)
-    by_sp = by_sp.sort_values(["manager_score", "achievement_pct", "total_sales"], ascending=[False, False, False]).reset_index(drop=True)
+    by_sp = by_sp.sort_values(["achievement_pct", "total_sales"], ascending=[False, False]).reset_index(drop=True)
 
     by_region = team_df.groupby("Region_TH", dropna=False).agg(
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
         avg_achievement=("achievement_pct", "mean"),
-        avg_yoy=("yoy_pct", "mean"),
-        at_risk=("status_tag", lambda s: int((pd.Series(s) == "At Risk").sum())),
     ).reset_index().rename(columns={"Region_TH": "region"}).sort_values("total_sales", ascending=False)
 
     by_province = team_df.groupby("Province", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        total_sales=("Sales/Year", "sum"),
-        gap_kg=("gap_kg", "sum"),
-        avg_achievement=("achievement_pct", "mean"),
-    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
-
-    by_industry = team_df.groupby("Industry", dropna=False).agg(
         customers=("Customer Name", "count"),
         total_sales=("Sales/Year", "sum"),
         gap_kg=("gap_kg", "sum"),
@@ -2112,323 +2082,313 @@ if menu == "📊 Team Dashboard":
     trend = by_sp.head(8).copy()
     high_potential = by_province.head(5).copy()
     top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(6).copy()
-    at_risk = team_df[team_df["status_tag"] == "At Risk"].sort_values(["risk_score", "gap_kg"], ascending=[False, False]).head(6).copy()
-    focus_industries = by_industry.head(5).copy()
+    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(6).copy()
+    region_cards = by_region.head(4).copy()
     strongest_rep = by_sp.iloc[0] if not by_sp.empty else None
     most_risky_rep = by_sp.sort_values(["risk_accounts", "achievement_pct"], ascending=[False, True]).iloc[0] if not by_sp.empty else None
-    best_region = by_region.iloc[0] if not by_region.empty else None
-    weakest_region = by_region.sort_values(["avg_achievement", "gap_kg"], ascending=[True, False]).iloc[0] if not by_region.empty else None
 
-    insight_lines = []
-    if strongest_rep is not None:
-        insight_lines.append(f"Top rep ตอนนี้คือ {strongest_rep['Salesperson']} ด้วย Achievement {float(strongest_rep['achievement_pct']):,.1f}%")
-    if weakest_region is not None:
-        insight_lines.append(f"ภูมิภาคที่ควรเร่งคือ {weakest_region['region']} เพราะ Achievement เฉลี่ย {float(weakest_region['avg_achievement']):,.1f}%")
-    if not top_opp.empty:
-        insight_lines.append(f"ลูกค้าที่ควรเข้าอันดับแรกคือ {top_opp.iloc[0]['Customer Name']} ในจังหวัด {top_opp.iloc[0]['Province']}")
-    if not at_risk.empty:
-        insight_lines.append(f"มี {len(at_risk)} บัญชีที่เสี่ยงต้องติดตามทันที")
-    headline_insight = " • ".join(insight_lines[:3]) if insight_lines else "พร้อมใช้งานสำหรับหัวหน้าแผนก"
+    map_points_json, map_points_no_coords_json = build_map_points(top_opp if not top_opp.empty else team_df.head(20))
+    try:
+        map_points = json.loads(map_points_json)
+    except Exception:
+        map_points = []
 
     st.markdown("""
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 10% 0%, rgba(34,197,94,.16), transparent 20%),
-            radial-gradient(circle at 100% 0%, rgba(56,189,248,.18), transparent 24%),
-            linear-gradient(180deg, #f2f7ff 0%, #edf4ff 38%, #f5f8ff 100%);
+            radial-gradient(circle at 8% 6%, rgba(125,211,252,.20), transparent 18%),
+            radial-gradient(circle at 92% 4%, rgba(196,181,253,.18), transparent 20%),
+            linear-gradient(180deg, #f7fbff 0%, #edf5ff 42%, #f6f9ff 100%);
     }
-    .main .block-container{max-width:1480px; padding-top:.55rem; padding-bottom:2rem;}
-    .premium-shell{position:relative; overflow:hidden; border-radius:34px; padding:24px; background:linear-gradient(135deg, rgba(7,24,56,.98) 0%, rgba(17,52,115,.94) 52%, rgba(20,116,205,.86) 100%); border:1px solid rgba(255,255,255,.12); box-shadow:0 34px 80px rgba(15,23,42,.20);}
-    .premium-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 16%, rgba(255,255,255,.10), transparent 20%), radial-gradient(circle at 88% 14%, rgba(56,189,248,.18), transparent 22%), radial-gradient(circle at 50% 100%, rgba(74,222,128,.08), transparent 26%); pointer-events:none;}
-    .premium-top{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;}
-    .premium-title-wrap{display:flex; align-items:flex-start; gap:16px;}
-    .premium-logo{width:60px; height:60px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#22c55e); display:flex; align-items:center; justify-content:center; color:#fff; font-size:28px; box-shadow:0 16px 32px rgba(34,197,94,.20);}
-    .premium-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#c7f9ff; margin-bottom:6px;}
-    .premium-title{font-size:36px; line-height:1.02; font-weight:900; color:#fff; letter-spacing:-.04em; margin:0;}
-    .premium-sub{font-size:13px; color:#dbeafe; margin-top:8px; max-width:860px; line-height:1.7;}
-    .premium-badge-row{display:flex; gap:10px; flex-wrap:wrap;}
-    .premium-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14); color:#eff6ff; font-size:12px; font-weight:800;}
-    .premium-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:18px;}
-    .premium-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px; background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.09) 100%); border:1px solid rgba(255,255,255,.16); min-height:150px; backdrop-filter:blur(10px);}
-    .premium-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-24px; top:-28px; border-radius:999px; background:rgba(255,255,255,.10);}
-    .premium-kpi-label{font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:800; color:#dbeafe;}
-    .premium-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#fff; margin-top:12px; letter-spacing:-.04em;}
-    .premium-kpi-sub{margin-top:10px; color:#dbeafe; font-size:12.5px;}
-    .premium-kpi.good .premium-kpi-value{color:#86efac;}
-    .premium-kpi.bad .premium-kpi-value{color:#fca5a5;}
-    .premium-content{display:grid; grid-template-columns:1.5fr .92fr; gap:16px; margin-top:16px;}
-    .premium-stack{display:flex; flex-direction:column; gap:16px;}
-    .premium-card{background:linear-gradient(180deg, rgba(255,255,255,.94) 0%, rgba(248,250,252,.88) 100%); border:1px solid rgba(255,255,255,.85); border-radius:26px; box-shadow:0 18px 34px rgba(15,23,42,.10); overflow:hidden;}
-    .premium-card.dark{background:linear-gradient(180deg, rgba(15,23,42,.80) 0%, rgba(17,24,39,.72) 100%); border:1px solid rgba(255,255,255,.12);}
-    .premium-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 12px 20px;}
-    .premium-card-title{font-size:18px; font-weight:900; color:#0f172a;}
-    .premium-card.dark .premium-card-title{color:#fff;}
-    .premium-card-sub{font-size:12px; color:#64748b; margin-top:4px;}
-    .premium-card.dark .premium-card-sub{color:#cbd5e1;}
-    .premium-card-body{padding:0 20px 20px 20px;}
-    .decision-hero{border-radius:22px; padding:18px; background:linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #22c55e 100%); color:#fff; box-shadow:0 18px 32px rgba(37,99,235,.22);}
-    .decision-hero-title{font-size:13px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#dcfce7;}
-    .decision-hero-text{font-size:24px; line-height:1.3; font-weight:800; margin-top:10px;}
-    .decision-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
-    .decision-box{border-radius:20px; padding:16px; background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%); border:1px solid #e2e8f0;}
-    .decision-label{font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#64748b;}
-    .decision-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
-    .decision-sub{font-size:12.5px; color:#64748b; margin-top:6px; line-height:1.6;}
-    .priority-row,.risk-row,.rank-row,.focus-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0; border-bottom:1px solid rgba(148,163,184,.14);}
-    .priority-row:last-child,.risk-row:last-child,.rank-row:last-child,.focus-row:last-child{border-bottom:none;}
-    .row-name{font-size:14px; font-weight:900; color:#0f172a;}
-    .row-meta{font-size:12px; color:#64748b; margin-top:4px;}
-    .rank-chip{width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,#2563eb,#14b8a6); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900;}
-    .pill{display:inline-flex; align-items:center; justify-content:center; min-width:92px; padding:8px 12px; border-radius:999px; font-size:12px; font-weight:900;}
-    .pill.good{background:linear-gradient(135deg,#16a34a,#4ade80); color:#fff;}
-    .pill.warn{background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#fff;}
-    .pill.bad{background:linear-gradient(135deg,#ef4444,#fb7185); color:#fff;}
-    .pill.info{background:linear-gradient(135deg,#2563eb,#60a5fa); color:#fff;}
-    .smart-table{width:100%; border-collapse:collapse;}
-    .smart-table th{padding:0 0 12px 0; text-align:left; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#64748b; border-bottom:1px solid rgba(148,163,184,.16);}
-    .smart-table td{padding:14px 0; border-bottom:1px solid rgba(148,163,184,.12); vertical-align:middle;}
-    .smart-table tr:last-child td{border-bottom:none;}
-    .insight-list{display:grid; grid-template-columns:1fr; gap:10px;}
-    .insight-item{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid rgba(255,255,255,.08); color:#eff6ff;}
-    .insight-item b{color:#fff;}
-    .action-buttons{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-    .action-buttons .stDownloadButton > button, .action-buttons .stButton > button{height:52px; border-radius:18px; font-size:15px; font-weight:800; border:0; box-shadow:0 14px 24px rgba(37,99,235,.18);}
-    .action-buttons .stDownloadButton > button{background:linear-gradient(135deg,#2563eb,#0ea5e9); color:#fff;}
-    .action-buttons .stButton > button{background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff;}
-    @media (max-width: 1250px){.premium-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.premium-content{grid-template-columns:1fr;}}
-    @media (max-width: 860px){.premium-grid-kpi,.decision-grid,.action-buttons{grid-template-columns:1fr;}.premium-title{font-size:30px;}.premium-shell{padding:18px;}}
+    .main .block-container{max-width:1460px; padding-top:0.8rem; padding-bottom:2rem;}
+    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:24px; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+    .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.10), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.10), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
+    .saas-title-wrap{display:flex; align-items:center; gap:16px;}
+    .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
+    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:4px;}
+    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0; letter-spacing:-.04em;}
+    .saas-sub{font-size:13px; color:#334155; margin-top:6px;}
+    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px;}
+    .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.72); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12); backdrop-filter:blur(8px);}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
+    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px 18px 16px 18px; background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(240,247,255,.90)); border:1px solid rgba(203,213,225,.70); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:146px;}
+    .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.08);}
+    .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
+    .saas-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#0f172a; margin-top:12px; letter-spacing:-.04em;}
+    .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b;}
+    .saas-kpi.good .saas-kpi-value{color:#15803d;}
+    .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
+    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.55fr .95fr; gap:16px; margin-top:16px;}
+    .saas-stack{display:flex; flex-direction:column; gap:16px;}
+    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,248,255,.92)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.12); overflow:hidden;}
+    .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.96), rgba(224,242,254,.92)); border:1px solid rgba(186,230,253,.95); color:#0f172a;}
+    .saas-card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px 18px;}
+    .saas-card-title{font-size:17px; font-weight:900; color:#10224d;}
+    .saas-card.dark .saas-card-title{color:#0f172a;}
+    .saas-card-sub{font-size:12px; color:#64748b; margin-top:3px;}
+    .saas-card.dark .saas-card-sub{color:#475569;}
+    .saas-card-body{padding:0 18px 18px 18px;}
+    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-mini-stat{border-radius:18px; padding:14px 14px; background:linear-gradient(135deg, #ffffff, #eef6ff); border:1px solid rgba(191,219,254,.65);}
+    .saas-mini-stat.purple{background:linear-gradient(135deg, #fdf4ff, #f5f3ff);}
+    .saas-mini-label{font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.05em;}
+    .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
+    .saas-mini-sub{font-size:12px; color:#64748b; margin-top:6px;}
+    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid rgba(148,163,184,.14);}
+    .saas-list-row:last-child{border-bottom:none;}
+    .saas-name{font-size:14px; font-weight:800; color:#10224d;}
+    .saas-meta{font-size:12px; color:#64748b; margin-top:4px;}
+    .saas-rank{width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,#38bdf8,#60a5fa); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; box-shadow:0 10px 18px rgba(56,189,248,.18);}
+    .saas-pill{display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; min-width:94px; border-radius:999px; font-size:12px; font-weight:900;}
+    .saas-pill.good{background:linear-gradient(135deg,#16a34a,#86efac); color:#fff;}
+    .saas-pill.warn{background:linear-gradient(135deg,#f59e0b,#fde68a); color:#7c2d12;}
+    .saas-pill.bad{background:linear-gradient(135deg,#ef4444,#fda4af); color:#fff;}
+    .saas-pill.info{background:linear-gradient(135deg,#38bdf8,#93c5fd); color:#0f172a;}
+    .saas-priority-table{width:100%; border-collapse:collapse;}
+    .saas-priority-table th{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#64748b; text-align:left; padding:0 0 12px 0; border-bottom:1px solid rgba(148,163,184,.16);}
+    .saas-priority-table td{padding:14px 0; border-bottom:1px solid rgba(148,163,184,.12); vertical-align:middle;}
+    .saas-priority-table tr:last-child td{border-bottom:none;}
+    .saas-map-wrap{height:340px; border-radius:22px; overflow:hidden; background:linear-gradient(180deg, #c7ddff 0%, #e7f0ff 100%); border:1px solid rgba(255,255,255,.55); position:relative;}
+    .saas-map-chip{position:absolute; padding:10px 12px; border-radius:999px; font-size:12px; font-weight:800; color:#fff; box-shadow:0 10px 18px rgba(15,23,42,.16); transform:translate(-50%, -50%); white-space:nowrap;}
+    .saas-map-chip.blue{background:linear-gradient(135deg,#2563eb,#38bdf8);}
+    .saas-map-chip.red{background:linear-gradient(135deg,#ef4444,#fb7185);}
+    .saas-map-base{position:absolute; inset:0; background:radial-gradient(circle at 18% 20%, rgba(59,130,246,.20), transparent 18%), radial-gradient(circle at 78% 74%, rgba(168,85,247,.18), transparent 18%), radial-gradient(circle at 82% 16%, rgba(251,191,36,.18), transparent 16%), linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.24));}
+    .saas-map-svg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:.18; color:#0f172a; font-size:240px;}
+    .saas-actions{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-actions .stDownloadButton > button, .saas-actions .stButton > button{height:52px; border-radius:18px; font-size:15px; font-weight:800; border:0; box-shadow:0 14px 26px rgba(37,99,235,.18);}
+    .saas-actions .stDownloadButton > button{background:linear-gradient(135deg,#38bdf8,#818cf8); color:#fff;}
+    .saas-actions .stButton > button{background:linear-gradient(135deg,#0ea5e9,#3b82f6); color:#fff;}
+    @media (max-width: 1250px){.saas-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.saas-main{grid-template-columns:1fr;}}
+    @media (max-width: 860px){.saas-grid-kpi,.saas-mini-grid,.saas-actions{grid-template-columns:1fr;}.saas-shell{padding:16px;}.saas-title{font-size:28px;}}
     </style>
     """, unsafe_allow_html=True)
 
     dept_label = _dept_label(st.session_state.get("dept") or "ALL")
-    strongest_rep_html = f"{strongest_rep['Salesperson']} • {float(strongest_rep['achievement_pct']):,.1f}%" if strongest_rep is not None else "-"
+    strongest_rep_html = f"{strongest_rep['Salesperson']} • {strongest_rep['achievement_pct']:.1f}%" if strongest_rep is not None else "-"
     most_risky_rep_html = f"{most_risky_rep['Salesperson']} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
 
     st.markdown(f"""
-    <div class="premium-shell">
-        <div class="premium-top">
-            <div class="premium-title-wrap">
-                <div class="premium-logo">🧭</div>
+    <div class="saas-shell">
+        <div class="saas-topbar">
+            <div class="saas-title-wrap">
+                <div class="saas-logo">📊</div>
                 <div>
-                    <div class="premium-eyebrow">Manager Premium Console</div>
-                    <h1 class="premium-title">Team Dashboard</h1>
-                    <div class="premium-sub">แดชบอร์ดสำหรับหัวหน้าแผนกโดยเฉพาะ โฟกัสที่การตัดสินใจ การสั่งงานทีม การดู risk และการหา priority account ของแผนก {dept_label}</div>
+                    <div class="saas-eyebrow">Executive SaaS View</div>
+                    <h1 class="saas-title">Team Dashboard</h1>
+                    <div class="saas-sub">ภาพรวมผลงานทีม {dept_label} • สำหรับหัวหน้าในการดู performance, risk, priority accounts และพื้นที่ที่ควรเร่งเข้า</div>
                 </div>
             </div>
-            <div class="premium-badge-row">
-                <div class="premium-badge">👥 {active_sales} Salespeople</div>
-                <div class="premium-badge">📈 {growth_accounts} Growth Accounts</div>
-                <div class="premium-badge">⚠️ {risk_accounts} Risk Accounts</div>
-                <div class="premium-badge">🟡 {watch_accounts} Watchlist</div>
+            <div class="saas-badge-row">
+                <div class="saas-badge">👥 {active_sales} Salespeople</div>
+                <div class="saas-badge">⚠️ {risk_accounts} Risk Accounts</div>
+                <div class="saas-badge">📈 {positive_yoy} Growing Accounts</div>
             </div>
         </div>
+        <div class="saas-grid-kpi">
+            <div class="saas-kpi">
+                <div class="saas-kpi-label">Total Sales</div>
+                <div class="saas-kpi-value">฿{total_sales/1e6:,.1f}M</div>
+                <div class="saas-kpi-sub">ยอดขายรวมของลูกค้าทั้งแผนก</div>
+            </div>
+            <div class="saas-kpi good">
+                <div class="saas-kpi-label">Achievement</div>
+                <div class="saas-kpi-value">{team_ach:,.1f}%</div>
+                <div class="saas-kpi-sub">Actual {total_actual:,.0f} kg จาก Budget {total_budget:,.0f} kg</div>
+            </div>
+            <div class="saas-kpi {'good' if yoy_total_pct >= 0 else 'bad'}">
+                <div class="saas-kpi-label">YoY Growth</div>
+                <div class="saas-kpi-value">{yoy_total_pct:+,.1f}%</div>
+                <div class="saas-kpi-sub">เทียบกับ Last Year {total_last_year:,.0f} kg</div>
+            </div>
+            <div class="saas-kpi bad">
+                <div class="saas-kpi-label">Remaining Gap</div>
+                <div class="saas-kpi-value">{total_gap/1e6:,.1f}M kg</div>
+                <div class="saas-kpi-sub">ช่องว่างที่ยังต้องปิดให้ถึงเป้า</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-        <div class="premium-grid-kpi">
-            <div class="premium-kpi">
-                <div class="premium-kpi-label">Total Sales</div>
-                <div class="premium-kpi-value">฿{total_sales/1e6:,.1f}M</div>
-                <div class="premium-kpi-sub">ยอดขายรวมของลูกค้าทั้งทีมในปัจจุบัน</div>
+    st.markdown("<div class='saas-main'><div class='saas-stack'>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="saas-card dark">
+        <div class="saas-card-head">
+            <div>
+                <div class="saas-card-title">Manager Snapshot</div>
+                <div class="saas-card-sub">ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า</div>
             </div>
-            <div class="premium-kpi good">
-                <div class="premium-kpi-label">Achievement</div>
-                <div class="premium-kpi-value">{team_ach:,.1f}%</div>
-                <div class="premium-kpi-sub">Actual {total_actual:,.0f} kg จาก Budget {total_budget:,.0f} kg</div>
-            </div>
-            <div class="premium-kpi {'good' if yoy_total_pct >= 0 else 'bad'}">
-                <div class="premium-kpi-label">YoY Growth</div>
-                <div class="premium-kpi-value">{yoy_total_pct:+,.1f}%</div>
-                <div class="premium-kpi-sub">เทียบกับ Last Year {total_last_year:,.0f} kg</div>
-            </div>
-            <div class="premium-kpi bad">
-                <div class="premium-kpi-label">Remaining Gap</div>
-                <div class="premium-kpi-value">{total_gap/1e6:,.1f}M</div>
-                <div class="premium-kpi-sub">ช่องว่างที่ทีมยังต้องเร่งปิดเพื่อเข้าเป้า</div>
+        </div>
+        <div class="saas-card-body">
+            <div class="saas-mini-grid">
+                <div class="saas-mini-stat"><div class="saas-mini-label">Strongest Rep</div><div class="saas-mini-value">{strongest_rep['achievement_pct']:.1f}%</div><div class="saas-mini-sub">{strongest_rep_html}</div></div>
+                <div class="saas-mini-stat purple"><div class="saas-mini-label">Needs Attention</div><div class="saas-mini-value">{int(most_risky_rep['risk_accounts']) if most_risky_rep is not None else 0}</div><div class="saas-mini-sub">{most_risky_rep_html}</div></div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    left_col, right_col = st.columns([1.5, 0.95], gap="large")
-
-    with left_col:
-        st.markdown(f"""
-        <div class="premium-card dark">
-            <div class="premium-card-head">
-                <div>
-                    <div class="premium-card-title">Decision Center</div>
-                    <div class="premium-card-sub">สรุปภาพรวมสำหรับหัวหน้าทีมในภาษาคน ไม่ใช่แค่ตัวเลข</div>
-                </div>
-            </div>
-            <div class="premium-card-body">
-                <div class="decision-hero">
-                    <div class="decision-hero-title">Today’s Headline</div>
-                    <div class="decision-hero-text">{headline_insight}</div>
-                </div>
-                <div class="decision-grid">
-                    <div class="decision-box">
-                        <div class="decision-label">Strongest Rep</div>
-                        <div class="decision-value">{float(strongest_rep['achievement_pct']):,.1f}%</div>
-                        <div class="decision-sub">{strongest_rep_html}</div>
-                    </div>
-                    <div class="decision-box">
-                        <div class="decision-label">Needs Attention</div>
-                        <div class="decision-value">{int(most_risky_rep['risk_accounts']) if most_risky_rep is not None else 0}</div>
-                        <div class="decision-sub">{most_risky_rep_html}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Priority Accounts</div><div class='premium-card-sub'>ลูกค้าที่หัวหน้าควรสั่งทีมเข้า follow-up ก่อน เพราะมีโอกาสปิด gap หรือดัน growth ได้สูง</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        priority_rows = []
-        for _, row in top_opp.iterrows():
-            tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 55 else "info")
-            priority_rows.append(
-                f"<tr><td><div class='row-name'>{row['Customer Name']}</div><div class='row-meta'>{row['Salesperson']} • {row['Province']} • {row['Industry']}</div></td><td><span class='pill {tone}'>{float(row['opportunity_score']):.0f}</span></td><td>฿{float(row['Sales/Year'])/1e6:,.1f}M</td><td>{float(row['achievement_pct']):,.1f}%</td><td style='font-weight:900;color:#dc2626;'>+{float(row['gap_kg'])/1e6:,.1f}M</td></tr>"
-            )
-        st.markdown(f"<table class='smart-table'><thead><tr><th>Customer</th><th>Score</th><th>Sales</th><th>Achv.</th><th>Gap</th></tr></thead><tbody>{''.join(priority_rows)}</tbody></table>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Team Performance Ranking</div><div class='premium-card-sub'>เรียงตามคะแนนภาพรวมของหัวหน้า ไม่ใช่ดูยอดขายอย่างเดียว</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        rank_html = []
-        for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
-            tone = "good" if float(row["achievement_pct"]) >= 90 else ("warn" if float(row["achievement_pct"]) >= 70 else "bad")
-            rank_html.append(
-                f"<div class='rank-row'><div style='display:flex;align-items:center;gap:12px;'><div class='rank-chip'>{idx}</div><div><div class='row-name'>{row['Salesperson']}</div><div class='row-meta'>{int(row['customers']):,} accounts • ฿{float(row['total_sales'])/1e6:,.1f}M • Growth {int(row['growth_accounts'])}</div></div></div><div style='display:flex;gap:8px;align-items:center;'><span class='pill info'>{float(row['manager_score']):,.0f}</span><span class='pill {tone}'>{float(row['achievement_pct']):,.1f}%</span></div></div>"
-            )
-        st.markdown("".join(rank_html) if rank_html else "<div class='row-meta'>ยังไม่มีข้อมูลเพียงพอ</div>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Portfolio Pressure Matrix</div><div class='premium-card-sub'>เห็นพร้อมกันว่าใครทำยอดได้ และใครมีภาระ gap สูง</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        fig_matrix = px.scatter(
-            by_sp,
-            x="achievement_pct",
-            y="total_sales",
-            size="risk_accounts",
-            color="manager_score",
-            hover_name="Salesperson",
-            text="Salesperson",
-            color_continuous_scale=["#93c5fd", "#2563eb", "#14b8a6"],
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Performance Ranking</div><div class='saas-card-sub'>เรียงตาม Achievement และยอดขายรวม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    rank_html = []
+    for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
+        tone = "good" if float(row["achievement_pct"]) >= 85 else ("warn" if float(row["achievement_pct"]) >= 65 else "bad")
+        rank_html.append(
+            f"<div class='saas-list-row'><div style='display:flex;align-items:center;gap:12px;'><div class='saas-rank'>{idx}</div><div><div class='saas-name'>{row['Salesperson']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • ฿{float(row['total_sales'])/1e6:,.1f}M</div></div></div><div class='saas-pill {tone}'>{float(row['achievement_pct']):,.1f}%</div></div>"
         )
-        fig_matrix.update_traces(textposition="top center", marker=dict(line=dict(width=1, color="white")))
-        fig_matrix.update_layout(
-            height=330,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            xaxis_title="Achievement %",
-            yaxis_title="Sales/Year",
-            coloraxis_showscale=False,
-        )
-        st.plotly_chart(fig_matrix, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    with right_col:
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Risk Radar</div><div class='premium-card-sub'>บัญชีที่ควร follow-up ทันที เพราะต่ำกว่าเป้า หรือ YoY ติดลบ</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        risk_html = []
-        if not at_risk.empty:
-            for _, row in at_risk.iterrows():
-                risk_html.append(
-                    f"<div class='risk-row'><div><div class='row-name'>{row['Customer Name']}</div><div class='row-meta'>{row['Salesperson']} • {row['Province']}</div></div><div style='text-align:right;'><div class='pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='row-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
-                )
-        st.markdown("".join(risk_html) if risk_html else "<div class='row-meta'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card dark'><div class='premium-card-head'><div><div class='premium-card-title'>Manager Insights</div><div class='premium-card-sub'>สรุปสิ่งที่หัวหน้าควรรู้ในรอบนี้</div></div></div><div class='premium-card-body'><div class='insight-list'>", unsafe_allow_html=True)
-        insights = []
-        if best_region is not None:
-            insights.append(f"<div class='insight-item'><div>📍</div><div><b>Best region:</b> {best_region['region']} ทำยอดรวม ฿{float(best_region['total_sales'])/1e6:,.1f}M</div></div>")
-        if weakest_region is not None:
-            insights.append(f"<div class='insight-item'><div>⚠️</div><div><b>Weakest region:</b> {weakest_region['region']} มี gap {float(weakest_region['gap_kg'])/1e6:,.1f}M kg</div></div>")
-        if not focus_industries.empty:
-            top_ind = focus_industries.iloc[0]
-            insights.append(f"<div class='insight-item'><div>🏭</div><div><b>Industry focus:</b> {top_ind['Industry']} มี gap สูงสุด {float(top_ind['gap_kg'])/1e6:,.1f}M kg</div></div>")
-        insights.append(f"<div class='insight-item'><div>🧠</div><div><b>Recommendation:</b> ให้หัวหน้าดันทีมเข้าหา top 3 priority accounts และ review risk accounts ภายในสัปดาห์นี้</div></div>")
-        st.markdown("".join(insights), unsafe_allow_html=True)
-        st.markdown("</div></div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Province Focus</div><div class='premium-card-sub'>จังหวัดที่มี gap สูงและควรวาง action plan</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        focus_html = []
-        for _, row in high_potential.iterrows():
-            tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
-            focus_html.append(
-                f"<div class='focus-row'><div><div class='row-name'>{row['Province']}</div><div class='row-meta'>{int(row['customers']):,} accounts • Sales ฿{float(row['total_sales'])/1e6:,.1f}M</div></div><span class='pill {tone}'>+{float(row['gap_kg'])/1e6:,.1f}M</span></div>"
-            )
-        st.markdown("".join(focus_html) if focus_html else "<div class='row-meta'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Sales by Region</div><div class='premium-card-sub'>เห็นทั้งขนาดยอดขายและคุณภาพของภูมิภาค</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        fig_region = px.bar(
-            by_region.head(6),
-            x="total_sales",
-            y="region",
-            orientation="h",
-            text="total_sales",
-            color="avg_achievement",
-            color_continuous_scale=["#fee2e2", "#93c5fd", "#22c55e"],
-        )
-        fig_region.update_traces(texttemplate="฿%{x:,.0f}", textposition="outside")
-        fig_region.update_layout(
-            height=290,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            xaxis_title=None,
-            yaxis_title=None,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),
-        )
-        st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='premium-card'><div class='premium-card-head'><div><div class='premium-card-title'>Team Trend</div><div class='premium-card-sub'>Achievement เทียบกับ Avg YoY ในกลุ่มคนที่ต้องจับตา</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#2563eb"), fill="tozeroy", fillcolor="rgba(37,99,235,.12)"))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#14b8a6")))
-        fig_trend.update_layout(height=290, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='premium-card' style='margin-top:16px;'><div class='premium-card-head'><div><div class='premium-card-title'>Smart Action Table</div><div class='premium-card-sub'>รวมลูกค้าที่สำคัญที่สุดสำหรับหัวหน้า เรียงแบบพร้อมสั่งงานทีมได้ทันที</div></div></div><div class='premium-card-body'>", unsafe_allow_html=True)
-    action_df = team_df[[
-        "Customer Name", "Salesperson", "Province", "Industry", "status_tag", "Sales/Year", "achievement_pct", "yoy_pct", "gap_kg", "opportunity_score"
-    ]].sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=[False, False, False]).head(12).copy()
-    action_df = action_df.rename(columns={
-        "Customer Name": "Customer",
-        "Salesperson": "Salesperson",
-        "Province": "Province",
-        "Industry": "Industry",
-        "status_tag": "Status",
-        "Sales/Year": "Sales",
-        "achievement_pct": "Achievement %",
-        "yoy_pct": "YoY %",
-        "gap_kg": "Gap kg",
-        "opportunity_score": "Opportunity Score",
-    })
-    st.dataframe(
-        style_rich_dataframe(
-            action_df,
-            numeric_cols=["Sales", "Gap kg", "Opportunity Score"],
-            pct_cols=["Achievement %", "YoY %"],
-        ),
-        use_container_width=True,
-        hide_index=True,
-        height=420,
-    )
+    st.markdown("".join(rank_html) if rank_html else "<div class='saas-meta'>ยังไม่มีข้อมูลเพียงพอ</div>", unsafe_allow_html=True)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Priority Accounts</div><div class='saas-card-sub'>ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    rows = []
+    for _, row in top_opp.iterrows():
+        score_tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 50 else "info")
+        rows.append(
+            f"<tr><td><div class='saas-name'>{row['Customer Name']}</div><div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div></td><td><span class='saas-pill {score_tone}'>{float(row['opportunity_score']):.0f}</span></td><td>฿{float(row['Sales/Year'])/1e6:,.1f}M</td><td>{float(row['achievement_pct']):,.1f}%</td><td style='font-weight:900;color:#dc2626;'>+{float(row['gap_kg'])/1e6:,.1f}M</td></tr>"
+        )
+    st.markdown(f"<table class='saas-priority-table'><thead><tr><th>Customer</th><th>Score</th><th>Sales</th><th>Achv.</th><th>Gap</th></tr></thead><tbody>{''.join(rows)}</tbody></table>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    map_no_coords = []
+    try:
+        map_no_coords = json.loads(map_points_no_coords_json)
+    except Exception:
+        map_no_coords = []
+    map_component_id = f"saas-focus-map-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(st.session_state.get('dept') or 'all')).strip('-') or 'all'}"
+    top_priority_count = min(4, len(map_points))
+    normal_count = max(0, len(map_points) - top_priority_count)
+    map_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset='utf-8'/>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
+      <style>
+        * {{ box-sizing:border-box; }}
+        html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
+        .saas-real-map-shell {{ border-radius:22px; overflow:hidden; border:1px solid rgba(255,255,255,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.45); background:linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%); }}
+        .saas-real-map-toolbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(15,23,42,.92), rgba(37,99,235,.86)); color:#fff; flex-wrap:wrap; }}
+        .saas-real-map-title {{ font-size:13px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }}
+        .saas-real-map-meta {{ font-size:11px; color:#dbeafe; margin-top:4px; }}
+        .saas-real-map-legend {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }}
+        .saas-real-map-legend span {{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12); font-size:11px; font-weight:800; color:#eff6ff; }}
+        .saas-real-map-dot {{ width:9px; height:9px; border-radius:999px; display:inline-block; }}
+        #${map_component_id} {{ width:100%; height:360px; background:#dbeafe; }}
+        .focus-pin {{ width:18px; height:18px; border-radius:999px; border:3px solid rgba(255,255,255,.95); box-shadow:0 10px 20px rgba(15,23,42,.24); }}
+        .focus-pin.priority {{ background:linear-gradient(135deg,#ef4444,#fb7185); }}
+        .focus-pin.coverage {{ background:linear-gradient(135deg,#2563eb,#38bdf8); }}
+        .saas-real-map-note {{ padding:10px 14px 12px 14px; font-size:11.5px; color:#64748b; background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,252,.92)); }}
+        .leaflet-popup-content-wrapper {{ border-radius:16px; box-shadow:0 18px 32px rgba(15,23,42,.18); }}
+        .leaflet-popup-content {{ margin:12px 14px; }}
+      </style>
+    </head>
+    <body>
+      <div class='saas-real-map-shell'>
+        <div class='saas-real-map-toolbar'>
+          <div>
+            <div class='saas-real-map-title'>Live Coverage View</div>
+            <div class='saas-real-map-meta'>Priority {top_priority_count} จุด • Coverage {normal_count} จุด • Missing coords {len(map_no_coords)}</div>
+          </div>
+          <div class='saas-real-map-legend'>
+            <span><i class='saas-real-map-dot' style='background:#ef4444;'></i>Priority</span>
+            <span><i class='saas-real-map-dot' style='background:#2563eb;'></i>Coverage</span>
+          </div>
+        </div>
+        <div id='{map_component_id}'></div>
+        <div class='saas-real-map-note'>คลิกหมุดเพื่อดูชื่อบริษัทและผู้รับผิดชอบ • ระบบจะ auto-fit ตามจุดที่พบพิกัด</div>
+      </div>
+      <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+      <script>
+        const MAP_POINTS = {map_points_json};
+        const map = L.map('{map_component_id}', {{ zoomControl: true, scrollWheelZoom: false }}).setView([13.7563, 100.5018], 6);
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{ attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }}).addTo(map);
+        const bounds = [];
+        MAP_POINTS.forEach((item, index) => {{
+          if (typeof item.lat !== 'number' || typeof item.lng !== 'number') return;
+          const priority = index < {top_priority_count};
+          const icon = L.divIcon({{ className: '', html: `<div class="focus-pin ${{priority ? 'priority' : 'coverage'}}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10] }});
+          const marker = L.marker([item.lat, item.lng], {{ icon }}).addTo(map);
+          marker.bindPopup(`
+            <div style="min-width:180px">
+              <div style="font-weight:800;color:#0f172a;font-size:13px;">${{item.name || 'Account'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:6px;">👤 ${{item.salesperson || '-'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:4px;">📍 ${{item.province || '-'}}</div>
+              <div style="font-size:11px;color:${{priority ? '#dc2626' : '#2563eb'}};font-weight:700;margin-top:8px;">${{priority ? 'Priority account' : 'Coverage account'}}</div>
+            </div>
+          `);
+          bounds.push([item.lat, item.lng]);
+        }});
+        if (bounds.length) {{ map.fitBounds(bounds, {{ padding: [26, 26] }}); }}
+      </script>
+    </body>
+    </html>
+    """
+    components.html(map_html, height=420)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("</div><div class='saas-stack'>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Risk Signals</div><div class='saas-card-sub'>บัญชีและพื้นที่ที่ต้องระวัง</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    risk_html = []
+    if not at_risk.empty:
+        for _, row in at_risk.iterrows():
+            risk_html.append(
+                f"<div class='saas-list-row'><div><div class='saas-name'>{row['Customer Name']}</div><div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div></div><div style='text-align:right;'><div class='saas-pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='saas-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
+            )
+    st.markdown("".join(risk_html) if risk_html else "<div class='saas-meta'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>High Potential Provinces</div><div class='saas-card-sub'>จังหวัดที่ gap สูงและมีโอกาสขยาย</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    hp_html = []
+    for _, row in high_potential.iterrows():
+        tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
+        hp_html.append(
+            f"<div class='saas-list-row'><div><div class='saas-name'>{row['Province']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • Sales ฿{float(row['total_sales'])/1e6:,.1f}M</div></div><div class='saas-pill {tone}'>+{float(row['gap_kg'])/1e6:,.1f}M</div></div>"
+        )
+    st.markdown("".join(hp_html) if hp_html else "<div class='saas-meta'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Sales by Region</div><div class='saas-card-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    fig_region = px.bar(
+        by_region.head(6),
+        x="total_sales",
+        y="region",
+        orientation="h",
+        text="total_sales",
+        color="total_sales",
+        color_continuous_scale=["#60a5fa", "#2563eb", "#7c3aed"],
+    )
+    fig_region.update_traces(texttemplate="฿%{x:,.0f}", textposition="outside")
+    fig_region.update_layout(
+        height=280,
+        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title=None,
+        yaxis_title=None,
+        coloraxis_showscale=False,
+        yaxis=dict(categoryorder="total ascending"),
+    )
+    st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Trend</div><div class='saas-card-sub'>Achievement และ Avg YoY ของคนในทีม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#2563eb"), fill="tozeroy", fillcolor="rgba(37,99,235,.12)"))
+    fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
+    fig_trend.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
+    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-actions'>", unsafe_allow_html=True)
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
         "Salesperson Summary": by_sp,
         "Top Opportunities": top_opp,
         "At Risk": at_risk,
         "Province Focus": by_province,
-        "Industry Focus": by_industry,
     })
-
-    st.markdown("<div class='action-buttons' style='margin-top:16px;'>", unsafe_allow_html=True)
     st.download_button(
         "📁 Export Team Report",
         data=manager_report,
@@ -2442,6 +2402,8 @@ if menu == "📊 Team Dashboard":
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown("</div></div></div>", unsafe_allow_html=True)
+
     with st.expander("📋 Detailed Team Performance", expanded=False):
         sp_show = by_sp.rename(columns={
             "customers": "Customers",
@@ -2451,13 +2413,11 @@ if menu == "📊 Team Dashboard":
             "achievement_pct": "Achievement %",
             "avg_yoy": "Avg YoY %",
             "risk_accounts": "Risk Accounts",
-            "growth_accounts": "Growth Accounts",
-            "manager_score": "Manager Score",
         }).copy()
         st.dataframe(
             style_rich_dataframe(
                 sp_show,
-                numeric_cols=["Customers", "Sales", "Budget", "Actual", "Risk Accounts", "Growth Accounts", "Manager Score"],
+                numeric_cols=["Customers", "Sales", "Budget", "Actual", "Risk Accounts"],
                 pct_cols=["Achievement %", "Avg YoY %"],
             ),
             use_container_width=True,
