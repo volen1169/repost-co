@@ -90,7 +90,7 @@ ADMIN_EMAILS = {
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "itsupport@poonyaruk.co.th":"CO",
+    "itsupport1@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2093,134 +2093,228 @@ if menu == "📊 Team Dashboard":
     st.markdown("""
     <style>
     .stApp {
-        background:
-            radial-gradient(circle at 12% 10%, rgba(168, 127, 69, .12), transparent 20%),
-            radial-gradient(circle at 88% 4%, rgba(25, 42, 86, .14), transparent 24%),
-            linear-gradient(180deg, #f4efe8 0%, #f8f5ef 100%);
+        background: linear-gradient(180deg, #f7f4ef 0%, #fbfaf7 100%);
     }
-    .main .block-container {max-width: 1450px; padding-top: 1rem; padding-bottom: 2rem;}
-    .td-stage{background:linear-gradient(135deg,#0b1630 0%, #1a2740 52%, #6d5c46 100%); border-radius:34px; border:1px solid rgba(255,255,255,.10); box-shadow:0 28px 60px rgba(38,31,22,.18); overflow:hidden; position:relative; padding:28px 28px 24px;}
-    .td-stage:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 90% 12%, rgba(212,188,147,.18), transparent 18%), radial-gradient(circle at 18% 82%, rgba(255,255,255,.06), transparent 22%); pointer-events:none;}
-    .td-hero{position:relative; z-index:2; display:grid; grid-template-columns:1.45fr .75fr; gap:18px; align-items:stretch;}
-    .td-hero-left{padding:6px 4px 8px;}
-    .td-kicker{font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:#e7d9bf; font-weight:800; margin-bottom:16px;}
-    .td-title{font-size:42px; line-height:1.02; letter-spacing:-.04em; font-weight:900; color:#fff7eb; margin:0 0 12px 0;}
-    .td-subtitle{font-size:14px; line-height:1.8; color:#f0e6d6; max-width:760px;}
-    .td-hero-card{background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.12); border-radius:24px; padding:20px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08);}
-    .td-hero-card-label{font-size:12px; text-transform:uppercase; letter-spacing:.18em; color:#eadcc2; font-weight:800; margin-bottom:12px;}
-    .td-hero-card-value{font-size:38px; line-height:1; letter-spacing:-.03em; font-weight:900; color:#fff7eb; margin-bottom:10px;}
-    .td-hero-card-text{font-size:13px; line-height:1.75; color:#f1e9dc;}
-    .td-kpi-row{margin-top:18px; position:relative; z-index:2;}
-    .td-kpi-card{position:relative; min-height:168px; border-radius:24px; padding:20px 22px 18px; background:linear-gradient(180deg,#fbf7f0 0%, #f2eadf 100%); border:1px solid rgba(168,127,69,.18); box-shadow:0 16px 28px rgba(77,58,34,.08); overflow:hidden;}
-    .td-kpi-card:before{content:''; position:absolute; right:-12px; top:-12px; width:88px; height:88px; border-radius:999px; background:radial-gradient(circle, rgba(168,127,69,.22) 0%, rgba(168,127,69,0) 72%);}
-    .td-kpi-top{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:18px;}
-    .td-kpi-label{font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#7a5f3b;}
-    .td-kpi-icon{width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#2b2f36,#8b6d46); color:#fff7eb; font-size:20px; box-shadow:0 12px 20px rgba(52,42,29,.14);}
-    .td-kpi-value{font-size:34px; line-height:1.05; font-weight:900; letter-spacing:-.03em; color:#091a3c;}
-    .td-kpi-sub{margin-top:10px; font-size:12.5px; line-height:1.7; color:#7c6f5d;}
-    .td-line-title{display:flex; align-items:center; gap:12px; color:#fff6ea; font-weight:800; font-size:18px; margin:18px 0 14px; position:relative; z-index:2;}
-    .td-line-title:before,.td-line-title:after{content:''; height:1px; flex:1; background:linear-gradient(90deg, rgba(255,255,255,0), rgba(233,220,194,.7), rgba(255,255,255,0));}
-    .td-line-title .dot{width:34px; height:34px; border-radius:999px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.10);}
-    .td-main-grid{position:relative; z-index:2; display:grid; grid-template-columns: 1.9fr .95fr; gap:16px; margin-top:6px;}
-    .td-left-stack,.td-right-stack{display:flex; flex-direction:column; gap:16px;}
-    .td-two{display:grid; grid-template-columns: 1fr 1.05fr; gap:14px;}
-    .td-bottom-two{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
-    .td-panel{background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,243,236,.92)); border:1px solid rgba(168,127,69,.14); border-radius:22px; overflow:hidden; box-shadow:0 18px 30px rgba(77,58,34,.08);}
-    .td-panel-head{padding:14px 18px 10px; font-size:16px; font-weight:800; color:#14274b; background:linear-gradient(180deg, rgba(255,255,255,.45), rgba(255,255,255,.08));}
-    .td-panel-body{padding:12px 16px 16px;}
-    .td-list-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid rgba(148,163,184,.16);} 
-    .td-list-row:last-child{border-bottom:none;}
-    .td-name{font-size:14px; font-weight:800; color:#173075;}
-    .td-meta{margin-top:4px; font-size:12px; color:#64748b;}
-    .td-pill-green,.td-pill-red{display:inline-flex; align-items:center; justify-content:center; min-width:102px; padding:8px 12px; border-radius:10px; color:#fff; font-size:13px; font-weight:900; box-shadow:0 10px 16px rgba(15,23,42,.12);} 
-    .td-pill-green{background:linear-gradient(135deg,#2f855a,#7fbf9a);} 
-    .td-pill-red{background:linear-gradient(135deg,#b45309,#eab308);} 
-    .td-bottom-actions{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
-    .td-action-wrap .stDownloadButton > button, .td-action-wrap .stButton > button{height:54px; border-radius:16px; font-weight:800; font-size:16px; border:1px solid rgba(255,255,255,.18); background:linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.08)); color:#fff7eb; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 14px 22px rgba(15,23,42,.14);} 
-    .td-detail-wrap{margin-top:22px;}
-    @media (max-width: 1200px){ .td-hero, .td-main-grid{grid-template-columns:1fr;} }
-    @media (max-width: 860px){ .td-two,.td-bottom-two{grid-template-columns:1fr;} .td-title{font-size:34px;} }
+    .main .block-container {
+        max-width: 1380px;
+        padding-top: 1.2rem;
+        padding-bottom: 2.2rem;
+    }
+    .mck-shell {margin-top: 2px;}
+    .mck-hero {
+        background:#f7f4ef;
+        border-top:1px solid #d9d2c7;
+        border-bottom:1px solid #d9d2c7;
+        padding:20px 2px 18px 2px;
+        margin-bottom:22px;
+    }
+    .mck-kicker {
+        font-size:11px;
+        font-weight:700;
+        letter-spacing:.18em;
+        text-transform:uppercase;
+        color:#9a8f80;
+        margin-bottom:8px;
+    }
+    .mck-title {
+        font-size:40px;
+        line-height:1.08;
+        font-weight:700;
+        letter-spacing:-.03em;
+        color:#171717;
+        margin-bottom:8px;
+    }
+    .mck-subtitle {
+        max-width:900px;
+        font-size:14px;
+        line-height:1.7;
+        color:#5f5a52;
+    }
+    .mck-insight {
+        margin-top:14px;
+        padding:14px 16px;
+        background:#fcfbf8;
+        border-left:3px solid #1f2937;
+    }
+    .mck-insight-label {
+        font-size:12px;
+        font-weight:700;
+        color:#111827;
+        margin-bottom:6px;
+    }
+    .mck-insight-text {
+        font-size:13px;
+        line-height:1.7;
+        color:#4b5563;
+    }
+    .mck-kpi {
+        background:#fffdfa;
+        border:1px solid #ddd6ca;
+        border-radius:12px;
+        padding:18px 18px 16px;
+        min-height:124px;
+        box-shadow:none;
+    }
+    .mck-kpi-label {
+        font-size:11px;
+        font-weight:700;
+        letter-spacing:.16em;
+        text-transform:uppercase;
+        color:#8b8172;
+        margin-bottom:14px;
+    }
+    .mck-kpi-value {
+        font-size:31px;
+        line-height:1.02;
+        font-weight:700;
+        color:#111827;
+        letter-spacing:-.03em;
+        margin-bottom:8px;
+    }
+    .mck-kpi-sub {
+        font-size:12.5px;
+        line-height:1.65;
+        color:#6b7280;
+    }
+    .mck-section {
+        margin-top:24px;
+        margin-bottom:12px;
+        padding-top:10px;
+        border-top:1px solid #ddd6ca;
+        font-size:12px;
+        font-weight:700;
+        letter-spacing:.14em;
+        text-transform:uppercase;
+        color:#8b8172;
+    }
+    .mck-panel {
+        background:#fffdfa;
+        border:1px solid #ddd6ca;
+        border-radius:12px;
+        overflow:hidden;
+    }
+    .mck-panel-head {
+        padding:14px 16px 10px;
+        border-bottom:1px solid #ece6dc;
+        font-size:16px;
+        font-weight:700;
+        color:#111827;
+        background:#fffdfa;
+    }
+    .mck-panel-body {padding:10px 14px 14px;}
+    .mck-list-row {
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:14px;
+        padding:12px 0;
+        border-bottom:1px solid #f0ebe3;
+    }
+    .mck-list-row:last-child {border-bottom:none;}
+    .mck-name {font-size:14px; font-weight:700; color:#111827;}
+    .mck-meta {font-size:12px; color:#6b7280; margin-top:4px;}
+    .mck-number {
+        font-size:13px;
+        font-weight:700;
+        color:#111827;
+        white-space:nowrap;
+    }
+    .mck-number.neg {color:#8b5e3c;}
+    .mck-number.pos {color:#1f2937;}
+    .mck-button-wrap .stDownloadButton > button,
+    .mck-button-wrap .stButton > button {
+        height:46px;
+        border-radius:10px;
+        border:1px solid #cfc7bb;
+        background:#fffdfa;
+        color:#111827;
+        font-weight:700;
+        box-shadow:none;
+    }
+    @media (max-width: 900px) {
+        .mck-title {font-size:32px;}
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='td-stage'>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-shell'>", unsafe_allow_html=True)
     st.markdown(f"""
-        <div class='td-hero'>
-            <div class='td-hero-left'>
-                <div class='td-kicker'>Executive CRM Team Dashboard</div>
-                <div class='td-title'>Team Performance Overview</div>
-                <div class='td-subtitle'>ภาพรวมทีมขายแบบ Executive + CRM ในหน้าเดียว เห็นยอดขาย Achievement ความเสี่ยง และโอกาสเติบโตแบบกระชับขึ้น โฟกัสที่การตัดสินใจของหัวหน้าโดยไม่รกตา</div>
-            </div>
-            <div class='td-hero-card'>
-                <div class='td-hero-card-label'>AI Insight</div>
-                <div class='td-hero-card-value'>{total_sales/1e6:,.1f}M ฿</div>
-                <div class='td-hero-card-text'>{ai_summary}</div>
+        <div class='mck-hero'>
+            <div class='mck-kicker'>Executive CRM Dashboard</div>
+            <div class='mck-title'>Team Performance Overview</div>
+            <div class='mck-subtitle'>ภาพรวม performance ของทีมในมุมมองหัวหน้า เน้นตัวเลขสำคัญ ความเสี่ยง และโอกาสที่ควรตัดสินใจต่อทันที โดยลดองค์ประกอบที่ไม่จำเป็นออกเพื่อให้อ่านเร็วขึ้นแบบ report</div>
+            <div class='mck-insight'>
+                <div class='mck-insight-label'>Key insight</div>
+                <div class='mck-insight-text'>{ai_summary}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    k1, k2, k3, k4 = st.columns(4, gap="large")
-    for col, label, value, sub, icon in [
-        (k1, "Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰"),
-        (k2, "Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg", "🎯"),
-        (k3, "Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk accounts {risk_accounts:,} ราย", "📉"),
-        (k4, "Active Customers", f"{len(team_df):,}", f"Coverage {team_df['Province'].nunique():,} จังหวัด • Top region {top_region}", "👥"),
+    k1, k2, k3, k4 = st.columns(4, gap="medium")
+    for col, label, value, sub in [
+        (k1, "Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales"),
+        (k2, "Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg"),
+        (k3, "Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk accounts {risk_accounts:,} ราย"),
+        (k4, "Active Customers", f"{len(team_df):,}", f"Coverage {team_df['Province'].nunique():,} จังหวัด • Top region {top_region}"),
     ]:
         with col:
             st.markdown(f"""
-            <div class='td-kpi-card'>
-                <div class='td-kpi-top'>
-                    <div class='td-kpi-label'>{label}</div>
-                    <div class='td-kpi-icon'>{icon}</div>
-                </div>
-                <div class='td-kpi-value'>{value}</div>
-                <div class='td-kpi-sub'>{sub}</div>
+            <div class='mck-kpi'>
+                <div class='mck-kpi-label'>{label}</div>
+                <div class='mck-kpi-value'>{value}</div>
+                <div class='mck-kpi-sub'>{sub}</div>
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("<div class='td-line-title'><span class='dot'>✔</span><span>Sales Performance</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-two'>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-section'>Sales Performance</div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2, gap="medium")
 
-    with st.container():
-        st.markdown("<div class='td-panel'><div class='td-panel-head'>Top Sales Reps</div><div class='td-panel-body'>", unsafe_allow_html=True)
-        fig_top = px.bar(top_sales, x="total_sales", y="Salesperson", orientation="h", text="sales_label", color="achievement_pct", color_continuous_scale=[[0, '#ef4444'], [0.5, '#60a5fa'], [1, '#8b5cf6']])
-        fig_top.update_traces(textposition="outside", marker_line_width=0)
-        fig_top.update_layout(height=250, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=8, r=12, t=8, b=8), xaxis_title=None, yaxis_title=None)
+    with c1:
+        st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Top Sales Reps</div><div class='mck-panel-body'>", unsafe_allow_html=True)
+        fig_top = px.bar(top_sales, x="total_sales", y="Salesperson", orientation="h", text="sales_label")
+        fig_top.update_traces(textposition="outside")
+        fig_top.update_layout(height=260, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), xaxis_title=None, yaxis_title=None, showlegend=False)
+        fig_top.update_xaxes(showgrid=True, gridcolor="#ece6dc", zeroline=False, tickfont=dict(color="#6b7280"))
+        fig_top.update_yaxes(showgrid=False, tickfont=dict(color="#111827"))
         st.plotly_chart(fig_top, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown("<div class='td-panel'><div class='td-panel-head'>Win / Loss Trend</div><div class='td-panel-body'>", unsafe_allow_html=True)
+    with c2:
+        st.markdown("<div class='mck-panel'><div class='mck-panel-head'>Achievement vs YoY</div><div class='mck-panel-body'>", unsafe_allow_html=True)
         fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=3, color='#2563eb'), fill='tozeroy', fillcolor='rgba(37,99,235,.15)'))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=3, color='#f97316')))
-        fig_trend.update_layout(height=250, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=8, r=10, t=8, b=8), legend=dict(orientation='h', y=1.08, x=0), xaxis_title=None, yaxis_title=None)
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement", line=dict(width=2.5), marker=dict(size=7)))
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="YoY", line=dict(width=2.5), marker=dict(size=7)))
+        fig_trend.update_layout(height=260, paper_bgcolor="#fffdfa", plot_bgcolor="#fffdfa", margin=dict(l=8, r=18, t=8, b=8), legend=dict(orientation='h', y=1.08, x=0), xaxis_title=None, yaxis_title=None)
+        fig_trend.update_xaxes(showgrid=False, tickfont=dict(color="#111827"))
+        fig_trend.update_yaxes(showgrid=True, gridcolor="#ece6dc", zeroline=False, tickfont=dict(color="#6b7280"))
         st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='td-line-title'><span class='dot'>✔</span><span>Risk &amp; Opportunity</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-bottom-two'>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-section'>Risk and Opportunity</div>", unsafe_allow_html=True)
+    c3, c4 = st.columns(2, gap="medium")
+
     opp_html = []
     for _, row in top_opp.iterrows():
-        opp_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Customer Name']}</div><div class='td-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='td-pill-green'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
+        opp_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Customer Name']}</div><div class='mck-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='mck-number pos'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
     risk_html = []
     for _, row in at_risk.iterrows():
-        risk_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Customer Name']}</div><div class='td-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='td-pill-red'>{float(row['yoy_pct']):+.1f}%</div></div>")
-    risk_body = ''.join(risk_html) if risk_html else "<div class='td-meta'>ไม่พบ account ที่เสี่ยงในเกณฑ์ปัจจุบัน</div>"
-    opp_body = ''.join(opp_html) if opp_html else "<div class='td-meta'>ยังไม่พบ account ที่เข้าเกณฑ์ growth สูง</div>"
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>At Risk Accounts</div><div class='td-panel-body'>{risk_body}</div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>Growth Opportunities</div><div class='td-panel-body'>{opp_body}</div></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        risk_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Customer Name']}</div><div class='mck-meta'>{row['Salesperson']} • {row['Province']}</div></div><div class='mck-number neg'>{float(row['yoy_pct']):+.1f}%</div></div>")
+    opp_body = ''.join(opp_html) if opp_html else "<div class='mck-meta'>ยังไม่พบ account ที่เข้าเกณฑ์ growth สูง</div>"
+    risk_body = ''.join(risk_html) if risk_html else "<div class='mck-meta'>ไม่พบ account ที่เสี่ยงในเกณฑ์ปัจจุบัน</div>"
 
-    st.markdown("<div class='td-right-stack'>", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>Growth Opportunities</div><div class='mck-panel-body'>{opp_body}</div></div>", unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>At Risk Accounts</div><div class='mck-panel-body'>{risk_body}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='mck-section'>Province Focus</div>", unsafe_allow_html=True)
     hp_html = []
     for _, row in high_potential.iterrows():
-        hp_html.append(f"<div class='td-list-row'><div><div class='td-name'>{row['Province']}</div><div class='td-meta'>{int(row['customers']):,} accounts</div></div><div class='td-pill-red'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
-    st.markdown(f"<div class='td-panel'><div class='td-panel-head'>High Potential Provinces</div><div class='td-panel-body'>{''.join(hp_html)}</div></div>", unsafe_allow_html=True)
+        hp_html.append(f"<div class='mck-list-row'><div><div class='mck-name'>{row['Province']}</div><div class='mck-meta'>{int(row['customers']):,} accounts</div></div><div class='mck-number pos'>+{float(row['gap_kg'])/1e6:.1f}M ฿</div></div>")
+    st.markdown(f"<div class='mck-panel'><div class='mck-panel-head'>High Potential Provinces</div><div class='mck-panel-body'>{''.join(hp_html)}</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='td-bottom-actions'>", unsafe_allow_html=True)
-    st.markdown("<div class='td-action-wrap'>", unsafe_allow_html=True)
+    st.markdown("<div class='mck-section'>Actions</div>", unsafe_allow_html=True)
+    a1, a2 = st.columns(2, gap="medium")
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
         "Salesperson Summary": by_sp,
@@ -2228,19 +2322,19 @@ if menu == "📊 Team Dashboard":
         "At Risk": at_risk,
         "Province Focus": by_province,
     })
-    st.download_button("📁 Export Team Report", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='td-action-wrap'>", unsafe_allow_html=True)
-    if st.button("🔍 View Customer List", use_container_width=True):
-        st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
-        _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    with a1:
+        st.markdown("<div class='mck-button-wrap'>", unsafe_allow_html=True)
+        st.download_button("Export Team Report", data=manager_report, file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    with a2:
+        st.markdown("<div class='mck-button-wrap'>", unsafe_allow_html=True)
+        if st.button("View Customer List", use_container_width=True):
+            st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
+            _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown("</div>", unsafe_allow_html=True)
     with st.expander("📋 Detailed Team Performance", expanded=False):
         sp_show = by_sp.rename(columns={"customers": "Customers", "total_sales": "Sales", "budget_kg": "Budget", "actual_kg": "Actual", "achievement_pct": "Achievement %", "avg_yoy": "Avg YoY %"}).copy()
         st.dataframe(style_rich_dataframe(sp_show, numeric_cols=["Customers", "Sales", "Budget", "Actual"], pct_cols=["Achievement %", "Avg YoY %"]), use_container_width=True, hide_index=True, height=300)
