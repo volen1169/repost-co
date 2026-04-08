@@ -90,7 +90,6 @@ ADMIN_EMAILS = {
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
-    "Pornphavit.Bu@optimal.co.th":"CO",
     "itsupport@poonyaruk.co.th":"CO",
 }
 
@@ -2129,71 +2128,91 @@ if menu == "📊 Team Dashboard":
     <style>
     .stApp {
         background:
-            radial-gradient(circle at 8% 4%, rgba(59,130,246,.18), transparent 22%),
-            radial-gradient(circle at 95% 10%, rgba(56,189,248,.12), transparent 20%),
-            linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%);
+            radial-gradient(circle at 10% 6%, rgba(192,165,120,.16), transparent 20%),
+            radial-gradient(circle at 92% 12%, rgba(138,160,196,.12), transparent 24%),
+            linear-gradient(180deg, #f4f1eb 0%, #ede7dd 42%, #f7f5f1 100%);
     }
     .main .block-container {max-width: 1500px; padding-top: 1rem; padding-bottom: 2.2rem;}
     .crm-hero {
-        position: relative; overflow: hidden; border-radius: 30px; padding: 28px 30px;
-        background: linear-gradient(135deg, #081b4b 0%, #123a9a 52%, #38bdf8 100%);
-        border: 1px solid rgba(255,255,255,.15); box-shadow: 0 24px 54px rgba(15,23,42,.18);
-        color: white; margin-bottom: 14px;
+        position: relative; overflow: hidden; border-radius: 32px; padding: 30px 32px;
+        background: linear-gradient(135deg, #0f172a 0%, #1f2937 48%, #67543b 100%);
+        border: 1px solid rgba(214,198,170,.28); box-shadow: 0 30px 70px rgba(15,23,42,.20);
+        color: white; margin-bottom: 18px;
     }
     .crm-hero:before {
-        content: ''; position:absolute; right:-60px; top:-60px; width:220px; height:220px; border-radius:999px;
-        background: rgba(255,255,255,.10);
+        content: ''; position:absolute; right:-70px; top:-70px; width:240px; height:240px; border-radius:999px;
+        background: rgba(255,236,204,.08);
     }
     .crm-hero:after {
-        content: ''; position:absolute; right:120px; bottom:-85px; width:240px; height:240px; border-radius:999px;
-        background: rgba(255,255,255,.06);
+        content: ''; position:absolute; right:140px; bottom:-95px; width:260px; height:260px; border-radius:999px;
+        background: rgba(255,255,255,.05);
     }
     .crm-hero-grid {position:relative; z-index:1; display:grid; grid-template-columns: 1.45fr .75fr; gap:18px; align-items:stretch;}
-    .crm-kicker {font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#dbeafe; font-weight:800; margin-bottom:10px;}
-    .crm-title {font-size:40px; font-weight:900; line-height:1.02; letter-spacing:-.04em; margin-bottom:10px;}
-    .crm-sub {font-size:14px; line-height:1.7; color:#e0f2fe; max-width: 920px;}
+    .crm-kicker {font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:#e7ddca; font-weight:800; margin-bottom:10px;}
+    .crm-title {font-size:42px; font-weight:900; line-height:1.02; letter-spacing:-.04em; margin-bottom:10px;}
+    .crm-sub {font-size:14px; line-height:1.8; color:#f3efe7; max-width: 920px;}
     .crm-mini-insight {
-        background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
-        border:1px solid rgba(255,255,255,.18); border-radius:22px; padding:18px 18px 16px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+        border:1px solid rgba(231,221,202,.18); border-radius:24px; padding:20px 20px 18px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     }
-    .crm-mini-insight .head {font-size:12px; font-weight:800; letter-spacing:.08em; color:#dbeafe; text-transform:uppercase; margin-bottom:10px;}
-    .crm-mini-insight .big {font-size:28px; line-height:1.1; font-weight:900; margin-bottom:8px;}
-    .crm-mini-insight .small {font-size:12.5px; color:#e2e8f0; line-height:1.7;}
+    .crm-mini-insight .head {font-size:12px; font-weight:800; letter-spacing:.1em; color:#e7ddca; text-transform:uppercase; margin-bottom:10px;}
+    .crm-mini-insight .big {font-size:30px; line-height:1.1; font-weight:900; margin-bottom:8px; color:#ffffff;}
+    .crm-mini-insight .small {font-size:12.5px; color:#ebe4d8; line-height:1.75;}
     .crm-kpi-grid {display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap:14px; margin: 12px 0 14px;}
     .crm-kpi {
         border-radius: 24px; padding: 18px 18px 16px;
-        background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,245,249,.88));
-        border:1px solid rgba(219,234,254,.95); box-shadow: 0 14px 28px rgba(15,23,42,.08);
+        background: linear-gradient(180deg, rgba(255,251,245,.98), rgba(243,237,229,.96));
+        border:1px solid rgba(199,182,154,.45); box-shadow: 0 16px 34px rgba(56,44,28,.10);
         min-height: 138px;
     }
-    .crm-kpi .label {font-size:12px; color:#475569; font-weight:800; margin-bottom:12px;}
-    .crm-kpi .value {font-size:30px; line-height:1.05; color:#0f172a; font-weight:900; letter-spacing:-.03em;}
-    .crm-kpi .sub {font-size:12px; color:#64748b; margin-top:8px; line-height:1.6;}
-    .crm-section-title {display:flex; align-items:center; gap:10px; margin: 18px 0 12px; color:#0f172a; font-weight:900; font-size:19px;}
-    .crm-section-title .dot {width:34px; height:34px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1d4ed8,#38bdf8); color:#fff; box-shadow:0 10px 20px rgba(37,99,235,.18);}
+    .crm-kpi .label {font-size:12px; color:#6b5a43; font-weight:800; margin-bottom:12px; text-transform:uppercase; letter-spacing:.05em;}
+    .crm-kpi .value {font-size:30px; line-height:1.05; color:#111827; font-weight:900; letter-spacing:-.03em;}
+    .crm-kpi .sub {font-size:12px; color:#7c6f5d; margin-top:8px; line-height:1.6;}
+    .crm-section-title {display:flex; align-items:center; gap:10px; margin: 22px 0 12px; color:#1f2937; font-weight:900; font-size:19px;}
+    .crm-section-title .dot {width:34px; height:34px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1f2937,#8a7354); color:#fff8ef; box-shadow:0 12px 22px rgba(56,44,28,.18);}
     .crm-two {display:grid; grid-template-columns: 1.05fr .95fr; gap:14px;}
-    .crm-panel {background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%); border:1px solid #e2e8f0; border-radius:24px; box-shadow:0 16px 32px rgba(15,23,42,.06); overflow:hidden;}
-    .crm-panel-head {padding:15px 18px 11px; border-bottom:1px solid #edf2f7; font-weight:800; color:#16327c; font-size:15px;}
+    .crm-panel {background:linear-gradient(180deg,#fffdf8 0%, #f5efe5 100%); border:1px solid rgba(199,182,154,.35); border-radius:26px; box-shadow:0 18px 38px rgba(56,44,28,.08); overflow:hidden;}
+    .crm-panel-head {padding:16px 18px 12px; border-bottom:1px solid rgba(199,182,154,.22); font-weight:800; color:#3f3528; font-size:15px;}
     .crm-panel-body {padding:14px 16px 16px;}
     .crm-list {display:flex; flex-direction:column; gap:10px;}
-    .crm-row {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:16px; background:#f8fbff; border:1px solid #e8eefc;}
-    .crm-name {font-size:13px; font-weight:800; color:#0f172a;}
-    .crm-meta {font-size:11.5px; color:#64748b; margin-top:4px;}
+    .crm-row {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-radius:16px; background:#fbf8f2; border:1px solid rgba(199,182,154,.24);}
+    .crm-name {font-size:13px; font-weight:800; color:#1f2937;}
+    .crm-meta {font-size:11.5px; color:#7c6f5d; margin-top:4px;}
     .crm-pill-blue, .crm-pill-red, .crm-pill-green {
         border-radius:999px; padding:7px 11px; font-size:11px; font-weight:800; white-space:nowrap;
     }
-    .crm-pill-blue {background:#dbeafe; color:#1d4ed8;}
-    .crm-pill-red {background:#fee2e2; color:#dc2626;}
-    .crm-pill-green {background:#dcfce7; color:#15803d;}
+    .crm-pill-blue {background:#ece4d6; color:#5c4e3d;}
+    .crm-pill-red {background:#f7dfd9; color:#a64636;}
+    .crm-pill-green {background:#e2ecdf; color:#476347;}
     .crm-action-grid {display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:14px;}
-    .crm-map-shell {background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); border:1px solid #e2e8f0; border-radius:26px; overflow:hidden; box-shadow:0 18px 34px rgba(15,23,42,.06);}
-    .crm-map-head {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px; border-bottom:1px solid #eef2f7;}
-    .crm-map-title {font-weight:900; color:#0f172a; font-size:17px;}
-    .crm-map-sub {font-size:12px; color:#64748b;}
-    .crm-ai-box {background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 60%, #38bdf8 100%); color:white; border-radius:24px; padding:18px 20px; box-shadow:0 18px 36px rgba(30,64,175,.20);}
-    .crm-ai-head {font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:#dbeafe; font-weight:800; margin-bottom:10px;}
-    .crm-ai-text {font-size:14px; line-height:1.8; color:#eff6ff;}
+    .crm-map-shell {background:linear-gradient(180deg, #fffdf8 0%, #f5efe5 100%); border:1px solid rgba(199,182,154,.35); border-radius:26px; overflow:hidden; box-shadow:0 18px 34px rgba(56,44,28,.08);}
+    .crm-map-head {display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px; border-bottom:1px solid rgba(199,182,154,.22);}
+    .crm-map-title {font-weight:900; color:#1f2937; font-size:17px;}
+    .crm-map-sub {font-size:12px; color:#7c6f5d;}
+    .crm-ai-box {background: linear-gradient(135deg, #1f2937 0%, #3f3528 55%, #8a7354 100%); color:white; border-radius:24px; padding:18px 20px; box-shadow:0 20px 40px rgba(56,44,28,.18);}
+    .crm-ai-head {font-size:12px; text-transform:uppercase; letter-spacing:.16em; color:#eadfcd; font-weight:800; margin-bottom:10px;}
+    .crm-ai-text {font-size:14px; line-height:1.8; color:#f7f1e7;}
+    .mck-kpi-card {
+        border-radius: 24px; padding: 20px 20px 18px; min-height: 148px;
+        background: linear-gradient(180deg, #fffdf8 0%, #f2ebdf 100%);
+        border: 1px solid rgba(199,182,154,.42);
+        box-shadow: 0 18px 36px rgba(56,44,28,.08);
+        position: relative; overflow: hidden;
+    }
+    .mck-kpi-card:before {
+        content:''; position:absolute; right:-24px; top:-24px; width:94px; height:94px; border-radius:999px;
+        background: radial-gradient(circle, rgba(199,182,154,.28) 0%, rgba(199,182,154,0) 72%);
+    }
+    .mck-kpi-head {display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:14px; position:relative; z-index:1;}
+    .mck-kpi-label {font-size:11.5px; color:#6b5a43; font-weight:800; text-transform:uppercase; letter-spacing:.08em;}
+    .mck-kpi-icon {
+        width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(135deg, #1f2937, #8a7354); color:#fff8ef; font-size:18px;
+        box-shadow: 0 12px 24px rgba(56,44,28,.14);
+    }
+    .mck-kpi-value {font-size:34px; line-height:1.04; color:#111827; font-weight:900; letter-spacing:-.04em; position:relative; z-index:1;}
+    .mck-kpi-sub {font-size:12.5px; color:#7c6f5d; margin-top:8px; line-height:1.7; position:relative; z-index:1;}
     @media (max-width: 1200px) {
         .crm-kpi-grid {grid-template-columns: repeat(2, minmax(0,1fr));}
         .crm-hero-grid, .crm-two {grid-template-columns: 1fr;}
@@ -2218,16 +2237,34 @@ if menu == "📊 Team Dashboard":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='crm-kpi-grid'>", unsafe_allow_html=True)
-    for label, value, sub in [
-        ("Total Sales", _fmt_money_m(total_sales), f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales"),
-        ("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg"),
-        ("Gap to Close", _fmt_money_m(total_gap), f"Risk accounts {risk_accounts:,} ราย"),
-        ("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด"),
-        ("Top Region", top_region, f"{int(region_cards.iloc[0]['customers']):,} accounts" if not region_cards.empty else "ยังไม่มีข้อมูล"),
-    ]:
-        st.markdown(f"<div class='crm-kpi'><div class='label'>{label}</div><div class='value'>{value}</div><div class='sub'>{sub}</div></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    def _render_mck_kpi(label: str, value: str, sub: str, icon: str):
+        st.markdown(f"""
+        <div class='mck-kpi-card'>
+            <div class='mck-kpi-head'>
+                <div class='mck-kpi-label'>{label}</div>
+                <div class='mck-kpi-icon'>{icon}</div>
+            </div>
+            <div class='mck-kpi-value'>{value}</div>
+            <div class='mck-kpi-sub'>{sub}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    kpi_items = [
+        ("Total Sales", _fmt_money_m(total_sales), f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰"),
+        ("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} kg / Budget {total_budget:,.0f} kg", "🎯"),
+        ("Gap to Close", _fmt_money_m(total_gap), f"Risk accounts {risk_accounts:,} ราย", "📉"),
+        ("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด", "👥"),
+        ("Top Region", top_region, f"{int(region_cards.iloc[0]['customers']):,} accounts" if not region_cards.empty else "ยังไม่มีข้อมูล", "🧭"),
+    ]
+
+    kpi_row1 = st.columns(4, gap="large")
+    for col, item in zip(kpi_row1, kpi_items[:4]):
+        with col:
+            _render_mck_kpi(*item)
+
+    kpi_row2 = st.columns([1.15, 2.85], gap="large")
+    with kpi_row2[0]:
+        _render_mck_kpi(*kpi_items[4])
 
     st.markdown("<div class='crm-section-title'><span class='dot'>📈</span><span>Executive Analytics</span></div>", unsafe_allow_html=True)
     analytic_left, analytic_right = st.columns([1.02, 0.98])
