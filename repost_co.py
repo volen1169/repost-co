@@ -2229,7 +2229,7 @@ if menu == "📊 Team Dashboard":
         background: linear-gradient(180deg, rgba(255,255,255,.88) 0%, rgba(246,250,255,.95) 100%);
         border:1px solid rgba(191,219,254,.95);
         box-shadow: 0 18px 35px rgba(37,99,235,.09);
-        min-height:176px;
+        min-height:198px;
     }
     .saas-card:before {
         content:'';
@@ -2454,17 +2454,9 @@ if menu == "📊 Team Dashboard":
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-top-grid'>", unsafe_allow_html=True)
-    st.markdown("<div class='saas-kpi-grid'>", unsafe_allow_html=True)
-
-    kpi_cards = [
-        ("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰", ""),
-        ("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} / {total_budget:,.0f} kg", "🎯", ""),
-        ("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉", ""),
-    ]
-    for label, value, sub, icon, extra_cls in kpi_cards:
+    def _saas_kpi_card(label: str, value: str, sub: str, icon: str):
         st.markdown(f"""
-        <div class='saas-card {extra_cls}'>
+        <div class='saas-card' style='min-height:198px; height:198px;'>
             <div class='saas-card-top'>
                 <div class='saas-label'>{label}</div>
                 <div class='saas-icon'>{icon}</div>
@@ -2473,35 +2465,65 @@ if menu == "📊 Team Dashboard":
             <div class='saas-sub'>{sub}</div>
         </div>
         """, unsafe_allow_html=True)
-    st.markdown(f"""
-        <div class='saas-card span-2'>
-            <div class='saas-card-top'>
-                <div class='saas-label'>Active Customers</div>
-                <div class='saas-icon'>👥</div>
-            </div>
-            <div class='saas-value'>{active_customers:,}</div>
-            <div class='saas-sub'>Coverage {covered_provinces:,} จังหวัด • Top region {top_region} • YoY positive {positive_yoy:,} accounts</div>
-        </div>
-    """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4, gap='large')
+    with c1:
+        _saas_kpi_card("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰")
+    with c2:
+        _saas_kpi_card("Achievement", f"{team_ach:,.0f}%", f"Actual {total_actual:,.0f} / {total_budget:,.0f} kg", "🎯")
+    with c3:
+        _saas_kpi_card("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉")
+    with c4:
+        _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
 
     insight_bullets = [
         f"Top Opportunity: {top_opportunity}",
         f"Follow-up accounts could increase +{max(12, min(28, risk_accounts // 9 + 10))}%",
         f"Risk accounts now at {risk_accounts:,} accounts",
     ]
-    st.markdown(f"""
-        <div class='saas-insight'>
-            <div class='saas-insight-label'>AI Insight</div>
-            <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
-            <ul class='saas-insight-list'>
-                <li>{insight_bullets[0]}</li>
-                <li>{insight_bullets[1]}</li>
-                <li>{insight_bullets[2]}</li>
-            </ul>
-        </div>
-    """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+
+    insight_col, summary_col = st.columns([1.05, 1.95], gap='large')
+    with insight_col:
+        st.markdown(f"""
+            <div class='saas-insight' style='min-height:220px;'>
+                <div class='saas-insight-label'>AI Insight</div>
+                <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
+                <ul class='saas-insight-list'>
+                    <li>{insight_bullets[0]}</li>
+                    <li>{insight_bullets[1]}</li>
+                    <li>{insight_bullets[2]}</li>
+                </ul>
+            </div>
+        """, unsafe_allow_html=True)
+    with summary_col:
+        st.markdown(f"""
+            <div class='saas-panel' style='min-height:220px;'>
+                <div class='saas-panel-head'>Executive Summary</div>
+                <div class='saas-panel-body'>
+                    <div class='saas-op-row'>
+                        <div>
+                            <div class='saas-name'>Top Region</div>
+                            <div class='saas-meta'>{top_region} • {covered_provinces:,} provinces covered</div>
+                        </div>
+                        <div class='saas-amount-blue'>{positive_yoy:,} YoY positive</div>
+                    </div>
+                    <div class='saas-op-row'>
+                        <div>
+                            <div class='saas-name'>Risk Exposure</div>
+                            <div class='saas-meta'>Accounts below target or negative YoY</div>
+                        </div>
+                        <div class='saas-amount-red'>{risk_accounts:,} accounts</div>
+                    </div>
+                    <div class='saas-op-row'>
+                        <div>
+                            <div class='saas-name'>Coverage Snapshot</div>
+                            <div class='saas-meta'>Active customers and sales footprint</div>
+                        </div>
+                        <div class='saas-amount-blue'>{active_customers:,} customers</div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<div class='saas-section-wrap'>", unsafe_allow_html=True)
     st.markdown("<div class='saas-section-head'><div><div class='saas-section-title'>Sales Performance Analytics</div><div class='saas-section-sub'>Team performance data for the selected period vs budget.</div></div><div class='saas-section-rule'></div></div>", unsafe_allow_html=True)
