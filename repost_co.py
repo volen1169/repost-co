@@ -1272,7 +1272,7 @@ def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊
             <div style="font-size:12px; color:#475569; font-weight:700;">{label}</div>
             <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
         </div>
-        <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
+        <div style="font-size:28px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
         <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -1412,7 +1412,7 @@ def render_login_page(auth_ready: bool):
     .brand-eyebrow { color: #d7e5ff; font-weight: 800; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; }
     .brand-title { color: #ffffff; font-size: 44px; line-height: 1.02; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.04em; }
     .brand-sub { color: #edf4ff; font-size: 14px; line-height: 1.7; margin-top: 12px; max-width: 760px; }
-    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; margin-bottom: 16px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; margin-bottom: 16px; }
     .hero-chip {
         display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px;
         background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); color:#eff6ff; font-size:12px; font-weight:700;
@@ -2226,11 +2226,11 @@ if menu == "📊 Team Dashboard":
         position:relative;
         overflow:hidden;
         border-radius:24px;
-        padding:22px 26px 20px;
+        padding:20px 22px 18px;
         background: linear-gradient(180deg, rgba(255,255,255,.88) 0%, rgba(246,250,255,.95) 100%);
         border:1px solid rgba(191,219,254,.95);
         box-shadow: 0 18px 35px rgba(37,99,235,.09);
-        min-height:198px;
+        min-height:176px;
     }
     .saas-card:before {
         content:'';
@@ -2256,20 +2256,20 @@ if menu == "📊 Team Dashboard":
         color:#2f4b8f;
     }
     .saas-icon {
-        width:56px;
-        height:56px;
-        border-radius:18px;
+        width:48px;
+        height:48px;
+        border-radius:16px;
         display:flex;
         align-items:center;
         justify-content:center;
         color:#fff;
-        font-size:24px;
+        font-size:22px;
         box-shadow: 0 14px 28px rgba(37,99,235,.18);
         background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 48%, #2563eb 100%);
     }
     .saas-value {
-        margin-top:18px;
-        font-size:30px;
+        margin-top:16px;
+        font-size:28px;
         line-height:1.02;
         font-weight:900;
         color:#0f255c;
@@ -2282,7 +2282,7 @@ if menu == "📊 Team Dashboard":
         color:#4d659b;
     }
     .saas-insight {
-        min-height:248px;
+        min-height:234px;
         border-radius:28px;
         padding:26px 26px 24px;
         background: linear-gradient(180deg, rgba(255,255,255,.76), rgba(242,248,255,.92));
@@ -2318,7 +2318,7 @@ if menu == "📊 Team Dashboard":
         margin-bottom:14px;
     }
     .saas-section-title {
-        font-size:24px;
+        font-size:22px;
         line-height:1.1;
         font-weight:900;
         color:#19356f;
@@ -2353,6 +2353,7 @@ if menu == "📊 Team Dashboard":
         color:#173574;
     }
     .saas-panel-body { padding: 8px 18px 18px; }
+    .saas-info-card { width:100%; }
     .saas-op-row {
         display:flex;
         align-items:center;
@@ -2473,7 +2474,7 @@ if menu == "📊 Team Dashboard":
         f"Risk accounts now at {risk_accounts:,} accounts",
     ]
 
-    k1, k2, k3, k4 = st.columns([1, 1, 1, 1], gap='large')
+    k1, k2, k3, k4 = st.columns(4, gap='medium')
     with k1:
         _saas_kpi_card("Total Sales", f"{total_sales/1e6:,.1f}M ฿", f"{sales_delta_pct:+.1f}% vs Budget • {active_sales} sales", "💰")
     with k2:
@@ -2481,23 +2482,25 @@ if menu == "📊 Team Dashboard":
     with k3:
         _saas_kpi_card("Gap to Close", f"{total_gap/1e6:,.1f}M ฿", f"Risk {risk_accounts:,} accounts", "📉")
     with k4:
+        _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
+
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    lower_left, lower_right = st.columns(2, gap='medium')
+    with lower_left:
         st.markdown(f"""
-            <div class='saas-insight' style='min-height:198px; height:198px;'>
+            <div class='saas-insight saas-info-card' style='min-height:234px; height:234px;'>
                 <div class='saas-insight-label'>AI Insight</div>
                 <div class='saas-insight-value'>{total_sales/1e6:,.1f}M ฿</div>
                 <ul class='saas-insight-list'>
                     <li>{insight_bullets[0]}</li>
                     <li>{insight_bullets[1]}</li>
+                    <li>{insight_bullets[2]}</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-
-    lower_left, lower_right = st.columns([1.05, 2.05], gap='large')
-    with lower_left:
-        _saas_kpi_card("Active Customers", f"{active_customers:,}", f"Coverage {covered_provinces:,} จังหวัด • Top region {top_region}", "👥")
     with lower_right:
         st.markdown(f"""
-            <div class='saas-panel' style='min-height:198px; height:198px;'>
+            <div class='saas-panel saas-info-card' style='min-height:234px; height:234px;'>
                 <div class='saas-panel-head'>Executive Summary</div>
                 <div class='saas-panel-body'>
                     <div class='saas-op-row'>
