@@ -1132,10 +1132,19 @@ def to_excel_bytes_multi(sheets: dict[str, pd.DataFrame]) -> bytes:
     return buf.getvalue()
 
 def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: float = 100.6262):
+    import math
+
+    def _stable_jitter(seed_text: str, scale: float = 0.018):
+        seed = sum(ord(ch) for ch in str(seed_text))
+        lat_j = math.sin(seed * 12.9898) * scale
+        lng_j = math.cos(seed * 78.233) * scale
+        return lat_j, lng_j
+
     map_points = []
     map_points_no_coords = []
     if df_in is None or df_in.empty:
         return "[]", "[]"
+
     for _, row in df_in.iterrows():
         name = str(row.get("Customer Name", "") or "").strip()
         salesperson = str(row.get("Salesperson", "") or "").strip()
@@ -1151,8 +1160,30 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
         query = address_query if (short_plus and address) else (plus_query or address_query)
 
         coords = None
-        if plus_code and not (short_plus and address):
-            coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng)
+        exact = False
+        marker_kind = "approx"
+
+        # 1) Full Plus Code = exact marker
+        if plus_code and "+" in plus_code and not short_plus:
+            try:
+                coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng)
+                if coords:
+                    exact = True
+                    marker_kind = "exact"
+            except Exception:
+                coords = None
+
+        # 2) Short Plus Code or missing exact coords = province/address based approximate marker
+        if not coords:
+            try:
+                approx_lat, approx_lng = resolve_reference_latlng(province, region, address)
+                # spread markers slightly so nearby companies do not overlap exactly
+                j_lat, j_lng = _stable_jitter(f"{name}|{address}|{province}", scale=0.018)
+                coords = (approx_lat + j_lat, approx_lng + j_lng)
+                exact = False
+                marker_kind = "approx"
+            except Exception:
+                coords = None
 
         payload = {
             "name": name,
@@ -1165,11 +1196,15 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
             "address_query": address_query,
             "plus_query": plus_query,
             "is_short_plus": short_plus,
+            "exact": exact,
+            "marker_kind": marker_kind,
         }
+
         if coords:
             map_points.append(payload)
         else:
             map_points_no_coords.append(payload)
+
     return json.dumps(map_points, ensure_ascii=False), json.dumps(map_points_no_coords, ensure_ascii=False)
 
 
