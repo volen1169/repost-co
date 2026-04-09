@@ -32,6 +32,7 @@ import traceback
 import json
 import os
 import textwrap
+import html
 import msal
 from datetime import datetime
 
@@ -1219,6 +1220,10 @@ def _normalize_person_name(value: str) -> str:
     return s
 
 
+def _safe_html(value: object) -> str:
+    return html.escape(str(value or ""), quote=True)
+
+
 def _get_staff_visible_names() -> list[str]:
     candidates = []
     user_name = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
@@ -1984,8 +1989,8 @@ with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
                 "⬇️ Download Audit Log",
                 data=_audit_df.to_csv(index=False, encoding="utf-8-sig"),
                 file_name="sales_dashboard_audit_log.csv",
-                mime="text/csv",
-                use_container_width=True,
+            mime="text/csv",
+            use_container_width=True,
             )
         except Exception:
             pass
@@ -3062,7 +3067,13 @@ elif menu == "🎯 Sales Action Center":
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
-    exec_source_df = filter_df_for_current_user(df).copy()
+    exec_source_df = filter_df_for_current_user(df)
+    if exec_source_df.empty:
+        st.title("🎯 Sales Action Center")
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
+    exec_source_df = exec_source_df.copy()
     exec_source_df["Budget_kg"] = pd.to_numeric(exec_source_df.get("Budget_kg", 0), errors="coerce").fillna(0)
     exec_source_df = exec_source_df[exec_source_df["Budget_kg"] > 0].copy()
     if exec_source_df.empty:
@@ -3209,11 +3220,6 @@ elif menu == "🎯 Sales Action Center":
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
-        tone_bg = {
-            "red": "linear-gradient(180deg,#fff7f8 0%,#fff1f2 100%)",
-            "orange": "linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%)",
-            "yellow": "linear-gradient(180deg,#fffef7 0%,#fefce8 100%)",
-        }
         rows = []
         for _, row in df_in.iterrows():
             customer = _safe_html(str(row.get("Customer Name", "") or "-"))
@@ -3226,7 +3232,7 @@ elif menu == "🎯 Sales Action Center":
             next_action = _safe_html(str(row.get("next_action", "Follow-up")))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
             rows.append(f'''
-            <div class="sac-task" style="background:{tone_bg.get(tone, 'linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)')};">
+            <div class="sac-task">
                 <div class="sac-task-head">
                     <div>
                         <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
@@ -3256,17 +3262,6 @@ elif menu == "🎯 Sales Action Center":
     </div>
     ''', unsafe_allow_html=True)
 
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-    st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ตเฉพาะบริษัทที่คุณดูแลและมี Budget เท่านั้น เพื่อไม่ให้แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
-    perf1, perf2 = st.columns(2)
-    with perf1:
-        render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-    with perf2:
-        render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
     top1, top2, top3, top4 = st.columns(4)
     with top1:
         render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
@@ -3276,6 +3271,19 @@ elif menu == "🎯 Sales Action Center":
         render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
     with top4:
         render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="📊 My Performance Snapshot",
+        subtitle="ภาพรวมผลงานของพอร์ตที่คุณดูแล เพื่อดูยอดและช่องว่างก่อนลงมือทำในวันนี้",
+        icon="💎",
+        accent="#7c3aed",
+    )
+    perf1, perf2 = st.columns(2)
+    with perf1:
+        render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+    with perf2:
+        render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
 
     st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
     render_section_header(
@@ -3345,7 +3353,7 @@ elif menu == "🎯 Sales Action Center":
                 </div>
             </div>
             ''', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     with p2:
         st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
         st.markdown('<h4>✨ Quick Summary</h4><p>สรุปภาพรวมแบบสดใสและอ่านง่าย เพื่อช่วยตัดสินใจว่าควรเริ่มโฟกัสพอร์ตส่วนไหนก่อน</p>', unsafe_allow_html=True)
@@ -3405,57 +3413,46 @@ elif menu == "🎯 Sales Action Center":
 
     st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
     render_section_header(
-        title="Performance & Export",
-        subtitle="ส่วนล่างไว้สรุปผลแบบกะทัดรัดและให้ส่งออกต่อไปใช้กับการประชุม, route planning หรือ SharePoint ได้ทันที",
+        title="📦 Download & Share",
+        subtitle="ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ",
         icon="📦",
         accent="#7c3aed",
     )
-    b1, b2 = st.columns([0.95, 1.05])
-    with b1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
-        perf1, perf2 = st.columns(2)
-        with perf1:
-            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-        with perf2:
-            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with b2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
-        export_sheets = {
+    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+    st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+    export_sheets = {
             "Sales Action Center": rep,
             "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
             "Priority Accounts": priority_df,
             "Risk Signals": risk_df,
         }
-        report_xlsx = to_excel_bytes_multi(export_sheets)
-        ex1, ex2, ex3 = st.columns(3)
-        with ex1:
-            st.download_button(
-                "⬇️ Action Excel",
-                data=report_xlsx,
-                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-            )
-        with ex2:
-            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
-            st.download_button(
-                "⬇️ Action CSV",
-                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
-                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with ex3:
-            if st.button("☁️ Upload SharePoint", use_container_width=True):
-                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                if ok:
-                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
-                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-        st.markdown('</div>', unsafe_allow_html=True)
+    report_xlsx = to_excel_bytes_multi(export_sheets)
+    ex1, ex2, ex3 = st.columns(3)
+    with ex1:
+        st.download_button(
+            "⬇️ Action Excel",
+            data=report_xlsx,
+            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with ex2:
+        export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+        st.download_button(
+            "⬇️ Action CSV",
+            data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with ex3:
+        if st.button("☁️ Upload SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
