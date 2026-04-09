@@ -3222,34 +3222,42 @@ elif menu == "🎯 Sales Action Center":
         if df_in.empty:
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
+
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
-        rows = []
+        tone_tag = {
+            "red": lambda days: f"🚨 {days}d inactive",
+            "orange": lambda days: "📌 Today",
+            "yellow": lambda days: "🗓️ This week",
+        }
+
+        st.markdown(f'<div class="sac-task-list {tone}">', unsafe_allow_html=True)
         for _, row in df_in.iterrows():
-            customer = str(row.get("Customer Name", "") or "-")
-            province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
-            industry = str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม")
+            customer = _safe_html(str(row.get("Customer Name", "") or "-"))
+            province = _safe_html(str(row.get("Province", "") or "ไม่ระบุจังหวัด"))
+            industry = _safe_html(str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม"))
             gap = int(float(row.get("gap_kg", 0) or 0))
             ach = float(row.get("achievement_pct", 0) or 0)
             days = int(float(row.get("last_activity_days", 0) or 0))
             score = float(row.get("opportunity_score", 0) or 0)
-            next_action = str(row.get("next_action", "Follow-up"))
-            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
-            rows.append(f'''
-            <div class="sac-task">
-                <div class="sac-task-head">
+            next_action = _safe_html(str(row.get("next_action", "Follow-up")))
+            tag_text = tone_tag.get(tone, tone_tag["orange"])(days)
+            card_html = f"""
+            <div class=\"sac-task\">
+                <div class=\"sac-task-head\">
                     <div>
-                        <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
-                        <div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
+                        <div class=\"sac-task-name\">{tone_emoji.get(tone, '✨')} {customer}</div>
+                        <div class=\"sac-task-meta\">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
                     </div>
-                    <span class="sac-tag {tone}">{tag_text}</span>
+                    <span class=\"sac-tag {tone}\">{tag_text}</span>
                 </div>
-                <div class="sac-task-foot">
-                    <span class="sac-next">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
-                    <span class="sac-score">⭐ Score {score:.1f}</span>
+                <div class=\"sac-task-foot\">
+                    <span class=\"sac-next\">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
+                    <span class=\"sac-score\">⭐ Score {score:.1f}</span>
                 </div>
             </div>
-            ''')
-        st.markdown(f'<div class="sac-task-list {tone}">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
     st.markdown(f'''
