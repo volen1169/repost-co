@@ -3207,7 +3207,6 @@ elif menu == "🎯 Sales Action Center":
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
-        rows = []
         for _, row in df_in.iterrows():
             customer = str(row.get("Customer Name", "") or "-")
             province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
@@ -3218,7 +3217,7 @@ elif menu == "🎯 Sales Action Center":
             score = float(row.get("opportunity_score", 0) or 0)
             next_action = str(row.get("next_action", "Follow-up"))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
-            rows.append(f'''
+            st.markdown(f"""
             <div class="sac-task">
                 <div class="sac-task-head">
                     <div>
@@ -3232,8 +3231,7 @@ elif menu == "🎯 Sales Action Center":
                     <span class="sac-score">⭐ Score {score:.1f}</span>
                 </div>
             </div>
-            ''')
-        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
     st.markdown(f'''
