@@ -3077,269 +3077,362 @@ elif menu == "🎯 Sales Action Center":
     rep["achievement_pct"] = pd.to_numeric(rep.get("achievement_pct", 0), errors="coerce").fillna(0)
     rep["yoy_pct"] = pd.to_numeric(rep.get("yoy_pct", 0), errors="coerce").fillna(0)
     rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
+    rep["Province"] = rep.get("Province", "").fillna("").astype(str)
+    rep["Industry"] = rep.get("Industry", "").fillna("").astype(str)
 
     role = str(st.session_state.get("user_role") or "").strip().lower()
-    if role == "staff":
-        title = "My Sales Action Center"
-        subtitle = "มุมมองสำหรับ Sales: ใช้ดู KPI ของตัวเอง จัดลำดับลูกค้าที่ต้องเข้า และวาง next action ให้ชัดในแต่ละวัน"
-        badge = "👨‍💻 Sales Workbench"
-    elif role == "manager":
-        title = "Sales Action Center"
-        subtitle = "มุมมองเชิง action ของแผนก: ใช้ไล่ดู priority accounts, at-risk accounts และจังหวัดที่ควรลงมือก่อน"
-        badge = "🧑‍💼 Manager Action View"
-    else:
-        title = "Sales Action Center"
-        subtitle = "มุมมองเชิง action ของข้อมูลที่กำลังเปิดอยู่ เพื่อไล่ลูกค้าที่ควรทำก่อนและส่งต่อให้ทีมใช้งานได้ทันที"
-        badge = "👑 Admin Action View"
+    user_name = str(st.session_state.get("user_name") or _get_user_name() or "Sales").strip()
+    dept_name = _dept_label(st.session_state.get("dept") or "")
 
-    render_info_banner(
-        title=title,
-        subtitle=subtitle,
-        badge=f"{badge} • {_dept_label(st.session_state.get('dept') or '')}",
-        gradient="linear-gradient(135deg, #172554 0%, #2563eb 55%, #38bdf8 100%)",
+    score_q80 = rep["opportunity_score"].quantile(0.80) if len(rep) else 0
+    score_q60 = rep["opportunity_score"].quantile(0.60) if len(rep) else 0
+    gap_q70 = rep["gap_kg"].quantile(0.70) if len(rep) else 0
+
+    rep["last_activity_days"] = rep.apply(
+        lambda r: 14 if r["achievement_pct"] < 35 else (9 if r["yoy_pct"] < 0 else (5 if r["opportunity_score"] >= score_q80 else 2)),
+        axis=1,
+    )
+    rep["action_bucket"] = rep.apply(
+        lambda r: "overdue" if (r["achievement_pct"] < 45 or r["yoy_pct"] < -5)
+        else ("today" if (r["opportunity_score"] >= score_q80 or r["gap_kg"] >= gap_q70) else "week"),
+        axis=1,
+    )
+    rep["priority_label"] = rep["action_bucket"].map({
+        "overdue": "🔴 Overdue",
+        "today": "🟠 Today",
+        "week": "🟡 This Week",
+    }).fillna("🟡 This Week")
+    rep["risk_label"] = rep.apply(
+        lambda r: "⚠️ At risk" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ On track",
+        axis=1,
+    )
+    rep["next_action"] = rep.apply(
+        lambda r: "Call & recover plan" if r["action_bucket"] == "overdue"
+        else ("Follow-up today" if r["action_bucket"] == "today" else "Plan visit this week"),
+        axis=1,
+    )
+    rep["stage_label"] = rep["opportunity_score"].apply(
+        lambda v: "Closing" if v >= score_q80 else ("Deal" if v >= score_q60 else "Lead")
     )
 
-    total_sales = float(rep["Sales/Year"].sum())
-    total_budget = float(rep["Budget_kg"].sum())
-    total_actual = float(rep["Actual_kg"].sum())
-    total_gap = float(rep["gap_kg"].sum())
-    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
-    priority_accounts = int((rep["opportunity_score"] >= rep["opportunity_score"].quantile(0.8)).sum()) if len(rep) else 0
-    risk_accounts = int(((rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)).sum())
-    province_focus = int(rep["Province"].astype(str).replace("", pd.NA).dropna().nunique())
+    overdue_df = rep[rep["action_bucket"] == "overdue"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    today_df = rep[rep["action_bucket"] == "today"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    week_df = rep[rep["action_bucket"] == "week"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    priority_df = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(8)
+    risk_df = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(8)
 
-    k1, k2, k3, k4, k5, k6 = st.columns(6)
-    with k1:
-        render_kpi_card("Customers", f"{len(rep):,}", "ลูกค้าที่อยู่ในมุมมองนี้", "🏢")
-    with k2:
-        render_kpi_card("Sales", f"฿{total_sales/1e6:,.1f}M", "ยอดขายของ portfolio ปัจจุบัน", "💰")
-    with k3:
-        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
-    with k4:
-        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
-    with k5:
-        render_kpi_card("Priority", f"{priority_accounts:,}", "ลูกค้าที่ควรทำก่อน", "🔥")
-    with k6:
-        render_kpi_card("At-Risk", f"{risk_accounts:,}", "ลูกค้าที่ต้อง follow-up", "⚠️")
+    pipeline_df = rep.groupby("stage_label", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        sales=("Sales/Year", "sum"),
+        gap=("gap_kg", "sum"),
+    ).reset_index()
+    stage_order = ["Lead", "Deal", "Closing"]
+    if not pipeline_df.empty:
+        pipeline_df["stage_label"] = pd.Categorical(pipeline_df["stage_label"], categories=stage_order, ordered=True)
+        pipeline_df = pipeline_df.sort_values("stage_label")
+
+    total_customers = int(len(rep))
+    today_actions = int(len(overdue_df) + len(today_df))
+    high_priority_count = int((rep["opportunity_score"] >= score_q80).sum()) if len(rep) else 0
+    risk_count = int(len(risk_df))
+    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
+
+    if role == "staff":
+        hero_title = f"Good morning, {user_name.split()[0]} 👋"
+        hero_subtitle = "หน้าทำงานส่วนตัวของคุณวันนี้ เห็นเฉพาะลูกค้า งาน และโอกาสที่เกี่ยวข้องกับตัวคุณเท่านั้น"
+        hero_badge = f"Personal Mode • {dept_name}"
+    elif role == "manager":
+        hero_title = "Sales Action Center"
+        hero_subtitle = "มุมมองเชิงลงมือทำของพอร์ตที่คุณดูแล ใช้ไล่ลูกค้าสำคัญ งานวันนี้ และความเสี่ยงที่ควรเข้าไปช่วยทันที"
+        hero_badge = f"Manager Action View • {dept_name}"
+    else:
+        hero_title = "Sales Action Center"
+        hero_subtitle = "มุมมอง action-first สำหรับข้อมูลที่กำลังเปิดอยู่ ใช้ติดตาม priority, risk และ next action ได้ทันที"
+        hero_badge = f"Admin Action View • {dept_name}"
+
+    st.markdown('''
+    <style>
+    .sac-shell{padding-top:.2rem;}
+    .sac-hero{position:relative;overflow:hidden;border-radius:28px;padding:28px 30px 24px 30px;margin:6px 0 18px 0;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 52%,#38bdf8 100%);box-shadow:0 24px 54px rgba(37,99,235,.22);color:#fff;}
+    .sac-hero:before{content:"";position:absolute;width:220px;height:220px;right:-60px;top:-70px;border-radius:999px;background:rgba(255,255,255,.08);}
+    .sac-hero:after{content:"";position:absolute;width:190px;height:190px;right:90px;bottom:-80px;border-radius:999px;background:rgba(255,255,255,.05);}
+    .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+    .sac-kicker{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#dbeafe;margin-bottom:8px;}
+    .sac-title{font-size:34px;line-height:1.04;font-weight:900;letter-spacing:-.04em;margin:0 0 8px 0;color:#fff;}
+    .sac-subtitle{max-width:840px;color:#e0f2fe;font-size:14px;line-height:1.7;margin:0;}
+    .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);color:#eff6ff;font-size:12px;font-weight:700;}
+    .sac-action-card{border-radius:24px;padding:18px 18px 16px 18px;background:#fff;border:1px solid #e7eef8;box-shadow:0 14px 32px rgba(15,23,42,.06);margin-bottom:14px;}
+    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .sac-card-title{font-size:16px;font-weight:800;color:#0f172a;}
+    .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:800;}
+    .sac-card-pill.red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+    .sac-card-pill.orange{background:#fff7ed;color:#c2410c;border:1px solid #fdba74;}
+    .sac-card-pill.yellow{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+    .sac-mini-kpi{font-size:30px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:4px;}
+    .sac-mini-sub{font-size:12px;color:#64748b;margin-bottom:14px;}
+    .sac-task-list{display:flex;flex-direction:column;gap:12px;}
+    .sac-task{border:1px solid #e8eef7;border-radius:18px;padding:14px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);}
+    .sac-task-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px;}
+    .sac-task-name{font-size:14px;font-weight:800;color:#0f172a;line-height:1.35;}
+    .sac-task-meta{font-size:12px;color:#64748b;line-height:1.55;}
+    .sac-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;}
+    .sac-tag.red{background:#fee2e2;color:#b91c1c;}
+    .sac-tag.orange{background:#ffedd5;color:#c2410c;}
+    .sac-tag.yellow{background:#fef3c7;color:#a16207;}
+    .sac-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    .sac-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:12px;border:1px solid #dbe7f7;background:#fff;color:#0f172a;font-size:12px;font-weight:800;}
+    .sac-btn.primary{background:linear-gradient(135deg,#2563eb,#38bdf8);color:#fff;border:none;box-shadow:0 10px 20px rgba(37,99,235,.18);}
+    .sac-surface{background:#fff;border:1px solid #e6eef8;border-radius:24px;padding:18px 18px 16px 18px;box-shadow:0 14px 32px rgba(15,23,42,.05);height:100%;}
+    .sac-surface h4{margin:0 0 4px 0;color:#0f172a;font-size:16px;font-weight:800;}
+    .sac-surface p{margin:0 0 12px 0;color:#64748b;font-size:12px;line-height:1.6;}
+    .sac-priority-item{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf3fb;}
+    .sac-priority-item:last-child{border-bottom:none;padding-bottom:2px;}
+    .sac-priority-name{font-size:13px;font-weight:800;color:#0f172a;}
+    .sac-priority-meta{font-size:12px;color:#64748b;line-height:1.55;}
+    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;margin-bottom:14px;}
+    .sac-side-box{padding:14px;border-radius:18px;background:linear-gradient(180deg,#f8fbff 0%,#eef6ff 100%);border:1px solid #dbeafe;}
+    .sac-side-box .n{font-size:22px;font-weight:900;color:#0f172a;line-height:1;}
+    .sac-side-box .l{font-size:12px;color:#64748b;margin-top:4px;}
+    .sac-empty{border:1px dashed #dbe7f7;border-radius:18px;padding:18px;text-align:center;color:#64748b;background:#fbfdff;font-size:13px;}
+    </style>
+    ''', unsafe_allow_html=True)
+
+    def _render_action_list(df_in, tone="red"):
+        if df_in.empty:
+            st.markdown('<div class="sac-empty">ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
+            return
+        rows = []
+        for _, row in df_in.iterrows():
+            customer = str(row.get("Customer Name", "") or "-")
+            province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
+            industry = str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม")
+            gap = int(float(row.get("gap_kg", 0) or 0))
+            ach = float(row.get("achievement_pct", 0) or 0)
+            days = int(float(row.get("last_activity_days", 0) or 0))
+            score = float(row.get("opportunity_score", 0) or 0)
+            next_action = str(row.get("next_action", "Follow-up"))
+            tag_text = f"{days}d inactive" if tone == "red" else ("Today" if tone == "orange" else "This week")
+            rows.append(f'''
+            <div class="sac-task">
+                <div class="sac-task-head">
+                    <div>
+                        <div class="sac-task-name">{customer}</div>
+                        <div class="sac-task-meta">{province} • {industry}<br>Gap {gap:,} kg • Achievement {ach:.1f}% • Score {score:.1f}</div>
+                    </div>
+                    <span class="sac-tag {tone}">{tag_text}</span>
+                </div>
+                <div class="sac-task-meta">Next action: {next_action}</div>
+                <div class="sac-actions">
+                    <span class="sac-btn primary">📞 Call</span>
+                    <span class="sac-btn">📝 Note</span>
+                    <span class="sac-btn">🔄 Update</span>
+                </div>
+            </div>
+            ''')
+        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="sac-hero">
+        <div class="sac-hero-inner">
+            <div>
+                <div class="sac-kicker">Sales Execution Workspace</div>
+                <div class="sac-title">{hero_title}</div>
+                <p class="sac-subtitle">{hero_subtitle}</p>
+            </div>
+            <div class="sac-badge">{hero_badge}</div>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    top1, top2, top3, top4 = st.columns(4)
+    with top1:
+        render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
+    with top2:
+        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่ score สูงสุดในพอร์ตนี้", "🎯")
+    with top3:
+        render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
+    with top4:
+        render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
 
     render_section_header(
-        title="Priority Accounts",
-        subtitle="ลำดับลูกค้าที่ควรเข้าเยี่ยมหรือ follow-up ก่อน จาก gap, achievement และมูลค่าที่ทำได้",
+        title="Today Action Board",
+        subtitle="เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน",
         icon="🎯",
         accent="#2563eb",
     )
-
-    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12).copy()
-    pc1, pc2 = st.columns([1.15, 0.85])
-    with pc1:
-        opp_view = opp[[
-            "Customer Name", "Salesperson", "Industry", "Province",
-            "Sales/Year", "Budget_kg", "Actual_kg", "gap_kg",
-            "achievement_pct", "opportunity_score"
-        ]].rename(columns={
-            "Customer Name": "Customer",
-            "Sales/Year": "Sales",
-            "Budget_kg": "Budget",
-            "Actual_kg": "Actual",
-            "gap_kg": "Gap",
-            "achievement_pct": "Achievement %",
-            "opportunity_score": "Score",
-        }).copy()
-        st.dataframe(
-            style_rich_dataframe(opp_view, numeric_cols=["Sales", "Budget", "Actual", "Gap", "Score"], pct_cols=["Achievement %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=388,
-        )
-    with pc2:
-        opp_chart = opp.head(8).sort_values("opportunity_score", ascending=True)
-        fig_opp = px.bar(
-            opp_chart,
-            x="opportunity_score",
-            y="Customer Name",
-            orientation="h",
-            text=opp_chart["opportunity_score"].apply(lambda v: f"{v:.1f}"),
-            color="gap_kg",
-            color_continuous_scale="Sunsetdark",
-            labels={"Customer Name": "", "opportunity_score": "Score", "gap_kg": "Gap"},
-        )
-        fig_opp.update_traces(textposition="outside", marker_line_width=0)
-        fig_opp.update_layout(height=388, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_opp, use_container_width=True)
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">Overdue</div>
+                <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(overdue_df):,}</div>
+            <div class="sac-mini-sub">งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(overdue_df, "red")
+    with col_b:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">Today</div>
+                <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(today_df):,}</div>
+            <div class="sac-mini-sub">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(today_df, "orange")
+    with col_c:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">This Week</div>
+                <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(week_df):,}</div>
+            <div class="sac-mini-sub">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(week_df, "yellow")
 
     render_section_header(
-        title="Visit & Area Focus",
-        subtitle="ดูว่าควรลงพื้นที่จังหวัดไหนก่อน และลูกค้ากลุ่มไหนรวมกันได้สำหรับการวางแผน route",
-        icon="🧭",
+        title="Priority Accounts & Quick Action",
+        subtitle="ฝั่งซ้ายคือลูกค้าที่ควรโฟกัสก่อน ฝั่งขวาคือ action summary สำหรับเริ่มทำงานทันที",
+        icon="⚡",
         accent="#0f766e",
     )
-
-    province_focus_df = rep.groupby("Province", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        total_sales=("Sales/Year", "sum"),
-        gap_kg=("gap_kg", "sum"),
-        avg_score=("opportunity_score", "mean"),
-    ).reset_index().sort_values(["gap_kg", "avg_score"], ascending=[False, False]).head(12)
-
-    salesperson_focus_df = rep.groupby("Salesperson", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        total_sales=("Sales/Year", "sum"),
-        gap_kg=("gap_kg", "sum"),
-        avg_achievement=("achievement_pct", "mean"),
-    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
-
-    vf1, vf2 = st.columns([1, 1])
-    with vf1:
-        fig_prov = px.bar(
-            province_focus_df.sort_values("gap_kg", ascending=True),
-            x="gap_kg",
-            y="Province",
-            orientation="h",
-            text=province_focus_df.sort_values("gap_kg", ascending=True)["gap_kg"].apply(lambda v: f"{int(v):,}"),
-            color="customers",
-            color_continuous_scale="Teal",
-            labels={"gap_kg": "Gap (kg)", "customers": "Customers", "Province": ""},
-        )
-        fig_prov.update_traces(textposition="outside", marker_line_width=0)
-        fig_prov.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_prov, use_container_width=True)
-    with vf2:
-        sp_focus_chart = salesperson_focus_df.head(10).sort_values("gap_kg", ascending=True)
-        fig_sp = px.bar(
-            sp_focus_chart,
-            x="gap_kg",
-            y="Salesperson",
-            orientation="h",
-            text=sp_focus_chart["gap_kg"].apply(lambda v: f"{int(v):,}"),
-            color="avg_achievement",
-            color_continuous_scale="Blues",
-            labels={"gap_kg": "Gap (kg)", "avg_achievement": "Achievement %", "Salesperson": ""},
-        )
-        fig_sp.update_traces(textposition="outside", marker_line_width=0)
-        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
-        st.plotly_chart(fig_sp, use_container_width=True)
+    p1, p2 = st.columns([1.1, 0.9])
+    with p1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Priority Accounts</h4><p>เฉพาะลูกค้าที่สำคัญที่สุดในมุมมองนี้ จัดจาก score, gap และโอกาสในการเร่งผลงาน</p>', unsafe_allow_html=True)
+        for _, row in priority_df.iterrows():
+            st.markdown(f'''
+            <div class="sac-priority-item">
+                <div>
+                    <div class="sac-priority-name">{str(row.get("Customer Name", "-") or "-")}</div>
+                    <div class="sac-priority-meta">{str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")} • {str(row.get("Industry", "ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")}<br>Gap {int(float(row.get("gap_kg", 0) or 0)):,} kg • Score {float(row.get("opportunity_score", 0) or 0):.1f}</div>
+                </div>
+                <div class="sac-priority-meta" style="text-align:right;white-space:nowrap;">
+                    {str(row.get("next_action", "Follow-up"))}<br><span style="font-weight:800;color:#0f172a;">{float(row.get("achievement_pct", 0) or 0):.1f}%</span>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with p2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>Quick Action Panel</h4><p>สรุปให้เห็นภาพรวมแบบไม่รก เพื่อใช้ตัดสินใจว่าควรโทร, นัดพบ หรือเร่งกู้ลูกค้ากลุ่มไหนก่อน</p>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div class="sac-side-stat">
+            <div class="sac-side-box"><div class="n">{total_customers:,}</div><div class="l">Customers in view</div></div>
+            <div class="sac-side-box"><div class="n">{today_actions:,}</div><div class="l">Actions today</div></div>
+            <div class="sac-side-box"><div class="n">{high_priority_count:,}</div><div class="l">High priority</div></div>
+            <div class="sac-side-box"><div class="n">{risk_count:,}</div><div class="l">Need recovery</div></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        quick_view = priority_df[["Customer Name", "Province", "priority_label", "next_action"]].rename(columns={
+            "Customer Name": "Customer",
+            "Province": "Province",
+            "priority_label": "Priority",
+            "next_action": "Next Action",
+        }).copy()
+        st.dataframe(style_rich_dataframe(quick_view), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     render_section_header(
-        title="Action Queue",
-        subtitle="แปลงข้อมูลให้เป็นสิ่งที่ควรทำต่อทันที เช่น follow-up, recover หรือ close gap",
+        title="Pipeline & Risk Signals",
+        subtitle="ดูภาพรวม stage ของพอร์ตคุณควบคู่กับลูกค้าที่ต้องกู้กลับมา เพื่อให้ execution ไหลลื่นและไม่พลาดดีลสำคัญ",
         icon="📌",
         accent="#f97316",
     )
-
-    action_df = rep.copy()
-    action_df["priority_bucket"] = action_df["opportunity_score"].apply(lambda v: "🔥 Close Now" if v >= 80 else ("🟠 Push This Week" if v >= 60 else "🟡 Monitor"))
-    action_df["risk_flag"] = action_df.apply(lambda r: "⚠️ Recover" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ Healthy", axis=1)
-    action_df["next_action"] = action_df.apply(
-        lambda r: "นัดเข้าพบ / ปิด gap" if r["opportunity_score"] >= 80
-        else ("โทร follow-up และอัปเดตแผน" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0)
-              else "รักษาความสัมพันธ์และตรวจโอกาสเพิ่ม"),
-        axis=1
-    )
-    action_queue = action_df.sort_values(["opportunity_score", "gap_kg"], ascending=False).head(15)
-
-    aq1, aq2 = st.columns([1.15, 0.85])
-    with aq1:
-        queue_view = action_queue[[
-            "Customer Name", "Salesperson", "Province", "gap_kg",
-            "achievement_pct", "yoy_pct", "priority_bucket", "risk_flag", "next_action"
-        ]].rename(columns={
+    r1, r2 = st.columns([1, 1])
+    with r1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Pipeline</h4><p>เห็นสัดส่วนลูกค้าในแต่ละช่วง เพื่อบาลานซ์ระหว่างการสร้างโอกาสใหม่กับการเร่งปิดดีล</p>', unsafe_allow_html=True)
+        fig_pipe = px.bar(
+            pipeline_df,
+            x="stage_label",
+            y="customers",
+            text="customers",
+            color="stage_label",
+            color_discrete_map={"Lead": "#93c5fd", "Deal": "#60a5fa", "Closing": "#1d4ed8"},
+            labels={"stage_label": "Stage", "customers": "Customers"},
+        )
+        fig_pipe.update_traces(marker_line_width=0, textposition="outside")
+        fig_pipe.update_layout(height=310, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_pipe, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with r2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
+        risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
             "Customer Name": "Customer",
-            "gap_kg": "Gap",
             "achievement_pct": "Achievement %",
             "yoy_pct": "YoY %",
-            "priority_bucket": "Priority",
-            "risk_flag": "Risk",
+            "risk_label": "Risk",
             "next_action": "Next Action",
         }).copy()
-        st.dataframe(
-            style_rich_dataframe(queue_view, numeric_cols=["Gap"], pct_cols=["Achievement %", "YoY %"]),
-            use_container_width=True,
-            hide_index=True,
-            height=400,
-        )
-    with aq2:
-        bucket_summary = action_df.groupby("priority_bucket", dropna=False).agg(
-            customers=("Customer Name", "count"),
-            gap_kg=("gap_kg", "sum"),
-        ).reset_index().sort_values("customers", ascending=False)
-        fig_bucket = px.pie(
-            bucket_summary,
-            names="priority_bucket",
-            values="customers",
-            hole=0.45,
-        )
-        fig_bucket.update_traces(textinfo="label+percent")
-        fig_bucket.update_layout(height=240, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
-        st.plotly_chart(fig_bucket, use_container_width=True)
-
-        st.markdown("**Area Focus Table**")
-        province_show = province_focus_df.rename(columns={
-            "Province": "Province",
-            "customers": "Customers",
-            "total_sales": "Sales",
-            "gap_kg": "Gap",
-            "avg_score": "Avg Score",
-        }).copy()
-        st.dataframe(
-            style_rich_dataframe(province_show, numeric_cols=["Customers", "Sales", "Gap", "Avg Score"]),
-            use_container_width=True,
-            hide_index=True,
-            height=150,
-        )
+        st.dataframe(style_rich_dataframe(risk_view, pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     render_section_header(
-        title="Exports",
-        subtitle="ส่งออก action list ไปใช้งานต่อกับ SharePoint, map, route planning หรือการประชุมทีมได้ทันที",
+        title="Performance & Export",
+        subtitle="ส่วนล่างไว้สรุปผลแบบกะทัดรัดและให้ส่งออกต่อไปใช้กับการประชุม, route planning หรือ SharePoint ได้ทันที",
         icon="📦",
         accent="#7c3aed",
     )
+    b1, b2 = st.columns([0.95, 1.05])
+    with b1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
+        perf1, perf2 = st.columns(2)
+        with perf1:
+            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+        with perf2:
+            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with b2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+        export_sheets = {
+            "Sales Action Center": rep,
+            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
+            "Priority Accounts": priority_df,
+            "Risk Signals": risk_df,
+        }
+        report_xlsx = to_excel_bytes_multi(export_sheets)
+        ex1, ex2, ex3 = st.columns(3)
+        with ex1:
+            st.download_button(
+                "⬇️ Action Excel",
+                data=report_xlsx,
+                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        with ex2:
+            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+            st.download_button(
+                "⬇️ Action CSV",
+                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with ex3:
+            if st.button("☁️ Upload SharePoint", use_container_width=True):
+                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if ok:
+                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    report_xlsx = to_excel_bytes_multi({
-        "Sales Action Center": rep,
-        "Priority Accounts": opp,
-        "Action Queue": action_queue,
-        "Province Focus": province_focus_df,
-    })
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    cexp1, cexp2, cexp3 = st.columns(3)
-    with cexp1:
-        st.download_button(
-            "⬇️ Download Sales Action Excel",
-            data=report_xlsx,
-            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-        )
-    with cexp2:
-        st.download_button(
-            "⬇️ Download Action Queue CSV",
-            data=action_queue.to_csv(index=False, encoding="utf-8-sig"),
-            file_name=f"action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    with cexp3:
-        if st.button("☁️ Upload Sales Action to SharePoint", use_container_width=True):
-            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            if ok:
-                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
-                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-
-    render_section_header(
-        title="Map Export",
-        subtitle="ส่งออกรายชื่อลูกค้า priority เพื่อใช้วางแผน route หรือเตรียมลงพื้นที่ต่อได้ทันที",
-        icon="🗺️",
-        accent="#0f766e",
-    )
-    map_export = action_queue[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score", "next_action"]].copy()
-    st.download_button(
-        "⬇️ Download Priority Map Customer List",
-        data=map_export.to_csv(index=False, encoding="utf-8-sig"),
-        file_name=f"priority_map_export_{st.session_state.get('dept') or 'ALL'}.csv",
-        mime="text/csv",
-        use_container_width=False,
-    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 3 – EDIT / ADD
