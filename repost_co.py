@@ -3077,130 +3077,97 @@ elif menu == "🎯 Sales Action Center":
     rep["achievement_pct"] = pd.to_numeric(rep.get("achievement_pct", 0), errors="coerce").fillna(0)
     rep["yoy_pct"] = pd.to_numeric(rep.get("yoy_pct", 0), errors="coerce").fillna(0)
     rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
-    rep["Province"] = rep.get("Province", "").fillna("").astype(str)
-    rep["Industry"] = rep.get("Industry", "").fillna("").astype(str)
 
-    role = str(st.session_state.get("user_role") or "").strip().lower()
-    user_name = str(st.session_state.get("user_name") or _get_user_name() or "Sales").strip()
-    dept_name = _dept_label(st.session_state.get("dept") or "")
-
-    score_q80 = rep["opportunity_score"].quantile(0.80) if len(rep) else 0
-    score_q60 = rep["opportunity_score"].quantile(0.60) if len(rep) else 0
-    gap_q70 = rep["gap_kg"].quantile(0.70) if len(rep) else 0
-
-    rep["last_activity_days"] = rep.apply(
-        lambda r: 14 if r["achievement_pct"] < 35 else (9 if r["yoy_pct"] < 0 else (5 if r["opportunity_score"] >= score_q80 else 2)),
-        axis=1,
+    rep["last_activity_days"] = (
+        rep["achievement_pct"].apply(lambda v: 14 if float(v) <= 0 else (10 if float(v) < 40 else (6 if float(v) < 70 else 2)))
+        + rep["gap_kg"].apply(lambda v: 2 if float(v) >= 100000 else (1 if float(v) >= 25000 else 0))
     )
-    rep["action_bucket"] = rep.apply(
-        lambda r: "overdue" if (r["achievement_pct"] < 45 or r["yoy_pct"] < -5)
-        else ("today" if (r["opportunity_score"] >= score_q80 or r["gap_kg"] >= gap_q70) else "week"),
-        axis=1,
-    )
-    rep["priority_label"] = rep["action_bucket"].map({
-        "overdue": "🔴 Overdue",
-        "today": "🟠 Today",
-        "week": "🟡 This Week",
-    }).fillna("🟡 This Week")
-    rep["risk_label"] = rep.apply(
-        lambda r: "⚠️ At risk" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ On track",
-        axis=1,
-    )
+    rep["action_bucket"] = rep["last_activity_days"].apply(lambda d: "overdue" if d >= 10 else ("today" if d >= 5 else "week"))
     rep["next_action"] = rep.apply(
-        lambda r: "Call & recover plan" if r["action_bucket"] == "overdue"
+        lambda r: "Recover momentum immediately" if r["action_bucket"] == "overdue"
         else ("Follow-up today" if r["action_bucket"] == "today" else "Plan visit this week"),
         axis=1,
     )
-    rep["stage_label"] = rep["opportunity_score"].apply(
-        lambda v: "Closing" if v >= score_q80 else ("Deal" if v >= score_q60 else "Lead")
+
+    role = str(st.session_state.get("user_role") or "").strip().lower()
+    user_name = st.session_state.get("user_name") or _get_user_name() or "Sales"
+    dept_label = _dept_label(st.session_state.get("dept") or "")
+    hero_badge = "Sales Personal View" if role == "staff" else ("Manager Action View" if role == "manager" else "Admin Action View")
+    hero_title = f"Good morning, {user_name.split()[0]}" if role == "staff" else "Sales Action Center"
+    hero_subtitle = (
+        "โฟกัสเฉพาะลูกค้าที่คุณดูแลอยู่ เรียงลำดับงานที่ควรทำก่อนในวันนี้แบบอ่านง่ายและไม่รก"
+        if role == "staff" else
+        "มุมมองเชิงปฏิบัติการของพอร์ตที่กำลังดูแล ใช้ไล่ priority accounts งานวันนี้ และความเสี่ยงที่ต้องรีบจัดการ"
     )
 
-    overdue_df = rep[rep["action_bucket"] == "overdue"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    today_df = rep[rep["action_bucket"] == "today"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    week_df = rep[rep["action_bucket"] == "week"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    priority_df = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(8)
-    risk_df = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(8)
+    overdue_df = rep[rep["action_bucket"] == "overdue"].sort_values(["last_activity_days", "opportunity_score"], ascending=[False, False]).head(3)
+    today_df = rep[rep["action_bucket"] == "today"].sort_values(["opportunity_score", "gap_kg"], ascending=[False, False]).head(3)
+    week_df = rep[rep["action_bucket"] == "week"].sort_values(["opportunity_score", "gap_kg"], ascending=[False, False]).head(3)
+    priority_df = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=[False, False, False]).head(5)
+    risk_df = rep[(rep["achievement_pct"] < 40) | (rep["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(5)
 
-    pipeline_df = rep.groupby("stage_label", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        sales=("Sales/Year", "sum"),
-        gap=("gap_kg", "sum"),
-    ).reset_index()
-    stage_order = ["Lead", "Deal", "Closing"]
-    if not pipeline_df.empty:
-        pipeline_df["stage_label"] = pd.Categorical(pipeline_df["stage_label"], categories=stage_order, ordered=True)
-        pipeline_df = pipeline_df.sort_values("stage_label")
-
-    total_customers = int(len(rep))
-    today_actions = int(len(overdue_df) + len(today_df))
-    high_priority_count = int((rep["opportunity_score"] >= score_q80).sum()) if len(rep) else 0
+    actions_today = int((rep["action_bucket"].isin(["overdue", "today"])).sum())
+    priority_count = int((rep["opportunity_score"] >= rep["opportunity_score"].median()).sum()) if len(rep) else 0
     risk_count = int(len(risk_df))
     avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
 
-    if role == "staff":
-        hero_title = f"Good morning, {user_name.split()[0]} 👋"
-        hero_subtitle = "หน้าทำงานส่วนตัวของคุณวันนี้ เห็นเฉพาะลูกค้า งาน และโอกาสที่เกี่ยวข้องกับตัวคุณเท่านั้น"
-        hero_badge = f"Personal Mode • {dept_name}"
-    elif role == "manager":
-        hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมองเชิงลงมือทำของพอร์ตที่คุณดูแล ใช้ไล่ลูกค้าสำคัญ งานวันนี้ และความเสี่ยงที่ควรเข้าไปช่วยทันที"
-        hero_badge = f"Manager Action View • {dept_name}"
-    else:
-        hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมอง action-first สำหรับข้อมูลที่กำลังเปิดอยู่ ใช้ติดตาม priority, risk และ next action ได้ทันที"
-        hero_badge = f"Admin Action View • {dept_name}"
-
-    st.markdown('''
+    st.markdown("""
     <style>
-    .sac-shell{padding-top:.2rem;}
-    .sac-hero{position:relative;overflow:hidden;border-radius:28px;padding:28px 30px 24px 30px;margin:6px 0 18px 0;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 52%,#38bdf8 100%);box-shadow:0 24px 54px rgba(37,99,235,.22);color:#fff;}
-    .sac-hero:before{content:"";position:absolute;width:220px;height:220px;right:-60px;top:-70px;border-radius:999px;background:rgba(255,255,255,.08);}
-    .sac-hero:after{content:"";position:absolute;width:190px;height:190px;right:90px;bottom:-80px;border-radius:999px;background:rgba(255,255,255,.05);}
-    .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:flex-start;}
-    .sac-kicker{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#dbeafe;margin-bottom:8px;}
-    .sac-title{font-size:34px;line-height:1.04;font-weight:900;letter-spacing:-.04em;margin:0 0 8px 0;color:#fff;}
-    .sac-subtitle{max-width:840px;color:#e0f2fe;font-size:14px;line-height:1.7;margin:0;}
-    .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);color:#eff6ff;font-size:12px;font-weight:700;}
-    .sac-action-card{border-radius:24px;padding:18px 18px 16px 18px;background:#fff;border:1px solid #e7eef8;box-shadow:0 14px 32px rgba(15,23,42,.06);margin-bottom:14px;}
-    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
-    .sac-card-title{font-size:16px;font-weight:800;color:#0f172a;}
-    .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:800;}
-    .sac-card-pill.red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
-    .sac-card-pill.orange{background:#fff7ed;color:#c2410c;border:1px solid #fdba74;}
-    .sac-card-pill.yellow{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
-    .sac-mini-kpi{font-size:30px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:4px;}
-    .sac-mini-sub{font-size:12px;color:#64748b;margin-bottom:14px;}
-    .sac-task-list{display:flex;flex-direction:column;gap:12px;}
-    .sac-task{border:1px solid #e8eef7;border-radius:18px;padding:14px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);}
-    .sac-task-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px;}
-    .sac-task-name{font-size:14px;font-weight:800;color:#0f172a;line-height:1.35;}
-    .sac-task-meta{font-size:12px;color:#64748b;line-height:1.55;}
-    .sac-tag{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;}
-    .sac-tag.red{background:#fee2e2;color:#b91c1c;}
-    .sac-tag.orange{background:#ffedd5;color:#c2410c;}
-    .sac-tag.yellow{background:#fef3c7;color:#a16207;}
-    .sac-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-    .sac-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:12px;border:1px solid #dbe7f7;background:#fff;color:#0f172a;font-size:12px;font-weight:800;}
-    .sac-btn.primary{background:linear-gradient(135deg,#2563eb,#38bdf8);color:#fff;border:none;box-shadow:0 10px 20px rgba(37,99,235,.18);}
-    .sac-surface{background:#fff;border:1px solid #e6eef8;border-radius:24px;padding:18px 18px 16px 18px;box-shadow:0 14px 32px rgba(15,23,42,.05);height:100%;}
-    .sac-surface h4{margin:0 0 4px 0;color:#0f172a;font-size:16px;font-weight:800;}
-    .sac-surface p{margin:0 0 12px 0;color:#64748b;font-size:12px;line-height:1.6;}
-    .sac-priority-item{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf3fb;}
-    .sac-priority-item:last-child{border-bottom:none;padding-bottom:2px;}
-    .sac-priority-name{font-size:13px;font-weight:800;color:#0f172a;}
-    .sac-priority-meta{font-size:12px;color:#64748b;line-height:1.55;}
-    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;margin-bottom:14px;}
-    .sac-side-box{padding:14px;border-radius:18px;background:linear-gradient(180deg,#f8fbff 0%,#eef6ff 100%);border:1px solid #dbeafe;}
-    .sac-side-box .n{font-size:22px;font-weight:900;color:#0f172a;line-height:1;}
-    .sac-side-box .l{font-size:12px;color:#64748b;margin-top:4px;}
-    .sac-empty{border:1px dashed #dbe7f7;border-radius:18px;padding:18px;text-align:center;color:#64748b;background:#fbfdff;font-size:13px;}
+    .sac2-shell{display:flex;flex-direction:column;gap:18px;}
+    .sac2-hero{background:linear-gradient(135deg,#172554 0%,#2563eb 58%,#4cc9f0 100%);border-radius:28px;padding:26px 32px;box-shadow:0 24px 54px rgba(37,99,235,.22);position:relative;overflow:hidden;}
+    .sac2-hero:before,.sac2-hero:after{content:'';position:absolute;border-radius:999px;background:rgba(255,255,255,.08);}
+    .sac2-hero:before{width:220px;height:220px;right:-40px;top:-30px;}
+    .sac2-hero:after{width:180px;height:180px;right:90px;bottom:-80px;}
+    .sac2-kicker{position:relative;z-index:1;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#dbeafe;margin-bottom:8px;}
+    .sac2-title{position:relative;z-index:1;font-size:34px;line-height:1.04;font-weight:900;letter-spacing:-.04em;color:#fff;margin:0 0 8px 0;}
+    .sac2-sub{position:relative;z-index:1;max-width:860px;color:#e0f2fe;font-size:14px;line-height:1.7;margin:0;}
+    .sac2-badge{position:absolute;z-index:1;right:32px;top:30px;display:inline-flex;align-items:center;padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#eff6ff;font-size:12px;font-weight:800;}
+    .sac2-kpi{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dbeafe;border-radius:24px;padding:20px 20px 18px 20px;box-shadow:0 14px 30px rgba(15,23,42,.06);height:100%;}
+    .sac2-kpi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+    .sac2-kpi-label{font-size:12px;font-weight:800;color:#334155;}
+    .sac2-kpi-icon{width:46px;height:46px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2563eb,#38bdf8);box-shadow:0 12px 24px rgba(37,99,235,.18);font-size:20px;}
+    .sac2-kpi-value{font-size:34px;line-height:1;font-weight:900;color:#0f172a;margin-bottom:6px;}
+    .sac2-kpi-sub{font-size:12.5px;color:#64748b;line-height:1.55;}
+    .sac2-band{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dbeafe;border-radius:24px;padding:18px 20px;box-shadow:0 14px 28px rgba(15,23,42,.05);display:flex;align-items:center;gap:16px;}
+    .sac2-band-icon{width:44px;height:44px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2563eb,#38bdf8);font-size:20px;color:#fff;box-shadow:0 12px 24px rgba(37,99,235,.18);}
+    .sac2-band-title{font-size:16px;font-weight:900;color:#0f172a;line-height:1.2;}
+    .sac2-band-sub{font-size:12.5px;color:#64748b;margin-top:4px;line-height:1.6;}
+    .sac2-card{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #e2e8f0;border-radius:24px;padding:20px;box-shadow:0 14px 32px rgba(15,23,42,.05);margin-bottom:12px;}
+    .sac2-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+    .sac2-card-title{font-size:16px;font-weight:900;color:#0f172a;}
+    .sac2-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap;}
+    .sac2-pill.red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
+    .sac2-pill.orange{background:#fff7ed;color:#c2410c;border:1px solid #fdba74;}
+    .sac2-pill.yellow{background:#fefce8;color:#a16207;border:1px solid #fde68a;}
+    .sac2-num{font-size:42px;line-height:1;font-weight:900;color:#0f172a;margin-bottom:8px;}
+    .sac2-desc{font-size:12.5px;color:#64748b;line-height:1.6;}
+    .sac2-list{display:flex;flex-direction:column;gap:12px;}
+    .sac2-item{border:1px solid #e8eef7;border-radius:18px;padding:14px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);}
+    .sac2-item-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px;}
+    .sac2-item-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.35;}
+    .sac2-item-meta{font-size:12px;color:#64748b;line-height:1.6;}
+    .sac2-item-note{margin-top:8px;font-size:12px;color:#334155;font-weight:700;}
+    .sac2-surface{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #e2e8f0;border-radius:24px;padding:18px 18px 16px 18px;box-shadow:0 14px 30px rgba(15,23,42,.05);height:100%;}
+    .sac2-surface h4{margin:0 0 4px 0;color:#0f172a;font-size:16px;font-weight:900;}
+    .sac2-surface p{margin:0 0 12px 0;color:#64748b;font-size:12.5px;line-height:1.6;}
+    .sac2-priority{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf3fb;}
+    .sac2-priority:last-child{border-bottom:none;padding-bottom:2px;}
+    .sac2-priority-name{font-size:13.5px;font-weight:900;color:#0f172a;}
+    .sac2-priority-meta{font-size:12px;color:#64748b;line-height:1.55;}
+    .sac2-empty{border:1px dashed #dbe7f7;border-radius:18px;padding:18px;text-align:center;color:#64748b;background:#fbfdff;font-size:13px;}
     </style>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    def _render_action_list(df_in, tone="red"):
+    def _render_action_cards(df_in, tone="red"):
         if df_in.empty:
-            st.markdown('<div class="sac-empty">ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sac2-empty">ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
+        tone_map = {
+            "red": ("red", lambda d: f"{int(d)}d inactive"),
+            "orange": ("orange", lambda d: "Today"),
+            "yellow": ("yellow", lambda d: "This week"),
+        }
+        tone_class, label_fn = tone_map.get(tone, tone_map["red"])
         rows = []
         for _, row in df_in.iterrows():
             customer = str(row.get("Customer Name", "") or "-")
@@ -3208,232 +3175,123 @@ elif menu == "🎯 Sales Action Center":
             industry = str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม")
             gap = int(float(row.get("gap_kg", 0) or 0))
             ach = float(row.get("achievement_pct", 0) or 0)
-            days = int(float(row.get("last_activity_days", 0) or 0))
             score = float(row.get("opportunity_score", 0) or 0)
+            days = int(float(row.get("last_activity_days", 0) or 0))
             next_action = str(row.get("next_action", "Follow-up"))
-            tag_text = f"{days}d inactive" if tone == "red" else ("Today" if tone == "orange" else "This week")
-            rows.append(f'''
-            <div class="sac-task">
-                <div class="sac-task-head">
-                    <div>
-                        <div class="sac-task-name">{customer}</div>
-                        <div class="sac-task-meta">{province} • {industry}<br>Gap {gap:,} kg • Achievement {ach:.1f}% • Score {score:.1f}</div>
-                    </div>
-                    <span class="sac-tag {tone}">{tag_text}</span>
-                </div>
-                <div class="sac-task-meta">Next action: {next_action}</div>
-                <div class="sac-actions">
-                    <span class="sac-btn primary">📞 Call</span>
-                    <span class="sac-btn">📝 Note</span>
-                    <span class="sac-btn">🔄 Update</span>
-                </div>
-            </div>
-            ''')
-        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
+            rows.append(f'''<div class="sac2-item"><div class="sac2-item-head"><div><div class="sac2-item-name">{customer}</div><div class="sac2-item-meta">{province} • {industry}<br>Gap {gap:,.0f} kg • Achievement {ach:.1f}% • Score {score:.1f}</div></div><span class="sac2-pill {tone_class}">{label_fn(days)}</span></div><div class="sac2-item-note">Next focus: {next_action}</div></div>''')
+        st.markdown('<div class="sac2-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
-    st.markdown(f'''
-    <div class="sac-hero">
-        <div class="sac-hero-inner">
-            <div>
-                <div class="sac-kicker">Sales Execution Workspace</div>
-                <div class="sac-title">{hero_title}</div>
-                <p class="sac-subtitle">{hero_subtitle}</p>
-            </div>
-            <div class="sac-badge">{hero_badge}</div>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+    st.markdown('<div class="sac2-shell">', unsafe_allow_html=True)
+    st.markdown(f'''<div class="sac2-hero"><div class="sac2-badge">{hero_badge} • {dept_label}</div><div class="sac2-kicker">Sales Execution Workspace</div><div class="sac2-title">{hero_title}</div><p class="sac2-sub">{hero_subtitle}</p></div>''', unsafe_allow_html=True)
 
-    top1, top2, top3, top4 = st.columns(4)
-    with top1:
-        render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
-    with top2:
-        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่ score สูงสุดในพอร์ตนี้", "🎯")
-    with top3:
-        render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
-    with top4:
-        render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown(f'''<div class="sac2-kpi"><div class="sac2-kpi-top"><div class="sac2-kpi-label">Actions Today</div><div class="sac2-kpi-icon">🔥</div></div><div class="sac2-kpi-value">{actions_today}</div><div class="sac2-kpi-sub">รวม Overdue + Today ที่ควรโฟกัสก่อน</div></div>''', unsafe_allow_html=True)
+    with k2:
+        st.markdown(f'''<div class="sac2-kpi"><div class="sac2-kpi-top"><div class="sac2-kpi-label">Priority Accounts</div><div class="sac2-kpi-icon">🎯</div></div><div class="sac2-kpi-value">{priority_count}</div><div class="sac2-kpi-sub">ลูกค้าที่มี score สูงสุดในพอร์ตนี้</div></div>''', unsafe_allow_html=True)
+    with k3:
+        st.markdown(f'''<div class="sac2-kpi"><div class="sac2-kpi-top"><div class="sac2-kpi-label">Risk Signals</div><div class="sac2-kpi-icon">⚠️</div></div><div class="sac2-kpi-value">{risk_count}</div><div class="sac2-kpi-sub">ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ</div></div>''', unsafe_allow_html=True)
+    with k4:
+        st.markdown(f'''<div class="sac2-kpi"><div class="sac2-kpi-top"><div class="sac2-kpi-label">Avg Achievement</div><div class="sac2-kpi-icon">📈</div></div><div class="sac2-kpi-value">{avg_ach:.1f}%</div><div class="sac2-kpi-sub">ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน</div></div>''', unsafe_allow_html=True)
 
-    render_section_header(
-        title="Today Action Board",
-        subtitle="เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน",
-        icon="🎯",
-        accent="#2563eb",
-    )
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">Overdue</div>
-                <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(overdue_df):,}</div>
-            <div class="sac-mini-sub">งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(overdue_df, "red")
-    with col_b:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">Today</div>
-                <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(today_df):,}</div>
-            <div class="sac-mini-sub">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(today_df, "orange")
-    with col_c:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">This Week</div>
-                <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(week_df):,}</div>
-            <div class="sac-mini-sub">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(week_df, "yellow")
+    st.markdown('<div class="sac2-band"><div class="sac2-band-icon">🎯</div><div><div class="sac2-band-title">Today Action Board</div><div class="sac2-band-sub">เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน</div></div></div>', unsafe_allow_html=True)
 
-    render_section_header(
-        title="Priority Accounts & Quick Action",
-        subtitle="ฝั่งซ้ายคือลูกค้าที่ควรโฟกัสก่อน ฝั่งขวาคือ action summary สำหรับเริ่มทำงานทันที",
-        icon="⚡",
-        accent="#0f766e",
-    )
-    p1, p2 = st.columns([1.1, 0.9])
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f'''<div class="sac2-card"><div class="sac2-card-top"><div class="sac2-card-title">Overdue</div><span class="sac2-pill red">● {len(overdue_df)}</span></div><div class="sac2-num">{len(overdue_df)}</div><div class="sac2-desc">งานที่ควรยกขึ้นมาก่อนเพราะมีความเสี่ยงสูง</div></div>''', unsafe_allow_html=True)
+        _render_action_cards(overdue_df, "red")
+    with c2:
+        st.markdown(f'''<div class="sac2-card"><div class="sac2-card-top"><div class="sac2-card-title">Today</div><span class="sac2-pill orange">● {len(today_df)}</span></div><div class="sac2-num">{len(today_df)}</div><div class="sac2-desc">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div></div>''', unsafe_allow_html=True)
+        _render_action_cards(today_df, "orange")
+    with c3:
+        st.markdown(f'''<div class="sac2-card"><div class="sac2-card-top"><div class="sac2-card-title">This Week</div><span class="sac2-pill yellow">● {len(week_df)}</span></div><div class="sac2-num">{len(week_df)}</div><div class="sac2-desc">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div></div>''', unsafe_allow_html=True)
+        _render_action_cards(week_df, "yellow")
+
+    s1, s2 = st.columns([1.15, 0.85], gap="large")
+    with s1:
+        st.markdown('<div class="sac2-surface"><h4>Priority Accounts</h4><p>ลูกค้าที่มีมูลค่าโอกาสสูงและควรขยับก่อนในพอร์ตนี้</p>', unsafe_allow_html=True)
+        if priority_df.empty:
+            st.markdown('<div class="sac2-empty">ยังไม่มี priority account</div>', unsafe_allow_html=True)
+        else:
+            for _, row in priority_df.iterrows():
+                customer = str(row.get("Customer Name", "-") or "-")
+                province = str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")
+                gap = float(row.get("gap_kg", 0) or 0)
+                ach = float(row.get("achievement_pct", 0) or 0)
+                score = float(row.get("opportunity_score", 0) or 0)
+                st.markdown(f'''<div class="sac2-priority"><div><div class="sac2-priority-name">{customer}</div><div class="sac2-priority-meta">{province} • Gap {gap:,.0f} kg • Achievement {ach:.1f}%</div></div><div class="sac2-priority-name">Score {score:.1f}</div></div>''', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with s2:
+        st.markdown('<div class="sac2-surface"><h4>Risk Signals</h4><p>ลูกค้าที่สัญญาณเริ่มอ่อนลงและควรกลับไปดูอย่างใกล้ชิด</p>', unsafe_allow_html=True)
+        if risk_df.empty:
+            st.markdown('<div class="sac2-empty">ยังไม่มีความเสี่ยงเด่นในพอร์ตนี้</div>', unsafe_allow_html=True)
+        else:
+            for _, row in risk_df.iterrows():
+                customer = str(row.get("Customer Name", "-") or "-")
+                province = str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")
+                ach = float(row.get("achievement_pct", 0) or 0)
+                yoy = float(row.get("yoy_pct", 0) or 0)
+                gap = float(row.get("gap_kg", 0) or 0)
+                tone = "#b91c1c" if ach < 40 else "#c2410c"
+                st.markdown(f'''<div class="sac2-priority"><div><div class="sac2-priority-name">{customer}</div><div class="sac2-priority-meta">{province} • Achievement {ach:.1f}% • YoY {yoy:.1f}%</div></div><div class="sac2-priority-name" style="color:{tone};">Gap {gap:,.0f}</div></div>''', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    p1, p2 = st.columns([0.95, 1.05], gap="large")
     with p1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Priority Accounts</h4><p>เฉพาะลูกค้าที่สำคัญที่สุดในมุมมองนี้ จัดจาก score, gap และโอกาสในการเร่งผลงาน</p>', unsafe_allow_html=True)
-        for _, row in priority_df.iterrows():
-            st.markdown(f'''
-            <div class="sac-priority-item">
-                <div>
-                    <div class="sac-priority-name">{str(row.get("Customer Name", "-") or "-")}</div>
-                    <div class="sac-priority-meta">{str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")} • {str(row.get("Industry", "ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")}<br>Gap {int(float(row.get("gap_kg", 0) or 0)):,} kg • Score {float(row.get("opportunity_score", 0) or 0):.1f}</div>
-                </div>
-                <div class="sac-priority-meta" style="text-align:right;white-space:nowrap;">
-                    {str(row.get("next_action", "Follow-up"))}<br><span style="font-weight:800;color:#0f172a;">{float(row.get("achievement_pct", 0) or 0):.1f}%</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with p2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>Quick Action Panel</h4><p>สรุปให้เห็นภาพรวมแบบไม่รก เพื่อใช้ตัดสินใจว่าควรโทร, นัดพบ หรือเร่งกู้ลูกค้ากลุ่มไหนก่อน</p>', unsafe_allow_html=True)
-        st.markdown(f'''
-        <div class="sac-side-stat">
-            <div class="sac-side-box"><div class="n">{total_customers:,}</div><div class="l">Customers in view</div></div>
-            <div class="sac-side-box"><div class="n">{today_actions:,}</div><div class="l">Actions today</div></div>
-            <div class="sac-side-box"><div class="n">{high_priority_count:,}</div><div class="l">High priority</div></div>
-            <div class="sac-side-box"><div class="n">{risk_count:,}</div><div class="l">Need recovery</div></div>
-        </div>
-        ''', unsafe_allow_html=True)
-        quick_view = priority_df[["Customer Name", "Province", "priority_label", "next_action"]].rename(columns={
-            "Customer Name": "Customer",
-            "Province": "Province",
-            "priority_label": "Priority",
-            "next_action": "Next Action",
-        }).copy()
-        st.dataframe(style_rich_dataframe(quick_view), use_container_width=True, hide_index=True, height=310)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    render_section_header(
-        title="Pipeline & Risk Signals",
-        subtitle="ดูภาพรวม stage ของพอร์ตคุณควบคู่กับลูกค้าที่ต้องกู้กลับมา เพื่อให้ execution ไหลลื่นและไม่พลาดดีลสำคัญ",
-        icon="📌",
-        accent="#f97316",
-    )
-    r1, r2 = st.columns([1, 1])
-    with r1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Pipeline</h4><p>เห็นสัดส่วนลูกค้าในแต่ละช่วง เพื่อบาลานซ์ระหว่างการสร้างโอกาสใหม่กับการเร่งปิดดีล</p>', unsafe_allow_html=True)
-        fig_pipe = px.bar(
-            pipeline_df,
-            x="stage_label",
-            y="customers",
-            text="customers",
-            color="stage_label",
-            color_discrete_map={"Lead": "#93c5fd", "Deal": "#60a5fa", "Closing": "#1d4ed8"},
-            labels={"stage_label": "Stage", "customers": "Customers"},
+        render_section_header(
+            title="My Pipeline",
+            subtitle="สัดส่วนลูกค้าในพอร์ตนี้ตามมุมมอง lead / deal / closing เพื่อดูจังหวะงานโดยรวม",
+            icon="📌",
+            accent="#2563eb",
         )
-        fig_pipe.update_traces(marker_line_width=0, textposition="outside")
-        fig_pipe.update_layout(height=310, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        lead_count = int((rep["achievement_pct"] < 35).sum())
+        deal_count = int(((rep["achievement_pct"] >= 35) & (rep["achievement_pct"] < 80)).sum())
+        closing_count = int((rep["achievement_pct"] >= 80).sum())
+        pipe_df = pd.DataFrame({"Stage": ["Lead", "Deal", "Closing"], "Accounts": [lead_count, deal_count, closing_count]})
+        fig_pipe = px.bar(pipe_df, x="Stage", y="Accounts", text="Accounts")
+        fig_pipe.update_traces(textposition="outside", marker_line_width=0)
+        fig_pipe.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None)
         st.plotly_chart(fig_pipe, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
-        risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
-            "Customer Name": "Customer",
-            "achievement_pct": "Achievement %",
-            "yoy_pct": "YoY %",
-            "risk_label": "Risk",
-            "next_action": "Next Action",
-        }).copy()
-        st.dataframe(style_rich_dataframe(risk_view, pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=310)
-        st.markdown('</div>', unsafe_allow_html=True)
+    with p2:
+        render_section_header(
+            title="My Performance Snapshot",
+            subtitle="สรุปมูลค่าพอร์ตและ progress ปัจจุบันแบบสั้น กระชับ และอ่านง่าย",
+            icon="📈",
+            accent="#0f766e",
+        )
+        sp1, sp2 = st.columns(2)
+        with sp1:
+            render_kpi_card("Sales/Year", f"฿{rep['Sales/Year'].sum()/1_000_000:.1f}M", "ยอดขายรวมของพอร์ตลูกค้าที่กำลังดูแล", "💼")
+        with sp2:
+            render_kpi_card("Remaining Gap", f"{rep['gap_kg'].sum()/1000:,.1f}k kg", "ช่องว่างที่ยังควรเร่งปิดในพอร์ตนี้", "🎯")
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+        perf_df = rep[["Customer Name", "Province", "achievement_pct", "gap_kg", "opportunity_score"]].copy().sort_values(["opportunity_score", "gap_kg"], ascending=[False, False]).head(8)
+        perf_df = perf_df.rename(columns={"Customer Name": "Account", "Province": "Province", "achievement_pct": "Ach.%", "gap_kg": "Gap (kg)", "opportunity_score": "Score"})
+        st.dataframe(style_rich_dataframe(perf_df, numeric_cols=["Gap (kg)", "Score"], pct_cols=["Ach.%"]), use_container_width=True, hide_index=True)
+
+    report_xlsx = to_excel_bytes_multi({"Sales Action Center": rep, "Priority Accounts": priority_df, "Risk Signals": risk_df})
+    action_queue = rep[["Customer Name", "Province", "Industry", "achievement_pct", "gap_kg", "opportunity_score", "next_action", "action_bucket"]].copy()
 
     render_section_header(
-        title="Performance & Export",
-        subtitle="ส่วนล่างไว้สรุปผลแบบกะทัดรัดและให้ส่งออกต่อไปใช้กับการประชุม, route planning หรือ SharePoint ได้ทันที",
+        title="Export Action Pack",
+        subtitle="ส่งออกรายงาน action ล่าสุดเพื่อนำไปวางแผนต่อ แชร์ต่อ หรืออัปโหลดกลับเข้า SharePoint ได้ทันที",
         icon="📦",
         accent="#7c3aed",
     )
-    b1, b2 = st.columns([0.95, 1.05])
-    with b1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
-        perf1, perf2 = st.columns(2)
-        with perf1:
-            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-        with perf2:
-            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with b2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
-        export_sheets = {
-            "Sales Action Center": rep,
-            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
-            "Priority Accounts": priority_df,
-            "Risk Signals": risk_df,
-        }
-        report_xlsx = to_excel_bytes_multi(export_sheets)
-        ex1, ex2, ex3 = st.columns(3)
-        with ex1:
-            st.download_button(
-                "⬇️ Action Excel",
-                data=report_xlsx,
-                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-            )
-        with ex2:
-            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
-            st.download_button(
-                "⬇️ Action CSV",
-                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
-                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with ex3:
-            if st.button("☁️ Upload SharePoint", use_container_width=True):
-                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                if ok:
-                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
-                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-        st.markdown('</div>', unsafe_allow_html=True)
+    ex1, ex2, ex3 = st.columns(3)
+    with ex1:
+        st.download_button("⬇️ Download Excel", data=report_xlsx, file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    with ex2:
+        st.download_button("⬇️ Download CSV", data=action_queue.to_csv(index=False, encoding="utf-8-sig"), file_name=f"action_queue_{st.session_state.get('dept') or 'ALL'}.csv", mime="text/csv", use_container_width=True)
+    with ex3:
+        if st.button("☁️ Upload SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 3 – EDIT / ADD
 # ═══════════════════════════════════════════════════════════════════════════════
