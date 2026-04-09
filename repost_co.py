@@ -3231,21 +3231,21 @@ elif menu == "🎯 Sales Action Center":
             score = float(row.get("opportunity_score", 0) or 0)
             next_action = _safe_html(str(row.get("next_action", "Follow-up")))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
-            rows.append(f'''
-            <div class="sac-task">
-                <div class="sac-task-head">
-                    <div>
-                        <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
-                        <div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
-                    </div>
-                    <span class="sac-tag {tone}">{tag_text}</span>
-                </div>
-                <div class="sac-task-foot">
-                    <span class="sac-next">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
-                    <span class="sac-score">⭐ Score {score:.1f}</span>
-                </div>
-            </div>
-            ''')
+            rows.append(
+                f'<div class="sac-task">'
+                f'<div class="sac-task-head">'
+                f'<div>'
+                f'<div class="sac-task-name">{tone_emoji.get(tone, "✨")} {customer}</div>'
+                f'<div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>'
+                f'</div>'
+                f'<span class="sac-tag {tone}">{tag_text}</span>'
+                f'</div>'
+                f'<div class="sac-task-foot">'
+                f'<span class="sac-next">{tone_emoji.get(tone, "✨")} Next: {next_action}</span>'
+                f'<span class="sac-score">⭐ Score {score:.1f}</span>'
+                f'</div>'
+                f'</div>'
+            )
         st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
