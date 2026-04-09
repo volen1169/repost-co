@@ -3152,9 +3152,9 @@ elif menu == "🎯 Sales Action Center":
 
     st.markdown('''
     <style>
-    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
-    .sac-section-gap{height:18px;}
-    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
+    .sac-shell{padding-top:.45rem;padding-bottom:1.8rem;}
+    .sac-section-gap{height:28px;}
+    .sac-hero{position:relative;overflow:hidden;border-radius:32px;padding:34px 36px 30px 36px;margin:10px 0 26px 0;background:linear-gradient(135deg,#18275f 0%,#325fff 46%,#51d0ff 100%);box-shadow:0 30px 68px rgba(37,99,235,.26);color:#fff;}
     .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
     .sac-hero:after{content:"";position:absolute;width:210px;height:210px;right:108px;bottom:-90px;border-radius:999px;background:rgba(255,255,255,.06);}
     .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;}
@@ -3162,7 +3162,7 @@ elif menu == "🎯 Sales Action Center":
     .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
     .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
     .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
-    .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
+    .sac-action-card{border-radius:28px;padding:24px 24px 20px 24px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dbe9fb;box-shadow:0 20px 42px rgba(37,99,235,.09);margin-bottom:20px;}
     .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
     .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
     .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
@@ -3171,8 +3171,8 @@ elif menu == "🎯 Sales Action Center":
     .sac-card-pill.yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
     .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
     .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
-    .sac-task-list{display:flex;flex-direction:column;gap:16px;}
-    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);}
+    .sac-task-list{display:flex;flex-direction:column;gap:18px;}
+    .sac-task{border:1px solid #e3edf9;border-radius:24px;padding:18px 18px 16px 18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 14px 30px rgba(148,163,184,.11);}
     .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
     .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
     .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
@@ -3183,24 +3183,23 @@ elif menu == "🎯 Sales Action Center":
     .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
     .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
     .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
-    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:28px;padding:24px 24px 20px 24px;box-shadow:0 18px 36px rgba(37,99,235,.07);height:100%;}
     .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
     .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
     .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
     .sac-priority-item:last-child{border-bottom:none;padding-bottom:4px;}
     .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
     .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
-    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
-    .sac-side-box{padding:16px;border-radius:20px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
+    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:8px;margin-bottom:18px;}
+    .sac-side-box{padding:18px;border-radius:22px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.78);}
     .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
     .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
-    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
+    .sac-empty{border:1px dashed #cfe0f5;border-radius:22px;padding:24px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
     @media (max-width: 1200px){
         .sac-title{font-size:34px;}
         .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
     }
     </style>
-    ''', unsafe_allow_html=True)
     ''', unsafe_allow_html=True)
 
     def _render_action_list(df_in, tone="red"):
@@ -3375,7 +3374,7 @@ elif menu == "🎯 Sales Action Center":
         st.markdown('</div>', unsafe_allow_html=True)
     with r2:
         st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
+        st.markdown('<h4>⚠️ My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
         risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
             "Customer Name": "Customer",
             "achievement_pct": "Achievement %",
@@ -3396,7 +3395,7 @@ elif menu == "🎯 Sales Action Center":
     b1, b2 = st.columns([0.95, 1.05])
     with b1:
         st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
+        st.markdown('<h4>📈 My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
         perf1, perf2 = st.columns(2)
         with perf1:
             render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
@@ -3405,7 +3404,7 @@ elif menu == "🎯 Sales Action Center":
         st.markdown('</div>', unsafe_allow_html=True)
     with b2:
         st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+        st.markdown('<h4>📦 Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
         export_sheets = {
             "Sales Action Center": rep,
             "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
