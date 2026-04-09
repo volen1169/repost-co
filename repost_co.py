@@ -3054,8 +3054,7 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
 
 
 
-el
-if menu == "🎯 Sales Action Center":
+elif menu == "🎯 Sales Action Center":
     _scroll_top()
 
     if df.empty or "Customer Name" not in df.columns:
@@ -3098,6 +3097,15 @@ if menu == "🎯 Sales Action Center":
         else ("today" if (r["opportunity_score"] >= score_q80 or r["gap_kg"] >= gap_q70) else "week"),
         axis=1,
     )
+    rep["priority_label"] = rep["action_bucket"].map({
+        "overdue": "🔴 Overdue",
+        "today": "🟠 Today",
+        "week": "🟡 This Week",
+    }).fillna("🟡 This Week")
+    rep["risk_label"] = rep.apply(
+        lambda r: "⚠️ At risk" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ On track",
+        axis=1,
+    )
     rep["next_action"] = rep.apply(
         lambda r: "Call & recover plan" if r["action_bucket"] == "overdue"
         else ("Follow-up today" if r["action_bucket"] == "today" else "Plan visit this week"),
@@ -3123,6 +3131,7 @@ if menu == "🎯 Sales Action Center":
         pipeline_df["stage_label"] = pd.Categorical(pipeline_df["stage_label"], categories=stage_order, ordered=True)
         pipeline_df = pipeline_df.sort_values("stage_label")
 
+    total_customers = int(len(rep))
     today_actions = int(len(overdue_df) + len(today_df))
     high_priority_count = int((rep["opportunity_score"] >= score_q80).sum()) if len(rep) else 0
     risk_count = int(len(risk_df))
@@ -3134,42 +3143,97 @@ if menu == "🎯 Sales Action Center":
         hero_badge = f"Personal Mode • {dept_name}"
     elif role == "manager":
         hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมองเชิงปฏิบัติการของพอร์ตที่กำลังดูแล ใช้ไล่ priority accounts งานวันนี้ และความเสี่ยงที่ต้องรีบจัดการ"
+        hero_subtitle = "มุมมองเชิงลงมือทำของพอร์ตที่คุณดูแล ใช้ไล่ลูกค้าสำคัญ งานวันนี้ และความเสี่ยงที่ควรเข้าไปช่วยทันที"
         hero_badge = f"Manager Action View • {dept_name}"
     else:
         hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมองแบบ action-first สำหรับพอร์ตขายนี้ ใช้ติดตามลูกค้าสำคัญ งานวันนี้ และความเสี่ยง"
-        hero_badge = f"Workspace • {dept_name}"
+        hero_subtitle = "มุมมอง action-first สำหรับข้อมูลที่กำลังเปิดอยู่ ใช้ติดตาม priority, risk และ next action ได้ทันที"
+        hero_badge = f"Admin Action View • {dept_name}"
 
-    st.markdown("""
+    st.markdown('''
     <style>
-    .sac-shell{display:flex;flex-direction:column;gap:20px;}
-    .sac-hero{background:linear-gradient(135deg,#16306f 0%,#2563eb 52%,#55b7ea 100%);border-radius:28px;padding:24px 30px;box-shadow:0 22px 46px rgba(37,99,235,.22);position:relative;overflow:hidden;margin-bottom:6px;}
-    .sac-hero:before,.sac-hero:after{content:"";position:absolute;border-radius:999px;background:rgba(255,255,255,.08);}
-    .sac-hero:before{width:210px;height:210px;right:110px;top:-82px;}
-    .sac-hero:after{width:170px;height:170px;right:-22px;top:0;}
-    .sac-hero-inner{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;}
-    .sac-kicker{font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#dbeafe;margin-bottom:8px;}
-    .sac-title{font-size:38px;line-height:1.05;font-weight:900;color:#fff;margin:0 0 10px 0;}
-    .sac-subtitle{font-size:14px;line-height:1.7;color:#eef6ff;margin:0;max-width:860px;}
-    .sac-badge{display:inline-flex;align-items:center;padding:11px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.10);color:#eff6ff;font-size:12px;font-weight:800;white-space:nowrap;}
-    .sac-section-gap{height:4px;}
-    .sac-item{border-radius:22px;padding:18px 18px 16px 18px;border:1px solid #dbe7f7;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);margin-bottom:16px;}
-    .sac-item.red{background:linear-gradient(180deg,#fff8f8 0%,#fff1f3 100%);border-color:#fecdd3;}
-    .sac-item.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff4e6 100%);border-color:#fdba74;}
-    .sac-item.yellow{background:linear-gradient(180deg,#fffef7 0%,#fff9db 100%);border-color:#fde68a;}
-    .sac-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
-    .sac-item-title{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
-    .sac-item-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
-    .sac-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:900;white-space:nowrap;}
-    .sac-chip.red{background:#ffe4e6;color:#e11d48;border:1px solid #fda4af;}
-    .sac-chip.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
-    .sac-chip.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
-    .sac-foot{margin-top:12px;padding-top:12px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-    .sac-next{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;font-size:12px;font-weight:900;}
-    .sac-score{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#ecfeff;border:1px solid #a5f3fc;color:#0f766e;font-size:12px;font-weight:900;}
+    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
+    .sac-section-gap{height:18px;}
+    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
+    .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
+    .sac-hero:after{content:"";position:absolute;width:210px;height:210px;right:108px;bottom:-90px;border-radius:999px;background:rgba(255,255,255,.06);}
+    .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+    .sac-kicker{font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#e0ecff;margin-bottom:10px;}
+    .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
+    .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
+    .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+    .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
+    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
+    .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
+    .sac-card-pill.red{background:#fff1f2;color:#e11d48;border:1px solid #fda4af;}
+    .sac-card-pill.orange{background:#fff7ed;color:#f97316;border:1px solid #fdba74;}
+    .sac-card-pill.yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
+    .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
+    .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
+    .sac-task-list{display:flex;flex-direction:column;gap:16px;}
+    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);}
+    .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
+    .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
+    .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
+    .sac-tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);}
+    .sac-tag.red{background:#ffe4e6;color:#e11d48;border:1px solid #fecdd3;}
+    .sac-tag.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
+    .sac-tag.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
+    .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
+    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;}
+    .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
+    .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
+    .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
+    .sac-priority-item:last-child{border-bottom:none;padding-bottom:4px;}
+    .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
+    .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
+    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
+    .sac-side-box{padding:16px;border-radius:20px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
+    .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
+    .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
+    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
+    @media (max-width: 1200px){
+        .sac-title{font-size:34px;}
+        .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
+    }
     </style>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
+
+    def _render_action_list(df_in, tone="red"):
+        if df_in.empty:
+            st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
+            return
+        tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
+        rows = []
+        for _, row in df_in.iterrows():
+            customer = str(row.get("Customer Name", "") or "-")
+            province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
+            industry = str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม")
+            gap = int(float(row.get("gap_kg", 0) or 0))
+            ach = float(row.get("achievement_pct", 0) or 0)
+            days = int(float(row.get("last_activity_days", 0) or 0))
+            score = float(row.get("opportunity_score", 0) or 0)
+            next_action = str(row.get("next_action", "Follow-up"))
+            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
+            rows.append(f'''
+            <div class="sac-task">
+                <div class="sac-task-head">
+                    <div>
+                        <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
+                        <div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
+                    </div>
+                    <span class="sac-tag {tone}">{tag_text}</span>
+                </div>
+                <div class="sac-task-foot">
+                    <span class="sac-next">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
+                    <span class="sac-score">⭐ Score {score:.1f}</span>
+                </div>
+            </div>
+            ''')
+        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
     st.markdown(f'''
@@ -3189,88 +3253,508 @@ if menu == "🎯 Sales Action Center":
     with top1:
         render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
     with top2:
-        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่มี score สูงสุดในพอร์ตนี้", "🎯")
+        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่ score สูงสุดในพอร์ตนี้", "🎯")
     with top3:
         render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
     with top4:
         render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
 
     st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
-    render_section_header("🎯 Today Action Board", "เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน", "🚀", "#2563eb")
-
-    def render_bucket_summary(title, emoji, count, desc, tone):
-        st.markdown(f'''
-        <div class="sac-item {tone}">
-            <div class="sac-item-head">
-                <div class="sac-item-title">{emoji} {title}</div>
-                <span class="sac-chip {tone}">● {count}</span>
-            </div>
-            <div style="font-size:42px;font-weight:900;color:#0b1f4d;line-height:1;">{count}</div>
-            <div class="sac-item-meta" style="margin-top:10px;">{desc}</div>
-        </div>
-        ''', unsafe_allow_html=True)
-
+    render_section_header(
+        title="✨ Today Action Board",
+        subtitle="เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน",
+        icon="🚀",
+        accent="#2563eb",
+    )
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        render_bucket_summary("Overdue", "🚨", len(overdue_df), "งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง", "red")
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">🚨 Overdue</div>
+                <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(overdue_df):,}</div>
+            <div class="sac-mini-sub">งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(overdue_df, "red")
     with col_b:
-        render_bucket_summary("Today", "📌", len(today_df), "รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด", "orange")
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">📌 Today</div>
+                <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(today_df):,}</div>
+            <div class="sac-mini-sub">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(today_df, "orange")
     with col_c:
-        render_bucket_summary("This Week", "🗓️", len(week_df), "งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้", "yellow")
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">🗓️ This Week</div>
+                <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(week_df):,}</div>
+            <div class="sac-mini-sub">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(week_df, "yellow")
 
-    def render_action_list(df_in, tone):
-        if df_in.empty:
-            st.info("ยังไม่มีรายการในช่วงนี้")
-            return
-        tone_emoji = {"red":"🚨","orange":"📌","yellow":"🗓️"}[tone]
-        for _, row in df_in.iterrows():
-            customer = str(row.get("Customer Name","-") or "-")
-            province = str(row.get("Province","ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")
-            industry = str(row.get("Industry","ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")
-            gap = int(float(row.get("gap_kg",0) or 0))
-            ach = float(row.get("achievement_pct",0) or 0)
-            days = int(float(row.get("last_activity_days",0) or 0))
-            score = float(row.get("opportunity_score",0) or 0)
-            next_action = str(row.get("next_action","Follow-up") or "Follow-up")
-            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="🌈 Priority Accounts & Quick Summary",
+        subtitle="ฝั่งซ้ายคือลูกค้าที่ควรโฟกัสก่อน ฝั่งขวาคือ action summary สำหรับเริ่มทำงานทันที",
+        icon="🌟",
+        accent="#0f766e",
+    )
+    p1, p2 = st.columns([1.1, 0.9])
+    with p1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>🌟 My Priority Accounts</h4><p>เฉพาะลูกค้าที่สำคัญที่สุดในมุมมองนี้ จัดจาก score, gap และโอกาสในการเร่งผลงาน</p>', unsafe_allow_html=True)
+        for _, row in priority_df.iterrows():
             st.markdown(f'''
-            <div class="sac-item {tone}">
-                <div class="sac-item-head">
-                    <div>
-                        <div class="sac-item-title">{tone_emoji} {customer}</div>
-                        <div class="sac-item-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
-                    </div>
-                    <span class="sac-chip {tone}">{tag_text}</span>
+            <div class="sac-priority-item">
+                <div>
+                    <div class="sac-priority-name">{str(row.get("Customer Name", "-") or "-")}</div>
+                    <div class="sac-priority-meta">{str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")} • {str(row.get("Industry", "ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")}<br>Gap {int(float(row.get("gap_kg", 0) or 0)):,} kg • Score {float(row.get("opportunity_score", 0) or 0):.1f}</div>
                 </div>
-                <div class="sac-foot">
-                    <span class="sac-next">{tone_emoji} Next: {next_action}</span>
-                    <span class="sac-score">⭐ Score {score:.1f}</span>
+                <div class="sac-priority-meta" style="text-align:right;white-space:nowrap;">
+                    {str(row.get("next_action", "Follow-up"))}<br><span style="font-weight:800;color:#0f172a;">{float(row.get("achievement_pct", 0) or 0):.1f}%</span>
                 </div>
             </div>
             ''', unsafe_allow_html=True)
-
-    col_x, col_y, col_z = st.columns(3)
-    with col_x:
-        render_action_list(overdue_df, "red")
-    with col_y:
-        render_action_list(today_df, "orange")
-    with col_z:
-        render_action_list(week_df, "yellow")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with p2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>✨ Quick Summary</h4><p>สรุปภาพรวมแบบสดใสและอ่านง่าย เพื่อช่วยตัดสินใจว่าควรเริ่มโฟกัสพอร์ตส่วนไหนก่อน</p>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div class="sac-side-stat">
+            <div class="sac-side-box"><div class="n">{total_customers:,}</div><div class="l">Customers in view</div></div>
+            <div class="sac-side-box"><div class="n">{today_actions:,}</div><div class="l">Actions today</div></div>
+            <div class="sac-side-box"><div class="n">{high_priority_count:,}</div><div class="l">High priority</div></div>
+            <div class="sac-side-box"><div class="n">{risk_count:,}</div><div class="l">Need recovery</div></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        quick_view = priority_df[["Customer Name", "Province", "priority_label", "next_action"]].rename(columns={
+            "Customer Name": "Customer",
+            "Province": "Province",
+            "priority_label": "Priority",
+            "next_action": "Next Action",
+        }).copy()
+        st.dataframe(style_rich_dataframe(quick_view), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
-    c1, c2 = st.columns([1.1, 0.9])
-    with c1:
-        render_section_header("🌈 Priority Accounts", "ลูกค้าที่ควรโฟกัสก่อนจาก score และ gap", "🎯", "#8b5cf6")
-        show_cols = [c for c in ["Customer Name","Province","Industry","gap_kg","achievement_pct","opportunity_score"] if c in priority_df.columns]
-        st.dataframe(style_rich_dataframe(priority_df[show_cols], numeric_cols=["gap_kg","opportunity_score"], pct_cols=["achievement_pct"]), use_container_width=True, hide_index=True)
-    with c2:
-        render_section_header("⚠️ Risk Signals & Pipeline", "สรุปสัญญาณความเสี่ยงและภาพรวม stage", "🧭", "#f59e0b")
-        if not risk_df.empty:
-            risk_show = risk_df[[c for c in ["Customer Name","Province","achievement_pct","yoy_pct","gap_kg"] if c in risk_df.columns]].head(6)
-            st.dataframe(style_rich_dataframe(risk_show, numeric_cols=["gap_kg"], pct_cols=["achievement_pct","yoy_pct"]), use_container_width=True, hide_index=True)
-        if not pipeline_df.empty:
-            fig = px.bar(pipeline_df, x="stage_label", y="customers", text="customers")
-            fig.update_layout(height=280, margin=dict(l=10,r=10,t=20,b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True)
+    render_section_header(
+        title="📊 Pipeline & Risk Signals",
+        subtitle="ดูภาพรวม stage ของพอร์ตคุณควบคู่กับลูกค้าที่ต้องกู้กลับมา เพื่อให้ execution ไหลลื่นและไม่พลาดดีลสำคัญ",
+        icon="💫",
+        accent="#f97316",
+    )
+    r1, r2 = st.columns([1, 1])
+    with r1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>📊 My Pipeline</h4><p>เห็นสัดส่วนลูกค้าในแต่ละช่วง เพื่อบาลานซ์ระหว่างการสร้างโอกาสใหม่กับการเร่งปิดดีล</p>', unsafe_allow_html=True)
+        fig_pipe = px.bar(
+            pipeline_df,
+            x="stage_label",
+            y="customers",
+            text="customers",
+            color="stage_label",
+            color_discrete_map={"Lead": "#93c5fd", "Deal": "#60a5fa", "Closing": "#1d4ed8"},
+            labels={"stage_label": "Stage", "customers": "Customers"},
+        )
+        fig_pipe.update_traces(marker_line_width=0, textposition="outside")
+        fig_pipe.update_layout(height=310, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_pipe, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with r2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
+        risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
+            "Customer Name": "Customer",
+            "achievement_pct": "Achievement %",
+            "yoy_pct": "YoY %",
+            "risk_label": "Risk",
+            "next_action": "Next Action",
+        }).copy()
+        st.dataframe(style_rich_dataframe(risk_view, pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="Performance & Export",
+        subtitle="ส่วนล่างไว้สรุปผลแบบกะทัดรัดและให้ส่งออกต่อไปใช้กับการประชุม, route planning หรือ SharePoint ได้ทันที",
+        icon="📦",
+        accent="#7c3aed",
+    )
+    b1, b2 = st.columns([0.95, 1.05])
+    with b1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
+        perf1, perf2 = st.columns(2)
+        with perf1:
+            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+        with perf2:
+            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with b2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+        export_sheets = {
+            "Sales Action Center": rep,
+            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
+            "Priority Accounts": priority_df,
+            "Risk Signals": risk_df,
+        }
+        report_xlsx = to_excel_bytes_multi(export_sheets)
+        ex1, ex2, ex3 = st.columns(3)
+        with ex1:
+            st.download_button(
+                "⬇️ Action Excel",
+                data=report_xlsx,
+                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        with ex2:
+            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+            st.download_button(
+                "⬇️ Action CSV",
+                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with ex3:
+            if st.button("☁️ Upload SharePoint", use_container_width=True):
+                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if ok:
+                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MENU 3 – EDIT / ADD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+else:
+    _scroll_top()
+    st.title("✏️ แก้ไข / เพิ่มข้อมูลลูกค้า")
+
+    if df.empty or "Customer Name" not in df.columns:
+        st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
+        st.stop()
+
+    edit_source_df = filter_df_for_current_user(df)
+    if edit_source_df.empty and str(st.session_state.get("user_role") or "").strip().lower() != "staff":
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
+    can_delete_records = str(st.session_state.get("user_role") or "").strip().lower() in ["admin", "manager"]
+    is_staff_user = str(st.session_state.get("user_role") or "").strip().lower() == "staff"
+
+    tab_edit, tab_add = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่"])
+    GRADE_COLOR = {"A": "#16a34a", "A-": "#22c55e", "B": "#2563eb", "B-": "#60a5fa",
+                   "C": "#d97706", "C-": "#f59e0b", "F": "#dc2626"}
+
+    def _s(v):
+        x = str(v).strip() if pd.notna(v) else ""
+        return x if x and x != "nan" else ""
+
+    def _commit_save(label: str = "บันทึก"):
+        if st.session_state.sp_file and st.session_state.dept:
+            with st.spinner("💾 กำลังบันทึกขึ้น SharePoint…"):
+                ok = sp_save(st.session_state.df,
+                             st.session_state.dept,
+                             st.session_state.sp_file)
+            if ok:
+                sync_current_file_version(st.session_state.dept, st.session_state.sp_file)
+                st.session_state.remote_changed = False
+                append_audit_log("save_sharepoint", label, st.session_state.dept)
+                st.success(f"✅ {label} สำเร็จ! (บันทึกขึ้น SharePoint แล้ว)")
+            else:
+                st.warning(f"⚠️ {label} ใน session แล้ว แต่ upload SharePoint ไม่สำเร็จ — ลอง Export แทน")
+        else:
+            append_audit_log("save_session", label, st.session_state.get("dept") or "")
+            st.success(f"✅ {label} สำเร็จ! (บันทึกใน session — กรุณา Export เพื่อเก็บไฟล์)")
+
+    with tab_edit:
+        if can_delete_records:
+            sc1, sc2, sc3 = st.columns([4, 1.2, 1.2])
+        else:
+            sc1, sc2 = st.columns([4, 1.2])
+        srch2 = sc1.text_input("", key="edit_srch", placeholder="🔎 ค้นหาชื่อบริษัท…",
+                               label_visibility="collapsed")
+        if sc2.button("✏️ แก้ไข",
+                      type="primary" if st.session_state.edit_mode == "edit" else "secondary",
+                      use_container_width=True):
+            st.session_state.edit_mode = "edit"; st.session_state.confirm_delete = False; st.rerun()
+        if can_delete_records:
+            if sc3.button("🗑️ ลบ",
+                          type="primary" if st.session_state.edit_mode == "delete" else "secondary",
+                          use_container_width=True):
+                st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        elif st.session_state.edit_mode == "delete":
+            st.session_state.edit_mode = "edit"
+            st.session_state.confirm_delete = False
+
+        mask   = (edit_source_df["Customer Name"].str.contains(srch2, case=False, na=False).values
+                  if srch2 else [True] * len(edit_source_df))
+        subset = edit_source_df[mask].copy()
+        subset["_orig_idx"] = subset.index
+        subset = subset.reset_index(drop=True)
+        orig_idx = subset["_orig_idx"].tolist()
+
+        if subset.empty:
+            st.info("ไม่พบข้อมูล")
+        else:
+            st.caption(f"พบ **{len(subset):,}** รายการ  •  "
+                       f"{'✏️ โหมดแก้ไข' if st.session_state.edit_mode=='edit' else '🗑️ โหมดลบ'}")
+            st.divider()
+
+            if st.session_state.edit_mode == "delete":
+                if ("del_checks" not in st.session_state or
+                        len(st.session_state.del_checks) != len(subset)):
+                    st.session_state.del_checks = [False] * len(subset)
+                sa1, sa2, _ = st.columns([1.5, 1.8, 6])
+                if sa1.button("☑️ เลือกทั้งหมด", use_container_width=True):
+                    st.session_state.del_checks = [True] * len(subset); st.rerun()
+                if sa2.button("⬜ ยกเลิกทั้งหมด", use_container_width=True):
+                    st.session_state.del_checks = [False] * len(subset); st.rerun()
+
+            if "editing_idx" not in st.session_state:
+                st.session_state.editing_idx = None
+
+            for i, row in subset.iterrows():
+                orig_i    = orig_idx[i]
+                name      = _s(row.get("Customer Name"))
+                sp        = _s(row.get("Salesperson"))
+                ind       = _s(row.get("Industry"))
+                grade     = _s(row.get("Grade"))
+                sales_v   = row.get("Sales/Year", 0)
+                try:    sales_fmt = f"฿{int(round(float(sales_v))):,}"
+                except: sales_fmt = "—"
+                raw_addr  = _s(row.get("Address", ""))
+                addr_line = raw_addr.split("\n")[0].strip()
+                prov      = _s(row.get("Province"))
+                g_color   = GRADE_COLOR.get(grade, "#6b7280")
+                loc_txt   = addr_line if addr_line else (prov if prov else "—")
+
+                card_tpl = (
+                    '<div style="border:{border};background:{bg};border-radius:12px;'
+                    'padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+                    '<div style="display:flex;justify-content:space-between;align-items:center">'
+                    '<span style="font-weight:700;font-size:14px;color:#1e293b">{name}</span>'
+                    '<span style="font-weight:600;color:#16a34a;font-size:13px">{sales}</span></div>'
+                    '<div style="margin-top:4px">'
+                    '<span style="background:{gc};color:#fff;font-size:11px;font-weight:700;'
+                    'padding:2px 9px;border-radius:12px">{grade}</span>'
+                    '&nbsp;<span style="color:#64748b;font-size:12px">👤 {sp}&nbsp;|&nbsp;🏭 {ind}</span>'
+                    '</div>'
+                    '<div style="color:#475569;font-size:11.5px;margin-top:5px">📍 {loc}</div></div>'
+                )
+
+                if st.session_state.edit_mode == "delete":
+                    checked = st.session_state.del_checks[i]
+                    card = card_tpl.format(
+                        border="2px solid #ef4444" if checked else "1px solid #e2e8f0",
+                        bg="#fff5f5" if checked else "#ffffff",
+                        name=name, sales=sales_fmt, gc=g_color,
+                        grade=grade or "—", sp=sp, ind=ind, loc=loc_txt)
+                    col_chk, col_card = st.columns([0.4, 11])
+                    new_val = col_chk.checkbox("", value=checked,
+                                               key=f"chk_{i}_{orig_i}",
+                                               label_visibility="collapsed")
+                    if new_val != checked:
+                        st.session_state.del_checks[i] = new_val; st.rerun()
+                    col_card.markdown(card, unsafe_allow_html=True)
+
+                else:
+                    is_open = (st.session_state.editing_idx == orig_i)
+                    card = card_tpl.format(
+                        border="2px solid #2563eb" if is_open else "1px solid #e2e8f0",
+                        bg="#f0f7ff" if is_open else "#ffffff",
+                        name=name, sales=sales_fmt, gc=g_color,
+                        grade=grade or "—", sp=sp, ind=ind, loc=loc_txt)
+                    col_card, col_btn = st.columns([10, 1.2])
+                    col_card.markdown(card, unsafe_allow_html=True)
+                    lbl = "✕ ปิด" if is_open else "✏️ แก้ไข"
+                    if col_btn.button(lbl, key=f"ebtn_{i}_{orig_i}", use_container_width=True):
+                        st.session_state.editing_idx = None if is_open else orig_i; st.rerun()
+
+                    if is_open:
+                        with st.form(key=f"form_edit_{orig_i}"):
+                            st.markdown("##### ✏️ แก้ไขข้อมูล")
+                            ef1, ef2, ef3 = st.columns([3, 3, 1.5])
+                            new_name  = ef1.text_input("🏢 Customer Name", value=name)
+                            if is_staff_user:
+                                new_sp = sp
+                                ef2.text_input("👤 Salesperson", value=sp, disabled=True)
+                            else:
+                                new_sp = ef2.text_input("👤 Salesperson", value=sp)
+                            gopts     = ["", "A", "A-", "B", "B-", "C", "C-", "F"]
+                            new_grade = ef3.selectbox("⭐ Grade", gopts,
+                                                      index=gopts.index(grade) if grade in gopts else 0)
+                            ef4, ef5 = st.columns([3, 2])
+                            new_ind   = ef4.text_input("🏭 Business Type", value=ind)
+                            try:    sv = int(round(float(sales_v)))
+                            except: sv = 0
+                            new_sales = ef5.number_input("💰 Sales/Year (฿)", value=sv, min_value=0, step=100000)
+                            pf1, pf2 = st.columns([2, 3])
+                            cur_pc   = _s(row.get("Plus_Code", ""))
+                            cur_bk   = int(row.get("Budget_kg",  0) or 0)
+                            new_pc   = pf1.text_input("📌 Plus Code", value=cur_pc,
+                                                       placeholder="เช่น MC8G+82 กรุงเทพมหานคร")
+                            new_bkg  = pf2.number_input("🎯 Budget (kg/yr)", value=cur_bk,
+                                                         min_value=0, step=100)
+                            pf3, pf4 = st.columns([2, 3])
+                            cur_act  = int(row.get("Actual_kg",  0) or 0)
+                            cur_ly   = int(row.get("LastYear_kg", 0) or 0)
+                            new_act  = pf3.number_input("✅ Actual (kg/yr)",  value=cur_act,
+                                                         min_value=0, step=100)
+                            new_ly   = pf4.number_input("📅 Last Year (kg)",  value=cur_ly,
+                                                         min_value=0, step=100)
+                            pm1, pm2, pm3 = st.columns(3)
+                            if cur_bk > 0:
+                                pm1.metric("📊 Achievement", f"{cur_act/cur_bk*100:.1f}%",
+                                           delta=f"{cur_act-cur_bk:+,} kg")
+                            if cur_ly > 0:
+                                pm2.metric("📈 YoY Growth",
+                                           f"{(cur_act-cur_ly)/cur_ly*100:+.1f}%",
+                                           delta=f"{cur_act-cur_ly:+,} kg")
+                            if cur_bk > 0:
+                                pm3.metric("📉 Gap to Budget", f"{cur_bk-cur_act:,} kg",
+                                           delta_color="inverse")
+                            new_addr = st.text_area("📍 Address (เต็ม)", value=raw_addr, height=90)
+                            saved = st.form_submit_button("💾 บันทึก", type="primary",
+                                                           use_container_width=True)
+                            if saved:
+                                clean_pc = clean_plus_code(new_pc)
+                                merged_addr = merge_address_parts(new_addr, new_pc)
+                                st.session_state.df.at[orig_i, "Customer Name"] = new_name
+                                st.session_state.df.at[orig_i, "Salesperson"]   = new_sp
+                                st.session_state.df.at[orig_i, "Industry"]      = new_ind
+                                st.session_state.df.at[orig_i, "Grade"]         = new_grade
+                                st.session_state.df.at[orig_i, "Sales/Year"]    = new_sales
+                                st.session_state.df.at[orig_i, "Plus_Code"]     = clean_pc
+                                st.session_state.df.at[orig_i, "Budget_kg"]     = new_bkg
+                                st.session_state.df.at[orig_i, "Actual_kg"]     = new_act
+                                st.session_state.df.at[orig_i, "LastYear_kg"]   = new_ly
+                                st.session_state.df.at[orig_i, "Address"]       = merged_addr
+                                if merged_addr.strip():
+                                    _sub, _dis, _prov, _reg = parse_address(merged_addr)
+                                    st.session_state.df.at[orig_i, "Sub-district"] = _sub
+                                    st.session_state.df.at[orig_i, "District"]     = _dis
+                                    st.session_state.df.at[orig_i, "Province"]     = _prov
+                                    st.session_state.df.at[orig_i, "Region"]       = _reg
+                                else:
+                                    st.session_state.df.at[orig_i, "Sub-district"] = ""
+                                    st.session_state.df.at[orig_i, "District"]     = ""
+                                    st.session_state.df.at[orig_i, "Province"]     = ""
+                                    st.session_state.df.at[orig_i, "Region"]       = "Unknown"
+                                st.session_state.df["Region_TH"] = (
+                                    st.session_state.df["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ"))
+                                st.session_state.editing_idx = None
+                                _commit_save(f"บันทึก '{new_name}'")
+                                st.rerun()
+
+            if st.session_state.edit_mode == "delete":
+                sel_idxs  = [orig_idx[i] for i, v in enumerate(st.session_state.del_checks) if v]
+                sel_count = len(sel_idxs)
+                sel_names = [_s(subset.iloc[i].get("Customer Name", ""))
+                             for i, v in enumerate(st.session_state.del_checks) if v]
+                st.divider()
+                da, db = st.columns([2.5, 5])
+                with da:
+                    del_btn = st.button(
+                        f"🗑️ ลบที่เลือก ({sel_count})" if sel_count else "🗑️ ลบที่เลือก",
+                        type="primary" if sel_count else "secondary",
+                        disabled=(sel_count == 0), use_container_width=True)
+                with db:
+                    if sel_count:
+                        prev = ", ".join(sel_names[:3]) + (f" +{sel_count-3}" if sel_count > 3 else "")
+                        st.warning(f"จะลบ: **{prev}**")
+                if del_btn: st.session_state.confirm_delete = True
+                if st.session_state.get("confirm_delete") and sel_count > 0:
+                    st.error(f"⚠️ ยืนยันลบ **{sel_count} รายการ**? ไม่สามารถย้อนกลับได้")
+                    cc1, cc2, _ = st.columns([1.5, 1.5, 5])
+                    with cc1:
+                        if st.button("✅ ยืนยัน", type="primary",
+                                     use_container_width=True, key="confirm_yes"):
+                            st.session_state.df = (
+                                st.session_state.df.drop(index=sel_idxs).reset_index(drop=True))
+                            st.session_state.del_checks  = []
+                            st.session_state.confirm_delete = False
+                            _commit_save(f"ลบ {sel_count} รายการ")
+                            st.rerun()
+                    with cc2:
+                        if st.button("❌ ยกเลิก", use_container_width=True, key="confirm_no"):
+                            st.session_state.confirm_delete = False; st.rerun()
+
+    with tab_add:
+        st.caption("กรอกข้อมูลลูกค้าใหม่ — ระบบจะ Parse Province จาก Address อัตโนมัติ")
+        with st.form("form_add", clear_on_submit=True):
+            r1c1, r1c2 = st.columns(2)
+            n_name = r1c1.text_input("Customer Name *")
+            if is_staff_user:
+                _staff_sp_default = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
+                n_sp = _staff_sp_default
+                r1c2.text_input("Salesperson", value=_staff_sp_default, disabled=True)
+            else:
+                n_sp = r1c2.text_input("Salesperson")
+            r2c1, r2c2, r2c3 = st.columns(3)
+            n_ind   = r2c1.text_input("Industry")
+            n_grade = r2c2.selectbox("Grade", ["", "A", "A-", "B", "B-", "C", "C-", "F"])
+            n_sales = r2c3.number_input("Sales/Year (฿)", min_value=0.0, step=100_000.0)
+            n_pc   = st.text_input("📌 Plus Code", placeholder="เช่น MJHG+2F กรุงเทพมหานคร")
+            n_addr = st.text_area("Address (ระบุเพื่อ Auto-parse)")
+            st.markdown("**หรือระบุที่อยู่เองด้านล่าง** (ว่าง = Auto-parse)")
+            r3c1, r3c2, r3c3, r3c4 = st.columns(4)
+            n_sub  = r3c1.text_input("Sub-district")
+            n_dis  = r3c2.text_input("District")
+            n_prov = r3c3.text_input("Province")
+            n_reg  = r3c4.selectbox("Region", ["", "Central", "North", "Northeast",
+                                                "East", "West", "South"])
+            ok = st.form_submit_button("➕ เพิ่มลูกค้า", type="primary", use_container_width=True)
+
+        if ok:
+            if not n_name.strip():
+                st.error("กรุณากรอก Customer Name")
+            else:
+                clean_pc = clean_plus_code(n_pc)
+                merged_addr = merge_address_parts(n_addr, n_pc)
+                auto_sub, auto_dis, auto_prov, auto_reg = parse_address(merged_addr)
+                new_row = {
+                    "Customer Name": n_name.strip(), "Salesperson": n_sp,
+                    "Industry": n_ind, "Grade": n_grade, "Sales/Year": n_sales,
+                    "Plus_Code": clean_pc, "Address": merged_addr,
+                    "Sub-district": n_sub or auto_sub, "District": n_dis or auto_dis,
+                    "Province": n_prov or auto_prov, "Region": n_reg or auto_reg,
+                    "Budget_kg": 0, "Actual_kg": 0, "LastYear_kg": 0,
+                }
+                new_row["Region_TH"] = REGION_EN_TO_TH.get(new_row["Region"], "ไม่ระบุ")
+                st.session_state.df = pd.concat(
+                    [st.session_state.df, pd.DataFrame([new_row])], ignore_index=True)
+                _commit_save(f"เพิ่ม '{n_name}'")
+                st.rerun()
+
+    st.divider()
+    st.subheader("⬇️ Export ข้อมูลทั้งหมด")
+    ec1, ec2 = st.columns(2)
+    all_c   = [c for c in TEMPLATE_COLS if c in st.session_state.df.columns]
+    exp_all = st.session_state.df[all_c]
+    ec1.download_button("📥 Export CSV",   data=exp_all.to_csv(index=False, encoding="utf-8-sig"),
+                        file_name="all_customers.csv", mime="text/csv", use_container_width=True)
+    ec2.download_button("📥 Export Excel", data=to_excel_bytes(exp_all),
+                        file_name="all_customers.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True)
