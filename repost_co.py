@@ -3175,28 +3175,31 @@ elif menu == "🎯 Sales Action Center":
     .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
     .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
     .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
-    .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
+    .sac-action-card{border-radius:28px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.10);margin-bottom:22px;}
     .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
     .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
     .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
-    .sac-card-pill.red{background:#fff1f2;color:#e11d48;border:1px solid #fda4af;}
-    .sac-card-pill.orange{background:#fff7ed;color:#f97316;border:1px solid #fdba74;}
-    .sac-card-pill.yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
+    .sac-card-pill.red{background:linear-gradient(180deg,#fff1f2 0%,#ffe4e6 100%);color:#e11d48;border:1px solid #fb7185;box-shadow:0 8px 16px rgba(244,63,94,.12);}
+    .sac-card-pill.orange{background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%);color:#ea580c;border:1px solid #fb923c;box-shadow:0 8px 16px rgba(249,115,22,.12);}
+    .sac-card-pill.yellow{background:linear-gradient(180deg,#fefce8 0%,#fef3c7 100%);color:#ca8a04;border:1px solid #facc15;box-shadow:0 8px 16px rgba(234,179,8,.12);}
     .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
     .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
     .sac-task-list{display:flex;flex-direction:column;gap:16px;}
-    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);}
+    .sac-task{border:1px solid #e3edf9;border-radius:24px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 14px 28px rgba(148,163,184,.10);}
+    .sac-task.red{background:linear-gradient(180deg,#fff7f8 0%,#fff1f2 100%);border-color:#fecdd3;}
+    .sac-task.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
+    .sac-task.yellow{background:linear-gradient(180deg,#fffef6 0%,#fefce8 100%);border-color:#fde68a;}
     .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
     .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
     .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
     .sac-tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);}
-    .sac-tag.red{background:#ffe4e6;color:#e11d48;border:1px solid #fecdd3;}
-    .sac-tag.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
-    .sac-tag.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
+    .sac-tag.red{background:linear-gradient(180deg,#ffe4e6 0%,#fecdd3 100%);color:#be123c;border:1px solid #fb7185;}
+    .sac-tag.orange{background:linear-gradient(180deg,#ffedd5 0%,#fed7aa 100%);color:#c2410c;border:1px solid #fb923c;}
+    .sac-tag.yellow{background:linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);color:#a16207;border:1px solid #eab308;}
     .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
-    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
-    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;}
+    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:linear-gradient(180deg,#eef4ff 0%,#dbeafe 100%);border:1px solid #93c5fd;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(59,130,246,.08);}
+    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:linear-gradient(180deg,#ecfeff 0%,#ccfbf1 100%);border:1px solid #67e8f9;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(45,212,191,.08);}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:28px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.08);height:100%;}
     .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
     .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
     .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
@@ -3204,10 +3207,10 @@ elif menu == "🎯 Sales Action Center":
     .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
     .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
     .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
-    .sac-side-box{padding:16px;border-radius:20px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
+    .sac-side-box{padding:16px;border-radius:22px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 20px rgba(59,130,246,.06);}
     .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
     .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
-    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
+    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 16px rgba(148,163,184,.05);}
     @media (max-width: 1200px){
         .sac-title{font-size:34px;}
         .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
@@ -3232,7 +3235,7 @@ elif menu == "🎯 Sales Action Center":
             next_action = _safe_html(str(row.get("next_action", "Follow-up")))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
             rows.append(
-                f'<div class="sac-task">'
+                f'<div class="sac-task {tone}">'
                 f'<div class="sac-task-head">'
                 f'<div>'
                 f'<div class="sac-task-name">{tone_emoji.get(tone, "✨")} {customer}</div>'
