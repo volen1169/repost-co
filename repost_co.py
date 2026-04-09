@@ -32,6 +32,7 @@ import traceback
 import json
 import os
 import textwrap
+import html
 import msal
 from datetime import datetime
 
@@ -1217,6 +1218,9 @@ def _normalize_person_name(value: str) -> str:
     s = re.sub(r"[^a-z0-9ก-๙\s]", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
     return s
+
+def _safe_html(value: object) -> str:
+    return html.escape(str(value or ""), quote=True)
 
 
 def _get_staff_visible_names() -> list[str]:
