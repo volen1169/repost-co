@@ -3162,27 +3162,17 @@ elif menu == "🎯 Sales Action Center":
     .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
     .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
     .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
-    .sac-action-card{border-radius:28px;padding:24px 24px 20px 24px;border:1px solid #dbe9fb;box-shadow:0 20px 40px rgba(37,99,235,.10);margin-bottom:22px;position:relative;overflow:hidden;}
-    .sac-action-card:before{content:"";position:absolute;right:-36px;top:-36px;width:120px;height:120px;border-radius:999px;opacity:.5;}
-    .sac-action-card.red{background:linear-gradient(180deg,#fff1f2 0%,#ffffff 72%);border-color:#fecdd3;box-shadow:0 20px 40px rgba(225,29,72,.12);}
-    .sac-action-card.red:before{background:rgba(244,63,94,.12);}
-    .sac-action-card.orange{background:linear-gradient(180deg,#fff7ed 0%,#ffffff 72%);border-color:#fdba74;box-shadow:0 20px 40px rgba(234,88,12,.10);}
-    .sac-action-card.orange:before{background:rgba(249,115,22,.12);}
-    .sac-action-card.yellow{background:linear-gradient(180deg,#fefce8 0%,#ffffff 72%);border-color:#fde68a;box-shadow:0 20px 40px rgba(202,138,4,.10);}
-    .sac-action-card.yellow:before{background:rgba(250,204,21,.16);}
-    .sac-card-top{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
+    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
     .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
     .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
-    .sac-card-pill.red{background:#ffe4e6;color:#e11d48;border:1px solid #fda4af;}
-    .sac-card-pill.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
-    .sac-card-pill.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
-    .sac-mini-kpi{position:relative;z-index:1;font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
-    .sac-mini-sub{position:relative;z-index:1;font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
-    .sac-task-list{display:flex;flex-direction:column;gap:18px;}
-    .sac-task-list.red .sac-task{background:linear-gradient(180deg,#fff6f7 0%,#ffffff 100%);border-color:#fecdd3;box-shadow:0 14px 30px rgba(225,29,72,.08);}
-    .sac-task-list.orange .sac-task{background:linear-gradient(180deg,#fffaf4 0%,#ffffff 100%);border-color:#fed7aa;box-shadow:0 14px 30px rgba(234,88,12,.07);}
-    .sac-task-list.yellow .sac-task{background:linear-gradient(180deg,#fffdf2 0%,#ffffff 100%);border-color:#fde68a;box-shadow:0 14px 30px rgba(202,138,4,.07);}
-    .sac-task{border:1px solid #e3edf9;border-radius:24px;padding:18px 18px 16px 18px;box-shadow:0 12px 28px rgba(148,163,184,.10);}
+    .sac-card-pill.red{background:#fff1f2;color:#e11d48;border:1px solid #fda4af;}
+    .sac-card-pill.orange{background:#fff7ed;color:#f97316;border:1px solid #fdba74;}
+    .sac-card-pill.yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
+    .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
+    .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
+    .sac-task-list{display:flex;flex-direction:column;gap:16px;}
+    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);}
     .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
     .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
     .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
@@ -3190,15 +3180,9 @@ elif menu == "🎯 Sales Action Center":
     .sac-tag.red{background:#ffe4e6;color:#e11d48;border:1px solid #fecdd3;}
     .sac-tag.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
     .sac-tag.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
-    .sac-task-foot{margin-top:12px;padding-top:12px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .sac-next{font-size:12px;font-weight:800;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
-    .sac-task-list.red .sac-next{background:#fff1f2;border-color:#fecdd3;color:#be123c;}
-    .sac-task-list.orange .sac-next{background:#fff7ed;border-color:#fdba74;color:#c2410c;}
-    .sac-task-list.yellow .sac-next{background:#fefce8;border-color:#fde68a;color:#a16207;}
+    .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
     .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
-    .sac-task-list.red .sac-score{background:#fff5f7;border-color:#fbcfe8;color:#be185d;}
-    .sac-task-list.orange .sac-score{background:#fff7ed;border-color:#fed7aa;color:#c2410c;}
-    .sac-task-list.yellow .sac-score{background:#fffbeb;border-color:#fde68a;color:#a16207;}
     .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;}
     .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
     .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
@@ -3218,19 +3202,16 @@ elif menu == "🎯 Sales Action Center":
     </style>
     ''', unsafe_allow_html=True)
 
+    def _safe_html(value):
+        import html
+        return html.escape(str(value if value is not None else ""))
+
     def _render_action_list(df_in, tone="red"):
         if df_in.empty:
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
-
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
-        tone_tag = {
-            "red": lambda days: f"🚨 {days}d inactive",
-            "orange": lambda days: "📌 Today",
-            "yellow": lambda days: "🗓️ This week",
-        }
-
-        st.markdown(f'<div class="sac-task-list {tone}">', unsafe_allow_html=True)
+        rows = []
         for _, row in df_in.iterrows():
             customer = _safe_html(str(row.get("Customer Name", "") or "-"))
             province = _safe_html(str(row.get("Province", "") or "ไม่ระบุจังหวัด"))
@@ -3240,24 +3221,23 @@ elif menu == "🎯 Sales Action Center":
             days = int(float(row.get("last_activity_days", 0) or 0))
             score = float(row.get("opportunity_score", 0) or 0)
             next_action = _safe_html(str(row.get("next_action", "Follow-up")))
-            tag_text = tone_tag.get(tone, tone_tag["orange"])(days)
-            card_html = f"""
-            <div class=\"sac-task\">
-                <div class=\"sac-task-head\">
+            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
+            rows.append(f'''
+            <div class="sac-task">
+                <div class="sac-task-head">
                     <div>
-                        <div class=\"sac-task-name\">{tone_emoji.get(tone, '✨')} {customer}</div>
-                        <div class=\"sac-task-meta\">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
+                        <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
+                        <div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>
                     </div>
-                    <span class=\"sac-tag {tone}\">{tag_text}</span>
+                    <span class="sac-tag {tone}">{tag_text}</span>
                 </div>
-                <div class=\"sac-task-foot\">
-                    <span class=\"sac-next\">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
-                    <span class=\"sac-score\">⭐ Score {score:.1f}</span>
+                <div class="sac-task-foot">
+                    <span class="sac-next">{tone_emoji.get(tone, '✨')} Next: {next_action}</span>
+                    <span class="sac-score">⭐ Score {score:.1f}</span>
                 </div>
             </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            ''')
+        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
     st.markdown(f'''
@@ -3293,7 +3273,7 @@ elif menu == "🎯 Sales Action Center":
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         st.markdown(f'''
-        <div class="sac-action-card red">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">🚨 Overdue</div>
                 <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
@@ -3305,7 +3285,7 @@ elif menu == "🎯 Sales Action Center":
         _render_action_list(overdue_df, "red")
     with col_b:
         st.markdown(f'''
-        <div class="sac-action-card orange">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">📌 Today</div>
                 <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
@@ -3317,7 +3297,7 @@ elif menu == "🎯 Sales Action Center":
         _render_action_list(today_df, "orange")
     with col_c:
         st.markdown(f'''
-        <div class="sac-action-card yellow">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">🗓️ This Week</div>
                 <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
