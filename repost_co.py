@@ -3152,9 +3152,15 @@ elif menu == "🎯 Sales Action Center":
 
     st.markdown('''
     <style>
-    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
-    .sac-section-gap{height:24px;}
-    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 24px 0;background:linear-gradient(135deg,#182b72 0%,#365df8 42%,#27c2ff 78%,#67e8f9 100%);box-shadow:0 30px 64px rgba(37,99,235,.28);color:#fff;}
+    .sac-shell{padding-top:.35rem;padding-bottom:1.8rem;}
+    .sac-shell div[data-testid="column"]{padding:8px 10px !important;}
+    .sac-tight-top{margin-top:6px;}
+    .sac-row-gap{height:20px;}
+    .sac-kpi-wrap{margin:2px 0 14px 0;}
+    .sac-kpi-wrap .stColumn{display:flex;}
+
+    .sac-section-gap{height:18px;}
+    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
     .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
     .sac-hero:after{content:"";position:absolute;width:210px;height:210px;right:108px;bottom:-90px;border-radius:999px;background:rgba(255,255,255,.06);}
     .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;}
@@ -3162,35 +3168,34 @@ elif menu == "🎯 Sales Action Center":
     .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
     .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
     .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
-    .sac-action-card{border-radius:26px;padding:24px 24px 20px 24px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:22px;}
+    .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
+    .sac-action-card.red{background:linear-gradient(180deg,#fff8f8 0%,#fff1f2 100%);border-color:#fecdd3;}
+    .sac-action-card.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
+    .sac-action-card.yellow{background:linear-gradient(180deg,#fffdf2 0%,#fefce8 100%);border-color:#fde68a;}
     .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
     .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
     .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
-    .sac-card-pill.red{background:linear-gradient(180deg,#fff1f2 0%,#ffe4e6 100%);color:#e11d48;border:1px solid #fb7185;box-shadow:0 8px 18px rgba(244,63,94,.10);}
-    .sac-card-pill.orange{background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%);color:#ea580c;border:1px solid #fb923c;box-shadow:0 8px 18px rgba(249,115,22,.10);}
-    .sac-card-pill.yellow{background:linear-gradient(180deg,#fefce8 0%,#fef3c7 100%);color:#ca8a04;border:1px solid #facc15;box-shadow:0 8px 18px rgba(234,179,8,.10);}
+    .sac-card-pill.red{background:#fff1f2;color:#e11d48;border:1px solid #fda4af;}
+    .sac-card-pill.orange{background:#fff7ed;color:#f97316;border:1px solid #fdba74;}
+    .sac-card-pill.yellow{background:#fefce8;color:#ca8a04;border:1px solid #fde68a;}
     .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
     .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
     .sac-task-list{display:flex;flex-direction:column;gap:16px;}
-    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:18px 18px 16px 18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 14px 30px rgba(148,163,184,.11);}
-    .sac-task.red{background:linear-gradient(180deg,#fff8f8 0%,#fff1f2 100%);border-color:#fecdd3;box-shadow:0 14px 30px rgba(244,63,94,.08);}
-    .sac-task.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;box-shadow:0 14px 30px rgba(249,115,22,.08);}
-    .sac-task.yellow{background:linear-gradient(180deg,#fffef8 0%,#fefce8 100%);border-color:#fde68a;box-shadow:0 14px 30px rgba(234,179,8,.08);}
-    .sac-action-card.red{background:linear-gradient(180deg,#fff8f8 0%,#fff1f2 100%);border-color:#fecdd3;}
-    .sac-action-card.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
-    .sac-action-card.yellow{background:linear-gradient(180deg,#fffef8 0%,#fefce8 100%);border-color:#fde68a;}
-
+    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);margin-bottom:2px;}
+    .sac-task.red{background:linear-gradient(180deg,#fff9fa 0%,#fff4f5 100%);border-color:#fecdd3;}
+    .sac-task.orange{background:linear-gradient(180deg,#fffaf6 0%,#fff4eb 100%);border-color:#fed7aa;}
+    .sac-task.yellow{background:linear-gradient(180deg,#fffef8 0%,#fffbea 100%);border-color:#fde68a;}
     .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
     .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
     .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
     .sac-tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);}
-    .sac-tag.red{background:linear-gradient(180deg,#ffe4e6 0%,#fecdd3 100%);color:#e11d48;border:1px solid #fb7185;}
-    .sac-tag.orange{background:linear-gradient(180deg,#ffedd5 0%,#fed7aa 100%);color:#ea580c;border:1px solid #fb923c;}
-    .sac-tag.yellow{background:linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);color:#a16207;border:1px solid #facc15;}
+    .sac-tag.red{background:#ffe4e6;color:#e11d48;border:1px solid #fecdd3;}
+    .sac-tag.orange{background:#ffedd5;color:#ea580c;border:1px solid #fdba74;}
+    .sac-tag.yellow{background:#fef3c7;color:#ca8a04;border:1px solid #fde68a;}
     .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .sac-next{font-size:12px;font-weight:800;color:#1d4ed8;background:linear-gradient(180deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #93c5fd;padding:8px 12px;border-radius:999px;}
-    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:linear-gradient(180deg,#ecfeff 0%,#cffafe 100%);border:1px solid #67e8f9;padding:8px 12px;border-radius:999px;}
-    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:24px 24px 20px 24px;box-shadow:0 18px 34px rgba(37,99,235,.07);height:100%;}
+    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
+    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;margin-bottom:16px;}
     .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
     .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
     .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
@@ -3198,10 +3203,10 @@ elif menu == "🎯 Sales Action Center":
     .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
     .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
     .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
-    .sac-side-box{padding:16px;border-radius:20px;background:linear-gradient(180deg,#eefbff 0%,#eff6ff 50%,#f5f3ff 100%);border:1px solid #bfdbfe;box-shadow:inset 0 1px 0 rgba(255,255,255,.78);}
+    .sac-side-box{padding:16px;border-radius:20px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
     .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
     .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
-    .sac-empty{border:1px dashed #bfdbfe;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f0f9ff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.82);}
+    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
     @media (max-width: 1200px){
         .sac-title{font-size:34px;}
         .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
@@ -3214,6 +3219,7 @@ elif menu == "🎯 Sales Action Center":
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
+        rows = []
         for _, row in df_in.iterrows():
             customer = str(row.get("Customer Name", "") or "-")
             province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
@@ -3224,7 +3230,7 @@ elif menu == "🎯 Sales Action Center":
             score = float(row.get("opportunity_score", 0) or 0)
             next_action = str(row.get("next_action", "Follow-up"))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
-            st.markdown(f"""
+            rows.append(f'''
             <div class="sac-task {tone}">
                 <div class="sac-task-head">
                     <div>
@@ -3238,7 +3244,8 @@ elif menu == "🎯 Sales Action Center":
                     <span class="sac-score">⭐ Score {score:.1f}</span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            ''')
+        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
     st.markdown(f'''
@@ -3254,6 +3261,20 @@ elif menu == "🎯 Sales Action Center":
     </div>
     ''', unsafe_allow_html=True)
 
+    st.markdown('<div class="sac-tight-top"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="📊 My Performance Snapshot",
+        subtitle="ภาพรวมพอร์ตของคุณแบบกะทัดรัด วางไว้ด้านบนเพื่อเห็นยอดและ gap ก่อนเริ่มไล่งานวันนี้",
+        icon="📈",
+        accent="#0ea5e9",
+    )
+    perf_top1, perf_top2 = st.columns(2)
+    with perf_top1:
+        render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+    with perf_top2:
+        render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+
+    st.markdown('<div class="sac-row-gap"></div>', unsafe_allow_html=True)
     top1, top2, top3, top4 = st.columns(4)
     with top1:
         render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
@@ -3397,52 +3418,41 @@ elif menu == "🎯 Sales Action Center":
         icon="📦",
         accent="#7c3aed",
     )
-    b1, b2 = st.columns([0.95, 1.05])
-    with b1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
-        perf1, perf2 = st.columns(2)
-        with perf1:
-            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-        with perf2:
-            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with b2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
-        export_sheets = {
-            "Sales Action Center": rep,
-            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
-            "Priority Accounts": priority_df,
-            "Risk Signals": risk_df,
-        }
-        report_xlsx = to_excel_bytes_multi(export_sheets)
-        ex1, ex2, ex3 = st.columns(3)
-        with ex1:
-            st.download_button(
-                "⬇️ Action Excel",
-                data=report_xlsx,
-                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-            )
-        with ex2:
-            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
-            st.download_button(
-                "⬇️ Action CSV",
-                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
-                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with ex3:
-            if st.button("☁️ Upload SharePoint", use_container_width=True):
-                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                if ok:
-                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
-                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+    st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+    export_sheets = {
+        "Sales Action Center": rep,
+        "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
+        "Priority Accounts": priority_df,
+        "Risk Signals": risk_df,
+    }
+    report_xlsx = to_excel_bytes_multi(export_sheets)
+    ex1, ex2, ex3 = st.columns(3)
+    with ex1:
+        st.download_button(
+            "⬇️ Action Excel",
+            data=report_xlsx,
+            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with ex2:
+        export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+        st.download_button(
+            "⬇️ Action CSV",
+            data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with ex3:
+        if st.button("☁️ Upload SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
