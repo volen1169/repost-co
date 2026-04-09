@@ -3062,10 +3062,12 @@ elif menu == "🎯 Sales Action Center":
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
-    exec_source_df = filter_df_for_current_user(df)
+    exec_source_df = filter_df_for_current_user(df).copy()
+    exec_source_df["Budget_kg"] = pd.to_numeric(exec_source_df.get("Budget_kg", 0), errors="coerce").fillna(0)
+    exec_source_df = exec_source_df[exec_source_df["Budget_kg"] > 0].copy()
     if exec_source_df.empty:
         st.title("🎯 Sales Action Center")
-        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.info("ยังไม่มีบริษัทในความรับผิดชอบของคุณที่มี Budget สำหรับแสดงในหน้า Sales Action Center")
         st.stop()
 
     rep = build_executive_report_df(exec_source_df)
@@ -3152,13 +3154,7 @@ elif menu == "🎯 Sales Action Center":
 
     st.markdown('''
     <style>
-    .sac-shell{padding-top:.35rem;padding-bottom:1.8rem;}
-    .sac-shell div[data-testid="column"]{padding:8px 10px !important;}
-    .sac-tight-top{margin-top:6px;}
-    .sac-row-gap{height:20px;}
-    .sac-kpi-wrap{margin:2px 0 14px 0;}
-    .sac-kpi-wrap .stColumn{display:flex;}
-
+    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
     .sac-section-gap{height:18px;}
     .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
     .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
@@ -3169,9 +3165,6 @@ elif menu == "🎯 Sales Action Center":
     .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
     .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
     .sac-action-card{border-radius:26px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.08);margin-bottom:18px;}
-    .sac-action-card.red{background:linear-gradient(180deg,#fff8f8 0%,#fff1f2 100%);border-color:#fecdd3;}
-    .sac-action-card.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
-    .sac-action-card.yellow{background:linear-gradient(180deg,#fffdf2 0%,#fefce8 100%);border-color:#fde68a;}
     .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
     .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
     .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
@@ -3181,10 +3174,7 @@ elif menu == "🎯 Sales Action Center":
     .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
     .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
     .sac-task-list{display:flex;flex-direction:column;gap:16px;}
-    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);margin-bottom:2px;}
-    .sac-task.red{background:linear-gradient(180deg,#fff9fa 0%,#fff4f5 100%);border-color:#fecdd3;}
-    .sac-task.orange{background:linear-gradient(180deg,#fffaf6 0%,#fff4eb 100%);border-color:#fed7aa;}
-    .sac-task.yellow{background:linear-gradient(180deg,#fffef8 0%,#fffbea 100%);border-color:#fde68a;}
+    .sac-task{border:1px solid #e3edf9;border-radius:22px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 12px 28px rgba(148,163,184,.10);}
     .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
     .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
     .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
@@ -3195,7 +3185,7 @@ elif menu == "🎯 Sales Action Center":
     .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
     .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:7px 10px;border-radius:999px;}
     .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:#ecfeff;border:1px solid #a5f3fc;padding:7px 10px;border-radius:999px;}
-    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;margin-bottom:16px;}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:26px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.06);height:100%;}
     .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
     .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
     .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
@@ -3219,19 +3209,24 @@ elif menu == "🎯 Sales Action Center":
             st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
             return
         tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
+        tone_bg = {
+            "red": "linear-gradient(180deg,#fff7f8 0%,#fff1f2 100%)",
+            "orange": "linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%)",
+            "yellow": "linear-gradient(180deg,#fffef7 0%,#fefce8 100%)",
+        }
         rows = []
         for _, row in df_in.iterrows():
-            customer = str(row.get("Customer Name", "") or "-")
-            province = str(row.get("Province", "") or "ไม่ระบุจังหวัด")
-            industry = str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม")
+            customer = _safe_html(str(row.get("Customer Name", "") or "-"))
+            province = _safe_html(str(row.get("Province", "") or "ไม่ระบุจังหวัด"))
+            industry = _safe_html(str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม"))
             gap = int(float(row.get("gap_kg", 0) or 0))
             ach = float(row.get("achievement_pct", 0) or 0)
             days = int(float(row.get("last_activity_days", 0) or 0))
             score = float(row.get("opportunity_score", 0) or 0)
-            next_action = str(row.get("next_action", "Follow-up"))
+            next_action = _safe_html(str(row.get("next_action", "Follow-up")))
             tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
             rows.append(f'''
-            <div class="sac-task {tone}">
+            <div class="sac-task" style="background:{tone_bg.get(tone, 'linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)')};">
                 <div class="sac-task-head">
                     <div>
                         <div class="sac-task-name">{tone_emoji.get(tone, '✨')} {customer}</div>
@@ -3261,20 +3256,17 @@ elif menu == "🎯 Sales Action Center":
     </div>
     ''', unsafe_allow_html=True)
 
-    st.markdown('<div class="sac-tight-top"></div>', unsafe_allow_html=True)
-    render_section_header(
-        title="📊 My Performance Snapshot",
-        subtitle="ภาพรวมพอร์ตของคุณแบบกะทัดรัด วางไว้ด้านบนเพื่อเห็นยอดและ gap ก่อนเริ่มไล่งานวันนี้",
-        icon="📈",
-        accent="#0ea5e9",
-    )
-    perf_top1, perf_top2 = st.columns(2)
-    with perf_top1:
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+    st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ตเฉพาะบริษัทที่คุณดูแลและมี Budget เท่านั้น เพื่อไม่ให้แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
+    perf1, perf2 = st.columns(2)
+    with perf1:
         render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-    with perf_top2:
+    with perf2:
         render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sac-row-gap"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
     top1, top2, top3, top4 = st.columns(4)
     with top1:
         render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
@@ -3295,7 +3287,7 @@ elif menu == "🎯 Sales Action Center":
     col_a, col_b, col_c = st.columns(3)
     with col_a:
         st.markdown(f'''
-        <div class="sac-action-card red">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">🚨 Overdue</div>
                 <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
@@ -3307,7 +3299,7 @@ elif menu == "🎯 Sales Action Center":
         _render_action_list(overdue_df, "red")
     with col_b:
         st.markdown(f'''
-        <div class="sac-action-card orange">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">📌 Today</div>
                 <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
@@ -3319,7 +3311,7 @@ elif menu == "🎯 Sales Action Center":
         _render_action_list(today_df, "orange")
     with col_c:
         st.markdown(f'''
-        <div class="sac-action-card yellow">
+        <div class="sac-action-card">
             <div class="sac-card-top">
                 <div class="sac-card-title">🗓️ This Week</div>
                 <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
@@ -3418,41 +3410,52 @@ elif menu == "🎯 Sales Action Center":
         icon="📦",
         accent="#7c3aed",
     )
-    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-    st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
-    export_sheets = {
-        "Sales Action Center": rep,
-        "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
-        "Priority Accounts": priority_df,
-        "Risk Signals": risk_df,
-    }
-    report_xlsx = to_excel_bytes_multi(export_sheets)
-    ex1, ex2, ex3 = st.columns(3)
-    with ex1:
-        st.download_button(
-            "⬇️ Action Excel",
-            data=report_xlsx,
-            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-        )
-    with ex2:
-        export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
-        st.download_button(
-            "⬇️ Action CSV",
-            data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
-            file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    with ex3:
-        if st.button("☁️ Upload SharePoint", use_container_width=True):
-            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            if ok:
-                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
-                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-    st.markdown('</div>', unsafe_allow_html=True)
+    b1, b2 = st.columns([0.95, 1.05])
+    with b1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Performance Snapshot</h4><p>พอดูภาพรวมของพอร์ต แต่ไม่แย่งโฟกัสจากงานที่ต้องทำวันนี้</p>', unsafe_allow_html=True)
+        perf1, perf2 = st.columns(2)
+        with perf1:
+            render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+        with perf2:
+            render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with b2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+        export_sheets = {
+            "Sales Action Center": rep,
+            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
+            "Priority Accounts": priority_df,
+            "Risk Signals": risk_df,
+        }
+        report_xlsx = to_excel_bytes_multi(export_sheets)
+        ex1, ex2, ex3 = st.columns(3)
+        with ex1:
+            st.download_button(
+                "⬇️ Action Excel",
+                data=report_xlsx,
+                file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        with ex2:
+            export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+            st.download_button(
+                "⬇️ Action CSV",
+                data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+                file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with ex3:
+            if st.button("☁️ Upload SharePoint", use_container_width=True):
+                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if ok:
+                    append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                    st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
