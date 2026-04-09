@@ -32,7 +32,6 @@ import traceback
 import json
 import os
 import textwrap
-import html
 import msal
 from datetime import datetime
 
@@ -92,7 +91,6 @@ HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
     "Pornphavit.Bu@optimal.co.th":"CO",
-    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1220,10 +1218,6 @@ def _normalize_person_name(value: str) -> str:
     return s
 
 
-def _safe_html(value: object) -> str:
-    return html.escape(str(value or ""), quote=True)
-
-
 def _get_staff_visible_names() -> list[str]:
     candidates = []
     user_name = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
@@ -1319,46 +1313,16 @@ def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient
 def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
     numeric_cols = numeric_cols or []
     pct_cols = pct_cols or []
-    styler = df_show.style.hide(axis="index")
+    styler = df_show.style
     styler = styler.set_properties(**{
         "background-color": "#ffffff",
-        "border-color": "#e5eefb",
+        "border-color": "#e2e8f0",
         "font-size": "13px",
-        "color": "#0f172a",
-        "padding": "10px 12px",
-        "white-space": "nowrap",
     })
     styler = styler.set_table_styles([
-        {"selector": "table", "props": [
-            ("border-collapse", "separate"),
-            ("border-spacing", "0"),
-            ("width", "100%"),
-            ("border", "1px solid #dbe7f7"),
-            ("border-radius", "18px"),
-            ("overflow", "hidden"),
-            ("box-shadow", "0 14px 28px rgba(148,163,184,.10)")
-        ]},
-        {"selector": "thead th", "props": [
-            ("background", "linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%)"),
-            ("color", "#334155"),
-            ("font-weight", "800"),
-            ("font-size", "12px"),
-            ("text-transform", "uppercase"),
-            ("letter-spacing", ".04em"),
-            ("padding", "12px 12px"),
-            ("border-bottom", "1px solid #dbe7f7"),
-            ("position", "sticky"),
-            ("top", "0"),
-            ("z-index", "1")
-        ]},
-        {"selector": "tbody td", "props": [
-            ("border-bottom", "1px solid #edf3fb"),
-            ("padding", "10px 12px"),
-            ("vertical-align", "middle")
-        ]},
-        {"selector": "tbody tr:nth-child(even) td", "props": [("background-color", "#fbfdff")]},
-        {"selector": "tbody tr:hover td", "props": [("background-color", "#f3f8ff")]},
-        {"selector": "tbody tr:last-child td", "props": [("border-bottom", "none")]},
+        {"selector": "thead th", "props": [("background", "#eff6ff"), ("color", "#0f172a"), ("font-weight", "700"), ("border", "1px solid #dbeafe")]},
+        {"selector": "tbody tr:hover", "props": [("background-color", "#f8fbff")]},
+        {"selector": "tbody td", "props": [("border", "1px solid #eef2ff"), ("padding", "8px 10px")]},
     ])
     if numeric_cols:
         existing = [c for c in numeric_cols if c in df_show.columns]
@@ -1989,8 +1953,8 @@ with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
                 "⬇️ Download Audit Log",
                 data=_audit_df.to_csv(index=False, encoding="utf-8-sig"),
                 file_name="sales_dashboard_audit_log.csv",
-            mime="text/csv",
-            use_container_width=True,
+                mime="text/csv",
+                use_container_width=True,
             )
         except Exception:
             pass
@@ -2119,137 +2083,99 @@ if menu == "📊 Team Dashboard":
     high_potential = by_province.head(5).copy()
     top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(6).copy()
     at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(6).copy()
+    region_cards = by_region.head(4).copy()
     strongest_rep = by_sp.iloc[0] if not by_sp.empty else None
     most_risky_rep = by_sp.sort_values(["risk_accounts", "achievement_pct"], ascending=[False, True]).iloc[0] if not by_sp.empty else None
-    dept_label = _dept_label(st.session_state.get("dept") or "")
 
-    def _safe_html(value):
-        return (
-            str(value or "")
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;")
-        )
-
-    def _fmt_m(v):
-        return f"฿{float(v)/1e6:,.1f}M"
-
-    def _fmt_gap(v):
-        return f"+{float(v)/1e6:,.1f}M"
-
-    def _saas_card(title: str, subtitle: str, body_html: str, tone: str = ""):
-        st.markdown(
-            f"""
-            <div class="saas-card {tone}">
-                <div class="saas-card-head">
-                    <div>
-                        <div class="saas-card-title">{title}</div>
-                        <div class="saas-card-sub">{subtitle}</div>
-                    </div>
-                </div>
-                <div class="saas-card-body">{body_html}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    map_points_json, map_points_no_coords_json = build_map_points(top_opp if not top_opp.empty else team_df.head(20))
+    try:
+        map_points = json.loads(map_points_json)
+    except Exception:
+        map_points = []
 
     st.markdown("""
     <style>
-    [data-testid="stHeader"] {display:none !important; height:0 !important;}
-    [data-testid="stToolbar"] {display:none !important;}
     .stApp {
         background:
-            radial-gradient(circle at 8% 6%, rgba(125,211,252,.16), transparent 18%),
-            radial-gradient(circle at 92% 4%, rgba(196,181,253,.14), transparent 20%),
-            linear-gradient(180deg, #f8fbff 0%, #eef5ff 42%, #f7fbff 100%);
+            radial-gradient(circle at 0% 0%, rgba(56,189,248,.20), transparent 18%),
+            radial-gradient(circle at 100% 0%, rgba(139,92,246,.18), transparent 22%),
+            linear-gradient(180deg, #eef4ff 0%, #e8f0ff 36%, #edf5ff 100%);
     }
-    [data-testid="stAppViewContainer"] > .main {padding-top:0 !important;}
-    section.main > div {padding-top:0 !important;}
-    [data-testid="stAppViewBlockContainer"] {padding-top:0.08rem !important; padding-bottom:0.8rem !important;}
-    .main .block-container{max-width:1480px; padding-top:0.08rem !important; padding-bottom:2.2rem;}
-    div[data-testid="stVerticalBlock"]{gap:1.25rem;}
-    div[data-testid="column"] > div{gap:1.25rem;}
-    [data-testid="stExpander"]{border:1px solid rgba(219,234,254,.95); border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.94)); box-shadow:0 14px 30px rgba(148,163,184,.10); margin-top:0.4rem;}
-    [data-testid="stExpander"] details summary{padding:0.95rem 1.05rem; font-weight:800; color:#0f172a;}
-    [data-testid="stExpanderDetails"]{padding:0.25rem 1rem 1rem 1rem;}
-    [data-testid="stMetric"]{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.96)); border:1px solid #dbe7f7; border-radius:20px; padding:14px 16px; box-shadow:0 12px 24px rgba(148,163,184,.08);}
-    [data-testid="stMetricLabel"]{font-weight:800; color:#475569;}
-    [data-testid="stMetricValue"]{font-weight:900; color:#0f172a;}
-    .stDownloadButton > button, .stButton > button{border-radius:16px; border:0; min-height:50px; font-weight:800;}
-    [data-testid="stDataFrame"]{border:1px solid rgba(219,234,254,.9); border-radius:18px; overflow:hidden; box-shadow:0 12px 24px rgba(148,163,184,.10);}
-    [data-testid="stDataFrame"] [role="columnheader"]{background:#eff6ff !important; color:#1e3a5f !important; font-weight:800 !important; border-bottom:1px solid #dbeafe !important;}
-    [data-testid="stDataFrame"] [role="gridcell"]{border-color:#eef2ff !important;}
-     .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 28px 26px 28px; margin-top:-0.2rem; margin-bottom:1.8rem; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
-    .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.08), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.08), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
-    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:20px; flex-wrap:wrap;}
-    .saas-title-wrap{display:flex; align-items:flex-start; gap:16px;}
-    .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
-    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:2px;}
-    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0 0 2px 0; letter-spacing:-.04em;}
-    .saas-sub{font-size:13px; color:#334155; margin-top:6px; line-height:1.65; max-width:920px;}
-    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px; align-self:flex-end;}
-    .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12);}
-    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-top:4px;}
-    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:20px 20px 18px 20px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,247,255,.94)); border:1px solid rgba(203,213,225,.72); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:152px;}
-    .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.07);}
-    .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
-    .saas-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#0f172a; margin-top:12px; letter-spacing:-.04em;}
-    .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b; line-height:1.5;}
-    .saas-kpi.good .saas-kpi-value{color:#15803d;}
-    .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
-    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:26px; box-shadow:0 16px 32px rgba(148,163,184,.10); overflow:hidden; margin-bottom:1.15rem;}
-    .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.98), rgba(224,242,254,.95)); border:1px solid rgba(186,230,253,.95);}
-    .saas-card.feature{box-shadow:0 18px 38px rgba(59,130,246,.12);}
-    .saas-card.flush{margin-bottom:0.2rem;}
-    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 22px 12px 22px;}
-    .saas-card-title{font-size:17px; font-weight:900; color:#10224d; line-height:1.25;}
-    .saas-card-sub{font-size:12px; color:#64748b; margin-top:4px; line-height:1.55;}
+    .main .block-container{max-width:1460px; padding-top:0.8rem; padding-bottom:2rem;}
+    .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:22px; background:linear-gradient(180deg, rgba(10,22,65,.90) 0%, rgba(16,31,88,.86) 42%, rgba(31,67,176,.78) 100%); border:1px solid rgba(255,255,255,.16); box-shadow:0 34px 70px rgba(15,23,42,.22);}
+    .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.18), transparent 22%), radial-gradient(circle at 88% 10%, rgba(168,85,247,.18), transparent 22%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.10), transparent 28%); pointer-events:none;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
+    .saas-title-wrap{display:flex; align-items:center; gap:16px;}
+    .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#3b82f6,#8b5cf6); display:flex; align-items:center; justify-content:center; box-shadow:0 18px 30px rgba(59,130,246,.24); color:#fff; font-size:26px;}
+    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#bfdbfe; margin-bottom:4px;}
+    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#fff; margin:0; letter-spacing:-.04em;}
+    .saas-sub{font-size:13px; color:#dbeafe; margin-top:6px;}
+    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px;}
+    .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14); color:#eff6ff; font-size:12px; font-weight:700; backdrop-filter:blur(8px);}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
+    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:18px 18px 16px 18px; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.08)); border:1px solid rgba(255,255,255,.18); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 18px 30px rgba(15,23,42,.16); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); min-height:146px;}
+    .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(255,255,255,.10);}
+    .saas-kpi-label{font-size:12px; font-weight:800; color:#dbeafe; letter-spacing:.06em; text-transform:uppercase;}
+    .saas-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#fff; margin-top:12px; letter-spacing:-.04em;}
+    .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#dbeafe;}
+    .saas-kpi.good .saas-kpi-value{color:#86efac;}
+    .saas-kpi.bad .saas-kpi-value{color:#fda4af;}
+    .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.55fr .95fr; gap:24px; margin-top:22px; align-items:start;}
+    .saas-stack{display:flex; flex-direction:column; gap:24px;}
+    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(244,247,252,.92)); border:1px solid rgba(226,232,240,.96); border-radius:28px; box-shadow:0 18px 38px rgba(148,163,184,.14); overflow:hidden;}
+    .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.96), rgba(224,242,254,.92)); border:1px solid rgba(186,230,253,.95); color:#0f172a;}
+    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:22px 22px 14px 22px;}
+    .saas-card-title{font-size:17px; font-weight:900; color:#10224d; line-height:1.15;}
+    .saas-card.dark .saas-card-title{color:#0f172a;}
+    .saas-card-sub{font-size:12.5px; color:#64748b; margin-top:5px; line-height:1.55;}
+    .saas-card.dark .saas-card-sub{color:#475569;}
     .saas-card-body{padding:0 22px 22px 22px;}
-    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
-    .saas-mini-stat{border-radius:18px; padding:14px; background:linear-gradient(135deg, #ffffff, #eef6ff); border:1px solid rgba(191,219,254,.65); min-height:116px;}
-    .saas-mini-stat.purple{background:linear-gradient(135deg, #fdf4ff, #f5f3ff);}
+    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:2px;}
+    .saas-mini-stat{border-radius:20px; padding:18px; background:linear-gradient(135deg, #eff6ff, #e0e7ff); border:1px solid rgba(148,163,184,.16); box-shadow:inset 0 1px 0 rgba(255,255,255,.55);}
+    .saas-mini-stat.purple{background:linear-gradient(135deg, #f5f3ff, #ede9fe);}
     .saas-mini-label{font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.05em;}
-    .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
-    .saas-mini-sub{font-size:12px; color:#64748b; margin-top:6px; line-height:1.5;}
-    .saas-list{display:flex; flex-direction:column; gap:6px;}
-    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 0; border-bottom:1px solid rgba(148,163,184,.14);}
-    .saas-list-row:last-child{border-bottom:none; padding-bottom:0;}
-    .saas-list-row:first-child{padding-top:4px;}
-    .saas-rank{width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,#38bdf8,#60a5fa); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; box-shadow:0 10px 18px rgba(56,189,248,.18); flex:0 0 34px;}
-    .saas-name{font-size:13px; font-weight:800; color:#0f172a; line-height:1.45;}
-    .saas-meta{font-size:12px; color:#64748b; margin-top:4px; line-height:1.5;}
-    .saas-pill{display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; min-width:92px; border-radius:999px; font-size:12px; font-weight:900; white-space:nowrap;}
-    .saas-pill.good{background:linear-gradient(135deg,#16a34a,#86efac); color:#fff;}
-    .saas-pill.warn{background:linear-gradient(135deg,#f59e0b,#fde68a); color:#7c2d12;}
-    .saas-pill.bad{background:linear-gradient(135deg,#ef4444,#fda4af); color:#fff;}
-    .saas-pill.info{background:linear-gradient(135deg,#38bdf8,#93c5fd); color:#0f172a;}
-    .saas-table-wrap{margin-top:10px; border:1px solid rgba(219,234,254,.9); border-radius:20px; overflow:hidden; background:rgba(255,255,255,.88);}
-    .saas-section-label{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#60a5fa; margin:2px 0 8px 2px;}
-    .saas-priority-table{width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed;}
-    .saas-priority-table thead th{background:#eff6ff; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#56708f; text-align:left; padding:14px 16px; border-bottom:1px solid rgba(191,219,254,.95);}
-    .saas-priority-table tbody td{padding:16px; border-bottom:1px solid rgba(226,232,240,.85); vertical-align:middle; color:#0f172a;}
-    .saas-priority-table tbody tr:nth-child(even){background:rgba(248,251,255,.92);}
-    .saas-priority-table tbody tr:hover{background:rgba(239,246,255,.96);}
-    .saas-priority-table tbody tr:last-child td{border-bottom:none;}
-    .saas-priority-table th.col-customer{width:40%;}
-    .saas-priority-table th.col-score{width:18%;}
-    .saas-priority-table th.col-sales{width:14%;}
-    .saas-priority-table th.col-achv{width:14%;}
-    .saas-priority-table th.col-gap{width:14%;}
-    .saas-table-num{font-weight:800; color:#10224d;}
-    .saas-table-gap{font-weight:900; color:#dc2626;}
-    .saas-chart-head{margin:0 0 0.35rem 0; padding:0 2px;}
-    .saas-chart-title{font-size:17px; font-weight:900; color:#10224d;}
-    .saas-chart-sub{font-size:12px; color:#64748b; margin-top:4px;}
-    .saas-chart-wrap{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.10); padding:18px 18px 8px 18px;}
-    @media (max-width: 1100px){.saas-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.saas-mini-grid{grid-template-columns:1fr;}}
-    @media (max-width: 860px){.saas-shell{padding:16px;}.saas-title{font-size:28px;}.saas-grid-kpi{grid-template-columns:1fr;}.saas-list-row{align-items:flex-start;}.saas-pill{min-width:80px;}}
+    .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:10px;}
+    .saas-mini-sub{font-size:12.5px; color:#64748b; margin-top:8px; line-height:1.55;}
+    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 18px; margin-bottom:12px; border:1px solid rgba(226,232,240,.9); border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(248,250,252,.96)); box-shadow:0 8px 20px rgba(148,163,184,.08);}
+    .saas-card.dark .saas-list-row{background:linear-gradient(180deg, rgba(255,255,255,.76), rgba(255,255,255,.6)); border:1px solid rgba(186,230,253,.85);}
+    .saas-list-row:last-child{margin-bottom:0;}
+    .saas-name{font-size:14px; font-weight:800; color:#10224d; line-height:1.35;}
+    .saas-meta{font-size:12.5px; color:#64748b; margin-top:5px; line-height:1.55;}
+    .saas-rank{width:38px; height:38px; border-radius:14px; background:linear-gradient(135deg,#38bdf8,#60a5fa); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; box-shadow:0 10px 18px rgba(56,189,248,.18);}
+    .saas-pill{display:inline-flex; align-items:center; justify-content:center; padding:9px 14px; min-width:104px; border-radius:999px; font-size:12.5px; font-weight:900; flex-shrink:0;}
+    .saas-priority-grid{display:grid; gap:14px;}
+    .saas-priority-item{display:grid; grid-template-columns:minmax(0,1.8fr) auto auto auto auto; align-items:center; gap:14px; padding:16px 18px; border-radius:20px; background:linear-gradient(180deg,#ffffff,#f8fbff); border:1px solid rgba(226,232,240,.95); box-shadow:0 10px 24px rgba(148,163,184,.08);}
+    .saas-priority-head{display:grid; grid-template-columns:minmax(0,1.8fr) auto auto auto auto; gap:14px; padding:0 4px 8px 4px;}
+    .saas-priority-col{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:800;}
+    .saas-priority-num{font-size:13.5px; font-weight:800; color:#10224d;}
+    .saas-priority-num.bad{color:#dc2626;}
+    .saas-pill.good{background:linear-gradient(135deg,#16a34a,#4ade80); color:#fff;}
+    .saas-pill.warn{background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#fff;}
+    .saas-pill.bad{background:linear-gradient(135deg,#ef4444,#fb7185); color:#fff;}
+    .saas-pill.info{background:linear-gradient(135deg,#2563eb,#60a5fa); color:#fff;}
+    .saas-priority-table{width:100%; border-collapse:collapse;}
+    .saas-priority-table th{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#64748b; text-align:left; padding:0 0 12px 0; border-bottom:1px solid rgba(148,163,184,.16);}
+    .saas-priority-table td{padding:14px 0; border-bottom:1px solid rgba(148,163,184,.12); vertical-align:middle;}
+    .saas-priority-table tr:last-child td{border-bottom:none;}
+    .saas-map-wrap{height:340px; border-radius:22px; overflow:hidden; background:linear-gradient(180deg, #c7ddff 0%, #e7f0ff 100%); border:1px solid rgba(255,255,255,.55); position:relative;}
+    .saas-map-chip{position:absolute; padding:10px 12px; border-radius:999px; font-size:12px; font-weight:800; color:#fff; box-shadow:0 10px 18px rgba(15,23,42,.16); transform:translate(-50%, -50%); white-space:nowrap;}
+    .saas-map-chip.blue{background:linear-gradient(135deg,#2563eb,#38bdf8);}
+    .saas-map-chip.red{background:linear-gradient(135deg,#ef4444,#fb7185);}
+    .saas-map-base{position:absolute; inset:0; background:radial-gradient(circle at 18% 20%, rgba(59,130,246,.20), transparent 18%), radial-gradient(circle at 78% 74%, rgba(168,85,247,.18), transparent 18%), radial-gradient(circle at 82% 16%, rgba(251,191,36,.18), transparent 16%), linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.24));}
+    .saas-map-svg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:.18; color:#0f172a; font-size:240px;}
+    .saas-actions{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .saas-actions .stDownloadButton > button, .saas-actions .stButton > button{height:52px; border-radius:18px; font-size:15px; font-weight:800; border:0; box-shadow:0 14px 26px rgba(37,99,235,.18);}
+    .saas-actions .stDownloadButton > button{background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff;}
+    .saas-actions .stButton > button{background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff;}
+    @media (max-width: 1250px){.saas-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.saas-main{grid-template-columns:1fr;}}
+    @media (max-width: 1100px){.saas-priority-head,.saas-priority-item{grid-template-columns:minmax(0,1.5fr) auto auto;}.saas-priority-head .saas-priority-col:nth-child(4), .saas-priority-head .saas-priority-col:nth-child(5){display:none;}.saas-priority-item > div:nth-child(4), .saas-priority-item > div:nth-child(5){display:none;}}
+    @media (max-width: 860px){.saas-grid-kpi,.saas-mini-grid,.saas-actions,.saas-priority-head,.saas-priority-item{grid-template-columns:1fr;}.saas-shell{padding:16px;}.saas-title{font-size:28px;}.saas-pill{min-width:88px;}.saas-priority-head{display:none;}}
     </style>
     """, unsafe_allow_html=True)
 
-    strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
-    most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
+    dept_label = _dept_label(st.session_state.get("dept") or "ALL")
+    strongest_rep_html = f"{strongest_rep['Salesperson']} • {strongest_rep['achievement_pct']:.1f}%" if strongest_rep is not None else "-"
+    most_risky_rep_html = f"{most_risky_rep['Salesperson']} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
 
     st.markdown(f"""
     <div class="saas-shell">
@@ -2290,152 +2216,199 @@ if menu == "📊 Team Dashboard":
                 <div class="saas-kpi-sub">ช่องว่างที่ยังต้องปิดให้ถึงเป้า</div>
             </div>
         </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-main'><div class='saas-stack'>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="saas-card dark">
+        <div class="saas-card-head">
+            <div>
+                <div class="saas-card-title">Manager Snapshot</div>
+                <div class="saas-card-sub">ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า</div>
+            </div>
+        </div>
+        <div class="saas-card-body">
+            <div class="saas-mini-grid">
+                <div class="saas-mini-stat"><div class="saas-mini-label">Strongest Rep</div><div class="saas-mini-value">{strongest_rep['achievement_pct']:.1f}%</div><div class="saas-mini-sub">{strongest_rep_html}</div></div>
+                <div class="saas-mini-stat purple"><div class="saas-mini-label">Needs Attention</div><div class="saas-mini-value">{int(most_risky_rep['risk_accounts']) if most_risky_rep is not None else 0}</div><div class="saas-mini-sub">{most_risky_rep_html}</div></div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    main_left, main_right = st.columns([1.52, 1.0], gap="large")
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Performance Ranking</div><div class='saas-card-sub'>เรียงตาม Achievement และยอดขายรวม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    rank_html = []
+    for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
+        tone = "good" if float(row["achievement_pct"]) >= 85 else ("warn" if float(row["achievement_pct"]) >= 65 else "bad")
+        rank_html.append(
+            f"<div class='saas-list-row'><div style='display:flex;align-items:center;gap:12px;'><div class='saas-rank'>{idx}</div><div><div class='saas-name'>{row['Salesperson']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • ฿{float(row['total_sales'])/1e6:,.1f}M</div></div></div><div class='saas-pill {tone}'>{float(row['achievement_pct']):,.1f}%</div></div>"
+        )
+    st.markdown("".join(rank_html) if rank_html else "<div class='saas-meta'>ยังไม่มีข้อมูลเพียงพอ</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    with main_left:
-        st.markdown("<div class='saas-section-label'>Leadership overview</div>", unsafe_allow_html=True)
-        _saas_card(
-            "Manager Snapshot",
-            "ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า",
-            f"""
-            <div class="saas-mini-grid">
-                <div class="saas-mini-stat">
-                    <div class="saas-mini-label">Strongest Rep</div>
-                    <div class="saas-mini-value">{float(strongest_rep['achievement_pct']):.1f}%</div>
-                    <div class="saas-mini-sub">{strongest_rep_html}</div>
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Priority Accounts</div><div class='saas-card-sub'>ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    rows = []
+    for _, row in top_opp.iterrows():
+        score_tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 50 else "info")
+        rows.append(
+            f"""<div class='saas-priority-item'>
+                <div>
+                    <div class='saas-name'>{row['Customer Name']}</div>
+                    <div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div>
                 </div>
-                <div class="saas-mini-stat purple">
-                    <div class="saas-mini-label">Needs Attention</div>
-                    <div class="saas-mini-value">{int(most_risky_rep['risk_accounts']) if most_risky_rep is not None else 0}</div>
-                    <div class="saas-mini-sub">{most_risky_rep_html}</div>
-                </div>
+                <div><span class='saas-pill {score_tone}'>{float(row['opportunity_score']):.0f}</span></div>
+                <div class='saas-priority-num'>฿{float(row['Sales/Year'])/1e6:,.1f}M</div>
+                <div class='saas-priority-num'>{float(row['achievement_pct']):,.1f}%</div>
+                <div class='saas-priority-num bad'>+{float(row['gap_kg'])/1e6:,.1f}M</div>
+            </div>"""
+        )
+    st.markdown(
+        f"""<div class='saas-priority-head'>
+            <div class='saas-priority-col'>Customer</div>
+            <div class='saas-priority-col'>Score</div>
+            <div class='saas-priority-col'>Sales</div>
+            <div class='saas-priority-col'>Achv.</div>
+            <div class='saas-priority-col'>Gap</div>
+        </div>
+        <div class='saas-priority-grid'>{''.join(rows) if rows else "<div class='saas-meta'>ยังไม่มีข้อมูลเพียงพอ</div>"}</div>""",
+        unsafe_allow_html=True
+    )
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    map_no_coords = []
+    try:
+        map_no_coords = json.loads(map_points_no_coords_json)
+    except Exception:
+        map_no_coords = []
+    map_component_id = f"saas-focus-map-{re.sub(r'[^a-zA-Z0-9_-]+', '-', str(st.session_state.get('dept') or 'all')).strip('-') or 'all'}"
+    top_priority_count = min(4, len(map_points))
+    normal_count = max(0, len(map_points) - top_priority_count)
+    map_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset='utf-8'/>
+      <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>
+      <style>
+        * {{ box-sizing:border-box; }}
+        html, body {{ margin:0; padding:0; background:transparent; font-family:Arial,sans-serif; }}
+        .saas-real-map-shell {{ border-radius:22px; overflow:hidden; border:1px solid rgba(255,255,255,.55); box-shadow:inset 0 1px 0 rgba(255,255,255,.45); background:linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%); }}
+        .saas-real-map-toolbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(15,23,42,.92), rgba(37,99,235,.86)); color:#fff; flex-wrap:wrap; }}
+        .saas-real-map-title {{ font-size:13px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }}
+        .saas-real-map-meta {{ font-size:11px; color:#dbeafe; margin-top:4px; }}
+        .saas-real-map-legend {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }}
+        .saas-real-map-legend span {{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12); font-size:11px; font-weight:800; color:#eff6ff; }}
+        .saas-real-map-dot {{ width:9px; height:9px; border-radius:999px; display:inline-block; }}
+        #${map_component_id} {{ width:100%; height:360px; background:#dbeafe; }}
+        .focus-pin {{ width:18px; height:18px; border-radius:999px; border:3px solid rgba(255,255,255,.95); box-shadow:0 10px 20px rgba(15,23,42,.24); }}
+        .focus-pin.priority {{ background:linear-gradient(135deg,#ef4444,#fb7185); }}
+        .focus-pin.coverage {{ background:linear-gradient(135deg,#2563eb,#38bdf8); }}
+        .saas-real-map-note {{ padding:10px 14px 12px 14px; font-size:11.5px; color:#64748b; background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(248,250,252,.92)); }}
+        .leaflet-popup-content-wrapper {{ border-radius:16px; box-shadow:0 18px 32px rgba(15,23,42,.18); }}
+        .leaflet-popup-content {{ margin:12px 14px; }}
+      </style>
+    </head>
+    <body>
+      <div class='saas-real-map-shell'>
+        <div class='saas-real-map-toolbar'>
+          <div>
+            <div class='saas-real-map-title'>Live Coverage View</div>
+            <div class='saas-real-map-meta'>Priority {top_priority_count} จุด • Coverage {normal_count} จุด • Missing coords {len(map_no_coords)}</div>
+          </div>
+          <div class='saas-real-map-legend'>
+            <span><i class='saas-real-map-dot' style='background:#ef4444;'></i>Priority</span>
+            <span><i class='saas-real-map-dot' style='background:#2563eb;'></i>Coverage</span>
+          </div>
+        </div>
+        <div id='{map_component_id}'></div>
+        <div class='saas-real-map-note'>คลิกหมุดเพื่อดูชื่อบริษัทและผู้รับผิดชอบ • ระบบจะ auto-fit ตามจุดที่พบพิกัด</div>
+      </div>
+      <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+      <script>
+        const MAP_POINTS = {map_points_json};
+        const map = L.map('{map_component_id}', {{ zoomControl: true, scrollWheelZoom: false }}).setView([13.7563, 100.5018], 6);
+        L.tileLayer('https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{ attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 }}).addTo(map);
+        const bounds = [];
+        MAP_POINTS.forEach((item, index) => {{
+          if (typeof item.lat !== 'number' || typeof item.lng !== 'number') return;
+          const priority = index < {top_priority_count};
+          const icon = L.divIcon({{ className: '', html: `<div class="focus-pin ${{priority ? 'priority' : 'coverage'}}"></div>`, iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10] }});
+          const marker = L.marker([item.lat, item.lng], {{ icon }}).addTo(map);
+          marker.bindPopup(`
+            <div style="min-width:180px">
+              <div style="font-weight:800;color:#0f172a;font-size:13px;">${{item.name || 'Account'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:6px;">👤 ${{item.salesperson || '-'}}</div>
+              <div style="font-size:11px;color:#475569;margin-top:4px;">📍 ${{item.province || '-'}}</div>
+              <div style="font-size:11px;color:${{priority ? '#dc2626' : '#2563eb'}};font-weight:700;margin-top:8px;">${{priority ? 'Priority account' : 'Coverage account'}}</div>
             </div>
-            """,
-            tone="dark feature",
-        )
+          `);
+          bounds.push([item.lat, item.lng]);
+        }});
+        if (bounds.length) {{ map.fitBounds(bounds, {{ padding: [26, 26] }}); }}
+      </script>
+    </body>
+    </html>
+    """
+    components.html(map_html, height=420)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-        rank_rows = []
-        for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
-            tone = "good" if float(row["achievement_pct"]) >= 85 else ("warn" if float(row["achievement_pct"]) >= 65 else "bad")
-            rank_rows.append(
-                f"<div class='saas-list-row'><div style='display:flex;align-items:center;gap:12px;'><div class='saas-rank'>{idx}</div><div><div class='saas-name'>{_safe_html(row['Salesperson'])}</div><div class='saas-meta'>{int(row['customers']):,} accounts • {_fmt_m(row['total_sales'])}</div></div></div><div class='saas-pill {tone}'>{float(row['achievement_pct']):,.1f}%</div></div>"
-            )
-        _saas_card(
-            "Team Performance Ranking",
-            "เรียงตาม Achievement และยอดขายรวม",
-            f"<div class='saas-list'>{''.join(rank_rows) if rank_rows else '<div class=\'saas-meta\'>ยังไม่มีข้อมูลเพียงพอ</div>'}</div>",
-        )
+    st.markdown("</div><div class='saas-stack'>", unsafe_allow_html=True)
 
-        opp_rows = []
-        for _, row in top_opp.iterrows():
-            score_tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 50 else "info")
-            opp_rows.append(
-                f"<tr><td><div class='saas-name'>{_safe_html(row['Customer Name'])}</div><div class='saas-meta'>{_safe_html(row['Salesperson'])} • {_safe_html(row['Province'])}</div></td><td><span class='saas-pill {score_tone}'>{float(row['opportunity_score']):.0f}</span></td><td class='saas-table-num'>{_fmt_m(row['Sales/Year'])}</td><td class='saas-table-num'>{float(row['achievement_pct']):,.1f}%</td><td class='saas-table-gap'>{_fmt_gap(row['gap_kg'])}</td></tr>"
-            )
-        _saas_card(
-            "Priority Accounts",
-            "ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth",
-            f"""
-            <div class="saas-table-wrap">
-                <table class="saas-priority-table">
-                    <thead>
-                        <tr>
-                            <th class="col-customer">Customer</th>
-                            <th class="col-score">Score</th>
-                            <th class="col-sales">Sales</th>
-                            <th class="col-achv">Achv.</th>
-                            <th class="col-gap">Gap</th>
-                        </tr>
-                    </thead>
-                    <tbody>{''.join(opp_rows)}</tbody>
-                </table>
-            </div>
-            """,
-        )
-
-    with main_right:
-        command_rows = []
-        if strongest_rep is not None:
-            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Top performer</div><div class='saas-meta'>{_safe_html(strongest_rep['Salesperson'])} • Achievement {float(strongest_rep['achievement_pct']):,.1f}%</div></div><div class='saas-pill good'>Lead</div></div>")
-        if most_risky_rep is not None:
-            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Coaching needed</div><div class='saas-meta'>{_safe_html(most_risky_rep['Salesperson'])} • Risk accounts {int(most_risky_rep['risk_accounts'])}</div></div><div class='saas-pill bad'>Act now</div></div>")
-        if not top_opp.empty:
-            first_opp = top_opp.iloc[0]
-            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Priority account</div><div class='saas-meta'>{_safe_html(first_opp['Customer Name'])} • {_safe_html(first_opp['Salesperson'])} • Gap {float(first_opp['gap_kg'])/1e6:,.2f}M kg</div></div><div class='saas-pill warn'>Focus</div></div>")
-        if not high_potential.empty:
-            first_hp = high_potential.iloc[0]
-            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Province to push</div><div class='saas-meta'>{_safe_html(first_hp['Province'])} • {int(first_hp['customers'])} accounts • Achv. {float(first_hp['avg_achievement']):,.1f}%</div></div><div class='saas-pill info'>Expand</div></div>")
-        st.markdown("<div class='saas-section-label'>Immediate actions</div>", unsafe_allow_html=True)
-        _saas_card(
-            "Manager Command Center",
-            "สรุปสิ่งที่หัวหน้าควรทำต่อทันทีในมุมมองเดียว",
-            f"<div class='saas-list'>{''.join(command_rows) if command_rows else '<div class=\'saas-meta\'>ยังไม่มี insight เพิ่มเติม</div>'}</div>",
-            tone="dark feature",
-        )
-
-        risk_rows = []
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Risk Signals</div><div class='saas-card-sub'>บัญชีและพื้นที่ที่ต้องระวัง</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    risk_html = []
+    if not at_risk.empty:
         for _, row in at_risk.iterrows():
-            risk_rows.append(
-                f"<div class='saas-list-row'><div><div class='saas-name'>{_safe_html(row['Customer Name'])}</div><div class='saas-meta'>{_safe_html(row['Salesperson'])} • {_safe_html(row['Province'])}</div></div><div style='text-align:right;'><div class='saas-pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='saas-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
+            risk_html.append(
+                f"<div class='saas-list-row'><div><div class='saas-name'>{row['Customer Name']}</div><div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div></div><div style='text-align:right;'><div class='saas-pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='saas-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
             )
-        _saas_card(
-            "Risk Signals",
-            "บัญชีและพื้นที่ที่ต้องระวัง",
-            f"<div class='saas-list'>{''.join(risk_rows) if risk_rows else '<div class=\'saas-meta\'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>'}</div>",
+    st.markdown("".join(risk_html) if risk_html else "<div class='saas-meta'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>High Potential Provinces</div><div class='saas-card-sub'>จังหวัดที่ gap สูงและมีโอกาสขยาย</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    hp_html = []
+    for _, row in high_potential.iterrows():
+        tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
+        hp_html.append(
+            f"<div class='saas-list-row'><div><div class='saas-name'>{row['Province']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • Sales ฿{float(row['total_sales'])/1e6:,.1f}M</div></div><div class='saas-pill {tone}'>+{float(row['gap_kg'])/1e6:,.1f}M</div></div>"
         )
+    st.markdown("".join(hp_html) if hp_html else "<div class='saas-meta'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-        hp_rows = []
-        for _, row in high_potential.iterrows():
-            tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
-            hp_rows.append(
-                f"<div class='saas-list-row'><div><div class='saas-name'>{_safe_html(row['Province'])}</div><div class='saas-meta'>{int(row['customers']):,} accounts • Sales {_fmt_m(row['total_sales'])}</div></div><div class='saas-pill {tone}'>{_fmt_gap(row['gap_kg'])}</div></div>"
-            )
-        _saas_card(
-            "High Potential Provinces",
-            "จังหวัดที่ gap สูงและมีโอกาสขยาย",
-            f"<div class='saas-list'>{''.join(hp_rows) if hp_rows else '<div class=\'saas-meta\'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>'}</div>",
-            tone="flush",
-        )
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Sales by Region</div><div class='saas-card-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    fig_region = px.bar(
+        by_region.head(6),
+        x="total_sales",
+        y="region",
+        orientation="h",
+        text="total_sales",
+        color="total_sales",
+        color_continuous_scale=["#60a5fa", "#2563eb", "#7c3aed"],
+    )
+    fig_region.update_traces(texttemplate="฿%{x:,.0f}", textposition="outside")
+    fig_region.update_layout(
+        height=280,
+        margin=dict(l=10, r=10, t=10, b=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title=None,
+        yaxis_title=None,
+        coloraxis_showscale=False,
+        yaxis=dict(categoryorder="total ascending"),
+    )
+    st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    chart_left, chart_right = st.columns(2, gap="large")
+    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Trend</div><div class='saas-card-sub'>Achievement และ Avg YoY ของคนในทีม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#2563eb"), fill="tozeroy", fillcolor="rgba(37,99,235,.12)"))
+    fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
+    fig_trend.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
+    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-    with chart_left:
-        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Sales by Region</div><div class='saas-chart-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div>", unsafe_allow_html=True)
-        fig_region = px.bar(
-            by_region.head(6),
-            x="total_sales",
-            y="region",
-            orientation="h",
-            text="total_sales",
-            color="total_sales",
-            color_continuous_scale=["#93c5fd", "#60a5fa", "#818cf8"],
-        )
-        fig_region.update_traces(texttemplate="฿%{x:,.0f}", textposition="outside")
-        fig_region.update_layout(
-            height=300,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            xaxis_title=None,
-            yaxis_title=None,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),
-        )
-        st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with chart_right:
-        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Team Trend</div><div class='saas-chart-sub'>Achievement และ Avg YoY ของคนในทีม</div></div>", unsafe_allow_html=True)
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#3b82f6"), fill="tozeroy", fillcolor="rgba(59,130,246,.12)"))
-        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
-        fig_trend.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div>", unsafe_allow_html=True)
-
+    st.markdown("<div class='saas-actions'>", unsafe_allow_html=True)
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
         "Salesperson Summary": by_sp,
@@ -2443,21 +2416,20 @@ if menu == "📊 Team Dashboard":
         "At Risk": at_risk,
         "Province Focus": by_province,
     })
+    st.download_button(
+        "📁 Export Team Report",
+        data=manager_report,
+        file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True,
+    )
+    if st.button("🔍 View Customer List", use_container_width=True):
+        st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
+        _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    action_left, action_right = st.columns(2, gap="large")
-    with action_left:
-        st.download_button(
-            "📁 Export Team Report",
-            data=manager_report,
-            file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-        )
-    with action_right:
-        if st.button("🔍 View Customer List", use_container_width=True):
-            st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
-            _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
-            st.rerun()
+    st.markdown("</div></div></div>", unsafe_allow_html=True)
 
     with st.expander("📋 Detailed Team Performance", expanded=False):
         sp_show = by_sp.rename(columns={
@@ -2734,7 +2706,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
-.page{{display:flex;flex-direction:column;gap:12px;padding:6px 4px 4px 4px;}}
+.page{{display:flex;flex-direction:column;gap:10px;padding:4px;}}
 .route-bar{{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
   padding:10px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
 .route-title{{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}}
@@ -2742,33 +2714,28 @@ html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
 .route-arrow{{font-size:15px;opacity:.8;}}
-.route-hint{{font-size:10.5px;opacity:.78;margin-top:2px;}}
+.route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
 .btn-gmaps{{display:inline-flex;align-items:center;gap:3px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
   padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;
   text-decoration:none;white-space:nowrap;}}
 .btn-gmaps:hover{{background:#dbeafe;}}
 .map-wrap{{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;
-  box-shadow:0 2px 12px rgba(0,0,0,0.08);background:#f8fafc;}}
-.map-shell{{position:relative;width:100%;height:340px;background:#dbeafe;}}
-#leaflet-map, #fallback-map{{width:100%;height:340px;}}
-#fallback-map{{display:none;border:0;background:#fff;}}
-.fallback-overlay{{position:absolute;right:12px;top:12px;z-index:999;background:rgba(255,255,255,.92);
-  color:#334155;border:1px solid #cbd5e1;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;
-  box-shadow:0 8px 18px rgba(15,23,42,.10);display:none;}}
-.wrap{{max-height:380px;overflow-y:auto;border:1px solid #dbe7f7;border-radius:16px;
-  box-shadow:0 12px 24px rgba(148,163,184,.10); background:#ffffff;}}
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);}}
+#leaflet-map{{width:100%;height:340px;}}
+.wrap{{max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);}}
 table{{width:100%;border-collapse:collapse;}}
 thead tr{{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;
   position:sticky;top:0;z-index:10;}}
-thead th{{padding:12px 14px;text-align:left;font-size:11.5px;font-weight:800;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;}}
+thead th{{padding:11px 13px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap;}}
 tbody tr{{transition:background .12s;}}
-tbody tr:nth-child(even){{background:#fbfdff;}}
+tbody tr:nth-child(even){{background:#f8fafc;}}
 tbody tr.clickable{{cursor:pointer;}}
-tbody tr.clickable:hover{{background:#eef5ff;}}
+tbody tr.clickable:hover{{background:#dbeafe;}}
 tbody tr.clickable.active{{background:#bfdbfe!important;box-shadow:inset 3px 0 0 #2563eb;}}
 tbody tr.no-map{{cursor:default;opacity:.55;}}
-td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
+td{{padding:9px 13px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}}
 .co{{font-weight:600;font-size:12px;}}
 .has-map{{color:#2563eb;}}
 .no-loc{{color:#94a3b8;}}
@@ -2777,8 +2744,6 @@ td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
 .sal{{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}}
 .loc{{color:#374151;font-size:11.5px;word-break:break-word;min-width:160px;line-height:1.5;}}
 .legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:12px;background:#f8fafc;}}
-.leaflet-popup-content-wrapper{{border-radius:16px;box-shadow:0 18px 32px rgba(15,23,42,.18);}}
-.leaflet-popup-content{{margin:12px 14px;}}
 </style>
 </head>
 <body><div class="page">
@@ -2793,17 +2758,10 @@ td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
       🗺️ เปิด Google Maps
     </a>
   </div>
-  <div class="route-hint" id="route-hint">⏳ กำลังเตรียมแผนที่…</div>
+  <div class="route-hint" id="route-hint">⏳ กำลังโหลด Open Location Code library…</div>
 </div>
 
-<div class="map-wrap">
-  <div class="map-shell">
-    <div id="leaflet-map"></div>
-    <iframe id="fallback-map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    <div class="fallback-overlay" id="fallback-badge">Fallback map mode</div>
-  </div>
-</div>
-<div id="marker-hint" style="font-size:11px;color:#64748b;padding:6px 4px 0 4px;"></div>
+<div class="map-wrap"><div id="leaflet-map"></div></div>\n<div id="marker-hint" style="font-size:11px;color:#64748b;padding:6px 4px 0 4px;"></div>
 
 <div class="wrap">
   <div class="legend">
@@ -2838,100 +2796,37 @@ const MAP_POINTS          = {map_points_json};
 const MAP_POINTS_NO_COORD = {map_points_no_coords_json};
 const DEFAULT_VIEW_MODE   = "{default_view}";
 const AUTO_FIT_BOUNDS     = {str(auto_fit_bounds).lower()};
-const GMAPS_ORIGIN = "{gmaps_origin}";
 
-let map = null, clusterGroup = null, pointLayer = null, destMarker = null, routeLayer = null, heatLayer = null;
-let mapMode = 'booting';
+let destMarker = null, routeLayer = null, heatLayer = null;
+let HAS_LEAFLET = (typeof L !== 'undefined');
+let map = null;
+let clusterGroup = null;
 
-function escapeHtml(s) {{
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}}
-function hasLeaflet() {{
-    return typeof window.L !== 'undefined' && typeof window.L.map === 'function';
-}}
-function hasCluster() {{
-    return hasLeaflet() && typeof window.L.markerClusterGroup === 'function';
-}}
-function hasHeat() {{
-    return hasLeaflet() && typeof window.L.heatLayer === 'function';
-}}
-function setHint(txt) {{
-    const el = document.getElementById('route-hint');
-    if (el) el.textContent = txt;
-}}
-function setMarkerHint(txt) {{
-    const el = document.getElementById('marker-hint');
-    if (el) el.textContent = txt;
-}}
-function showLeafletShell() {{
-    const lm = document.getElementById('leaflet-map');
-    const fm = document.getElementById('fallback-map');
-    const bd = document.getElementById('fallback-badge');
-    if (lm) lm.style.display = 'block';
-    if (fm) fm.style.display = 'none';
-    if (bd) bd.style.display = 'none';
-}}
-function showFallbackShell() {{
-    const lm = document.getElementById('leaflet-map');
-    const fm = document.getElementById('fallback-map');
-    const bd = document.getElementById('fallback-badge');
-    if (lm) lm.style.display = 'none';
-    if (fm) fm.style.display = 'block';
-    if (bd) bd.style.display = 'block';
-}}
 function buildEmbedUrl(lat, lng, label) {{
-    const q = encodeURIComponent((label || 'Destination') + ' @' + lat + ',' + lng);
-    return 'https://www.google.com/maps?q=' + q + '&z=12&output=embed';
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(String(lat)+','+String(lng))
+        + '&z=11&output=embed';
 }}
-function setEmbeddedMap(url, badgeText) {{
-    showFallbackShell();
-    const frame = document.getElementById('fallback-map');
-    const badge = document.getElementById('fallback-badge');
-    if (frame && url) frame.src = url;
-    if (badge && badgeText) badge.textContent = badgeText;
-    mapMode = 'fallback';
-}}
-function forceFallback(reason) {{
-    console.warn('Force map fallback:', reason);
-    map = null;
-    clusterGroup = null;
-    pointLayer = null;
-    heatLayer = null;
-    setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL), 'Fallback map mode');
-    setHint('⚠️ ใช้โหมดสำรอง — ' + (reason || 'Map library ใช้งานไม่ได้'));
+function setEmbeddedMap(url) {{
+    var el = document.getElementById('leaflet-map');
+    if (!el) return;
+    el.innerHTML = '<iframe src="'+url+'" width="100%" height="100%" style="border:0;border-radius:16px;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>';
 }}
 
-window.addEventListener('error', function(ev) {{
+if (HAS_LEAFLET) {{
     try {{
-        const msg = String((ev && (ev.message || (ev.error && ev.error.message))) || '');
-        if (msg && (msg.includes('L is not defined') || msg.includes('markerCluster') || msg.includes('heatLayer'))) {{
-            forceFallback(msg);
-        }}
-    }} catch(_) {{}}
-}});
+        clusterGroup = L.markerClusterGroup({{
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            maxClusterRadius: 45
+        }});
 
-function initMap() {{
-    try {{
-        if (!hasLeaflet()) throw new Error('Leaflet not loaded');
-        showLeafletShell();
-        map = L.map('leaflet-map', {{ zoomControl: true, scrollWheelZoom: true }}).setView([ORIGIN_LAT, ORIGIN_LNG], 10);
+        map = L.map('leaflet-map').setView([ORIGIN_LAT, ORIGIN_LNG], 10);
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             attribution: '© OpenStreetMap contributors', maxZoom: 19
         }}).addTo(map);
+        clusterGroup.addTo(map);
 
-        if (hasCluster()) {{
-            clusterGroup = L.markerClusterGroup({{
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                maxClusterRadius: 45
-            }});
-            clusterGroup.addTo(map);
-        }} else {{
-            pointLayer = L.featureGroup().addTo(map);
-        }}
-
-        const originIcon = L.divIcon({{
+        var originIcon = L.divIcon({{
             html: '<div style="background:#1e3a5f;color:#fff;border-radius:50%;width:40px;height:40px;'
                 + 'display:flex;align-items:center;justify-content:center;font-size:18px;'
                 + 'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">🏠</div>',
@@ -2942,98 +2837,76 @@ function initMap() {{
             .bindPopup('<b>' + ORIGIN_LABEL + '</b><br><small>' + ORIGIN_SHORT + ' — Bangna/Phra Khanong</small>')
             .openPopup();
 
-        mapMode = 'leaflet';
-        setHint('✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง');
+        document.getElementById('route-hint').textContent =
+            '✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง';
     }} catch (err) {{
-        console.warn('Leaflet init failed:', err);
-        forceFallback(err && err.message ? err.message : 'Leaflet โหลดไม่สำเร็จ');
+        HAS_LEAFLET = false;
+        map = null;
+        clusterGroup = null;
+        setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
+        document.getElementById('route-hint').textContent =
+            '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
     }}
+}} else {{
+    setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
+    document.getElementById('route-hint').textContent =
+        '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
 }}
 
-function renderMarkersSafe() {{
-    try {{
-        initMap();
-        const skipped = Array.isArray(MAP_POINTS_NO_COORD) ? MAP_POINTS_NO_COORD.length : 0;
+function escapeHtml(s) {{
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}}
 
-        if (!map || mapMode !== 'leaflet') {{
-            setMarkerHint(
-                '📌 ' + ((MAP_POINTS && MAP_POINTS.length) || 0) + ' หมุด'
-                + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (ใช้ค้นหาเมื่อคลิก)' : '')
-                + ' • กำลังแสดงแบบโหมดสำรอง'
-            );
-            return;
-        }}
-
-        if (clusterGroup && typeof clusterGroup.clearLayers === 'function') clusterGroup.clearLayers();
-        if (pointLayer && typeof pointLayer.clearLayers === 'function') pointLayer.clearLayers();
-
-        if (!MAP_POINTS || MAP_POINTS.length === 0) {{
-            setMarkerHint('ℹ️ ไม่มีข้อมูล Plus Code ในชุดนี้ — คลิกชื่อบริษัทเพื่อค้นหาตำแหน่ง');
-            return;
-        }}
-
-        const bounds = [];
-        const heatData = [];
-
-        MAP_POINTS.forEach(function(item) {{
-            try {{
-                const lat = Number(item.lat), lng = Number(item.lng);
-                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-                const coords = [lat, lng];
-                const popup  = '<b>' + escapeHtml(item.name) + '</b>'
-                    + '<br><small>👤 ' + escapeHtml(item.salesperson||'—') + '</small>'
-                    + '<br><small>📍 ' + escapeHtml(item.province||'—') + '</small>'
-                    + (item.plus_code ? '<br><small>📌 ' + escapeHtml(item.plus_code) + '</small>' : '');
-                const mk = L.marker(coords);
-                heatData.push([coords[0], coords[1], 0.7]);
-                mk.bindPopup(popup);
-                mk.on('click', function() {{
-                    showMap(encodeURIComponent(item.query||''), item.name||'', null, false, [coords[0], coords[1]]);
-                }});
-                if (clusterGroup) clusterGroup.addLayer(mk);
-                else if (pointLayer) pointLayer.addLayer(mk);
-                else mk.addTo(map);
-                bounds.push(coords);
-            }} catch(markerErr) {{
-                console.warn('Skip marker due to error:', markerErr);
-            }}
-        }});
-
-        if (hasHeat() && heatLayer) {{
-            try {{ map.removeLayer(heatLayer); }} catch(e) {{}}
-            heatLayer = null;
-        }}
-        if (hasHeat() && heatData.length) {{
-            heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}});
-            if (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid') heatLayer.addTo(map);
-        }}
-        if (DEFAULT_VIEW_MODE === 'Heatmap' && clusterGroup) {{
-            try {{ map.removeLayer(clusterGroup); }} catch(e) {{}}
-        }}
-
-        setMarkerHint(
+(function renderMarkers() {{
+    var skipped = MAP_POINTS_NO_COORD.length;
+    if (!MAP_POINTS || MAP_POINTS.length === 0) {{
+        document.getElementById('marker-hint').textContent =
+            'ℹ️ ไม่มีข้อมูล Plus Code ในชุดนี้ — คลิกชื่อบริษัทเพื่อค้นหาตำแหน่ง';
+        return;
+    }}
+    if (!HAS_LEAFLET || !map || !clusterGroup) {{
+        document.getElementById('marker-hint').textContent =
             '📌 ' + MAP_POINTS.length + ' หมุด'
             + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '')
-            + (!hasCluster() ? ' • Cluster fallback' : '')
-            + (!hasHeat() ? ' • Heatmap fallback' : '')
-        );
-
-        if (AUTO_FIT_BOUNDS) {{
-            if (bounds.length > 1) map.fitBounds(bounds, {{padding:[40,40]}});
-            else if (bounds.length === 1) map.setView(bounds[0], 11);
-        }}
-    }} catch (renderErr) {{
-        console.warn('Render markers failed:', renderErr);
-        forceFallback(renderErr && renderErr.message ? renderErr.message : 'Render markers failed');
-        const skipped = Array.isArray(MAP_POINTS_NO_COORD) ? MAP_POINTS_NO_COORD.length : 0;
-        setMarkerHint(
-            '📌 ' + ((MAP_POINTS && MAP_POINTS.length) || 0) + ' หมุด'
-            + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (ใช้ค้นหาเมื่อคลิก)' : '')
-            + ' • กำลังแสดงแบบโหมดสำรอง'
-        );
+            + ' • โหมด fallback';
+        return;
     }}
-}}
-renderMarkersSafe();
+    clusterGroup.clearLayers();
+    var bounds = [];
+    var heatData = [];
+    MAP_POINTS.forEach(function(item) {{
+        var coords = [Number(item.lat), Number(item.lng)];
+        var popup  = '<b>' + escapeHtml(item.name) + '</b>'
+            + '<br><small>👤 ' + escapeHtml(item.salesperson||'—') + '</small>'
+            + '<br><small>📍 ' + escapeHtml(item.province||'—') + '</small>'
+            + (item.plus_code ? '<br><small>📌 ' + escapeHtml(item.plus_code) + '</small>' : '');
+        var mk = L.marker(coords);
+        heatData.push([coords[0], coords[1], 0.7]);
+        mk.bindPopup(popup);
+        mk.on('click', function() {{
+            showMap(
+                encodeURIComponent(item.query||''),
+                item.name||'',
+                null, false,
+                [Number(item.lat), Number(item.lng)]
+            );
+        }});
+        clusterGroup.addLayer(mk);
+        bounds.push(coords);
+    }});
+    if (heatLayer) {{ map.removeLayer(heatLayer); heatLayer = null; }}
+    if (heatData.length && typeof L.heatLayer === 'function') {{ heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}}); }}
+    if (heatLayer && (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid')) {{ heatLayer.addTo(map); }}
+    if (DEFAULT_VIEW_MODE === 'Heatmap' && clusterGroup) {{ try {{ map.removeLayer(clusterGroup); }} catch(e) {{}} }}
+    document.getElementById('marker-hint').textContent =
+        '📌 ' + MAP_POINTS.length + ' หมุด'
+        + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '');
+    if (AUTO_FIT_BOUNDS) {{
+        if (bounds.length > 1) map.fitBounds(bounds, {{padding:[40,40]}});
+        else if (bounds.length === 1) map.setView(bounds[0], 11);
+    }}
+}})();
 
 var OLC_A = '23456789CFGHJMPQRVWX';
 var OLC_R = [20.0, 1.0, 0.05, 0.0025, 0.000125];
@@ -3103,11 +2976,6 @@ async function geocode(query) {{
 }}
 
 async function drawRoute(dLat, dLng, destName) {{
-    if (!map || mapMode !== 'leaflet') {{
-        setEmbeddedMap(buildEmbedUrl(dLat, dLng, destName), 'Fallback map mode');
-        setHint('🗺️ แสดงปลายทางบน fallback map แล้ว');
-        return;
-    }}
     var url = 'https://router.project-osrm.org/route/v1/driving/'
         + ORIGIN_LNG+','+ORIGIN_LAT+';'+dLng+','+dLat
         + '?overview=full&geometries=geojson';
@@ -3127,7 +2995,8 @@ async function drawRoute(dLat, dLng, destName) {{
             routeLayer = L.geoJSON(route.geometry,
                 {{style:{{color:'#2563eb',weight:5,opacity:.9}}}}).addTo(map);
             map.fitBounds(routeLayer.getBounds(), {{padding:[50,50]}});
-            setHint('🚗 '+dist+' กม. | ⏱ '+ts+'  ('+ORIGIN_LABEL+' → '+destName+')');
+            document.getElementById('route-hint').textContent =
+                '🚗 '+dist+' กม. | ⏱ '+ts+'  ('+ORIGIN_LABEL+' → '+destName+')';
             return;
         }}
     }} catch(e) {{ console.warn('OSRM fail:', e.message||e); }}
@@ -3135,75 +3004,61 @@ async function drawRoute(dLat, dLng, destName) {{
     routeLayer = L.polyline([[ORIGIN_LAT,ORIGIN_LNG],[dLat,dLng]],
         {{color:'#94a3b8',weight:3,dashArray:'8 5',opacity:.8}}).addTo(map);
     map.fitBounds(routeLayer.getBounds(), {{padding:[60,60]}});
-    setHint('⚠️ คำนวณเส้นทางอัตโนมัติไม่ได้ — กด "เปิด Google Maps"');
+    document.getElementById('route-hint').textContent =
+        '⚠️ คำนวณเส้นทางอัตโนมัติไม่ได้ — กด "เปิด Google Maps"';
 }}
 
 async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) {{
-    try {{
-        if (drawRouteLine === undefined) drawRouteLine = true;
-        if (prefetchedCoords === undefined) prefetchedCoords = null;
-        var name = decodeURIComponent(String(destName||''));
-        document.getElementById('dest-label').textContent = '📍 '+name;
-        setHint('🔍 กำลังค้นหาตำแหน่ง…');
-        var rawDest = decodeURIComponent(String(destQuery||''));
-        var btn = document.getElementById('open-gmaps');
-        btn.href = 'https://www.google.com/maps/dir/?api=1'
-            +'&origin='+GMAPS_ORIGIN
-            +'&destination='+encodeURIComponent(rawDest)
-            +'&travelmode=driving';
-        btn.style.display = 'inline-flex';
-        document.querySelectorAll('tbody tr').forEach(function(r){{r.classList.remove('active');}});
-        var tr = e && (e.currentTarget || (e.target && e.target.closest('tr')));
-        if (tr) tr.classList.add('active');
-
-        if (map && mapMode === 'leaflet') {{
-            if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
-            if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
-        }}
-
-        var coords = prefetchedCoords || (await geocode(rawDest));
-        if (!coords) {{
-            setHint('❌ ไม่พบตำแหน่ง — กด "เปิด Google Maps"');
-            return;
-        }}
-
-        if (!map || mapMode !== 'leaflet') {{
-            setEmbeddedMap(buildEmbedUrl(coords[0], coords[1], rawDest || name), 'Fallback map mode');
-            setHint(drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps Embed แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว');
-            return;
-        }}
-
-        var destIcon = L.divIcon({{
-            html:'<div style="background:#dc2626;color:#fff;border-radius:50%;width:40px;height:40px;'
-                +'display:flex;align-items:center;justify-content:center;font-size:18px;'
-                +'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">📍</div>',
-            iconSize:[40,40], iconAnchor:[20,20]
-        }});
-        destMarker = L.marker(coords, {{icon:destIcon}})
-            .addTo(map).bindPopup('<b>'+name+'</b>').openPopup();
-        if (!drawRouteLine) {{
-            map.setView(coords, 11);
-            setHint('📍 คลิกแถวในตารางเพื่อดูเส้นทาง');
-            return;
-        }}
-        setHint('⏳ กำลังคำนวณเส้นทาง…');
-        await drawRoute(coords[0], coords[1], name);
-    }} catch (err) {{
-        console.warn('showMap failed:', err);
-        forceFallback(err && err.message ? err.message : 'showMap failed');
-        var rawDest = decodeURIComponent(String(destQuery||''));
-        if (rawDest) {{
-            document.getElementById('open-gmaps').href =
-                'https://www.google.com/maps/dir/?api=1'
-                +'&origin='+GMAPS_ORIGIN
-                +'&destination='+encodeURIComponent(rawDest)
-                +'&travelmode=driving';
-            document.getElementById('open-gmaps').style.display = 'inline-flex';
-        }}
+    if (drawRouteLine === undefined) drawRouteLine = true;
+    if (prefetchedCoords === undefined) prefetchedCoords = null;
+    var name = decodeURIComponent(String(destName||''));
+    document.getElementById('dest-label').textContent = '📍 '+name;
+    document.getElementById('route-hint').textContent  = '🔍 กำลังค้นหาตำแหน่ง…';
+    var rawDest = decodeURIComponent(String(destQuery||''));
+    var btn = document.getElementById('open-gmaps');
+    btn.href = 'https://www.google.com/maps/dir/?api=1'
+        +'&origin='+encodeURIComponent(ORIGIN_SHORT+' Bangkok Thailand')
+        +'&destination='+encodeURIComponent(rawDest)
+        +'&travelmode=driving';
+    btn.style.display = 'inline-flex';
+    document.querySelectorAll('tbody tr').forEach(function(r){{r.classList.remove('active');}});
+    var tr = e && (e.currentTarget || (e.target && e.target.closest('tr')));
+    if (tr) tr.classList.add('active');
+    if (HAS_LEAFLET && map) {{
+        if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
+        if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
     }}
+    var coords = prefetchedCoords || (await geocode(rawDest));
+    if (!coords) {{
+        document.getElementById('route-hint').textContent = '❌ ไม่พบตำแหน่ง — กด "เปิด Google Maps"';
+        return;
+    }}
+    if (!HAS_LEAFLET || !map) {{
+        setEmbeddedMap(buildEmbedUrl(coords[0], coords[1], rawDest || name));
+        document.getElementById('route-hint').textContent =
+            drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps fallback แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว';
+        return;
+    }}
+    var destIcon = L.divIcon({{
+        html:'<div style="background:#dc2626;color:#fff;border-radius:50%;width:40px;height:40px;'
+            +'display:flex;align-items:center;justify-content:center;font-size:18px;'
+            +'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">📍</div>',
+        iconSize:[40,40], iconAnchor:[20,20]
+    }});
+    destMarker = L.marker(coords, {{icon:destIcon}})
+        .addTo(map).bindPopup('<b>'+name+'</b>').openPopup();
+    if (!drawRouteLine) {{
+        map.setView(coords, 11);
+        document.getElementById('route-hint').textContent =
+            '📍 คลิกแถวในตารางเพื่อดูเส้นทาง';
+        return;
+    }}
+    document.getElementById('route-hint').textContent = '⏳ กำลังคำนวณเส้นทาง…';
+    await drawRoute(coords[0], coords[1], name);
 }}
-</script></script>
+</script>
 </body></html>"""
+
     components.html(html_table, height=800, scrolling=False)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -3233,14 +3088,6 @@ elif menu == "🎯 Sales Action Center":
         st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
         st.stop()
 
-    exec_source_df = exec_source_df.copy()
-    exec_source_df["Budget_kg"] = pd.to_numeric(exec_source_df.get("Budget_kg", 0), errors="coerce").fillna(0)
-    exec_source_df = exec_source_df[exec_source_df["Budget_kg"] > 0].copy()
-    if exec_source_df.empty:
-        st.title("🎯 Sales Action Center")
-        st.info("ยังไม่มีบริษัทในความรับผิดชอบของคุณที่มี Budget สำหรับแสดงในหน้า Sales Action Center")
-        st.stop()
-
     rep = build_executive_report_df(exec_source_df)
     rep["Sales/Year"] = pd.to_numeric(rep.get("Sales/Year", 0), errors="coerce").fillna(0)
     rep["Budget_kg"] = pd.to_numeric(rep.get("Budget_kg", 0), errors="coerce").fillna(0)
@@ -3250,375 +3097,269 @@ elif menu == "🎯 Sales Action Center":
     rep["achievement_pct"] = pd.to_numeric(rep.get("achievement_pct", 0), errors="coerce").fillna(0)
     rep["yoy_pct"] = pd.to_numeric(rep.get("yoy_pct", 0), errors="coerce").fillna(0)
     rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
-    rep["Province"] = rep.get("Province", "").fillna("").astype(str)
-    rep["Industry"] = rep.get("Industry", "").fillna("").astype(str)
 
     role = str(st.session_state.get("user_role") or "").strip().lower()
-    user_name = str(st.session_state.get("user_name") or _get_user_name() or "Sales").strip()
-    dept_name = _dept_label(st.session_state.get("dept") or "")
-
-    score_q80 = rep["opportunity_score"].quantile(0.80) if len(rep) else 0
-    score_q60 = rep["opportunity_score"].quantile(0.60) if len(rep) else 0
-    gap_q70 = rep["gap_kg"].quantile(0.70) if len(rep) else 0
-
-    rep["last_activity_days"] = rep.apply(
-        lambda r: 14 if r["achievement_pct"] < 35 else (9 if r["yoy_pct"] < 0 else (5 if r["opportunity_score"] >= score_q80 else 2)),
-        axis=1,
-    )
-    rep["action_bucket"] = rep.apply(
-        lambda r: "overdue" if (r["achievement_pct"] < 45 or r["yoy_pct"] < -5)
-        else ("today" if (r["opportunity_score"] >= score_q80 or r["gap_kg"] >= gap_q70) else "week"),
-        axis=1,
-    )
-    rep["priority_label"] = rep["action_bucket"].map({
-        "overdue": "🔴 Overdue",
-        "today": "🟠 Today",
-        "week": "🟡 This Week",
-    }).fillna("🟡 This Week")
-    rep["risk_label"] = rep.apply(
-        lambda r: "⚠️ At risk" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ On track",
-        axis=1,
-    )
-    rep["next_action"] = rep.apply(
-        lambda r: "Call & recover plan" if r["action_bucket"] == "overdue"
-        else ("Follow-up today" if r["action_bucket"] == "today" else "Plan visit this week"),
-        axis=1,
-    )
-    rep["stage_label"] = rep["opportunity_score"].apply(
-        lambda v: "Closing" if v >= score_q80 else ("Deal" if v >= score_q60 else "Lead")
-    )
-
-    overdue_df = rep[rep["action_bucket"] == "overdue"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    today_df = rep[rep["action_bucket"] == "today"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    week_df = rep[rep["action_bucket"] == "week"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
-    priority_df = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(8)
-    risk_df = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(8)
-
-    pipeline_df = rep.groupby("stage_label", dropna=False).agg(
-        customers=("Customer Name", "count"),
-        sales=("Sales/Year", "sum"),
-        gap=("gap_kg", "sum"),
-    ).reset_index()
-    stage_order = ["Lead", "Deal", "Closing"]
-    if not pipeline_df.empty:
-        pipeline_df["stage_label"] = pd.Categorical(pipeline_df["stage_label"], categories=stage_order, ordered=True)
-        pipeline_df = pipeline_df.sort_values("stage_label")
-
-    total_customers = int(len(rep))
-    today_actions = int(len(overdue_df) + len(today_df))
-    high_priority_count = int((rep["opportunity_score"] >= score_q80).sum()) if len(rep) else 0
-    risk_count = int(len(risk_df))
-    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
-
     if role == "staff":
-        hero_title = f"Good morning, {user_name.split()[0]} 👋"
-        hero_subtitle = "หน้าทำงานส่วนตัวของคุณวันนี้ เห็นเฉพาะลูกค้า งาน และโอกาสที่เกี่ยวข้องกับตัวคุณเท่านั้น"
-        hero_badge = f"Personal Mode • {dept_name}"
+        title = "My Sales Action Center"
+        subtitle = "มุมมองสำหรับ Sales: ใช้ดู KPI ของตัวเอง จัดลำดับลูกค้าที่ต้องเข้า และวาง next action ให้ชัดในแต่ละวัน"
+        badge = "👨‍💻 Sales Workbench"
     elif role == "manager":
-        hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมองเชิงลงมือทำของพอร์ตที่คุณดูแล ใช้ไล่ลูกค้าสำคัญ งานวันนี้ และความเสี่ยงที่ควรเข้าไปช่วยทันที"
-        hero_badge = f"Manager Action View • {dept_name}"
+        title = "Sales Action Center"
+        subtitle = "มุมมองเชิง action ของแผนก: ใช้ไล่ดู priority accounts, at-risk accounts และจังหวัดที่ควรลงมือก่อน"
+        badge = "🧑‍💼 Manager Action View"
     else:
-        hero_title = "Sales Action Center"
-        hero_subtitle = "มุมมอง action-first สำหรับข้อมูลที่กำลังเปิดอยู่ ใช้ติดตาม priority, risk และ next action ได้ทันที"
-        hero_badge = f"Admin Action View • {dept_name}"
+        title = "Sales Action Center"
+        subtitle = "มุมมองเชิง action ของข้อมูลที่กำลังเปิดอยู่ เพื่อไล่ลูกค้าที่ควรทำก่อนและส่งต่อให้ทีมใช้งานได้ทันที"
+        badge = "👑 Admin Action View"
 
-    st.markdown('''
-    <style>
-    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
-    .sac-section-gap{height:18px;}
-    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
-    .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
-    .sac-hero:after{content:"";position:absolute;width:210px;height:210px;right:108px;bottom:-90px;border-radius:999px;background:rgba(255,255,255,.06);}
-    .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;}
-    .sac-kicker{font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#e0ecff;margin-bottom:10px;}
-    .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
-    .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
-    .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
-    .sac-action-card{border-radius:28px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.10);margin-bottom:22px;}
-    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-    .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
-    .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
-    .sac-card-pill.red{background:linear-gradient(180deg,#fff1f2 0%,#ffe4e6 100%);color:#e11d48;border:1px solid #fb7185;box-shadow:0 8px 16px rgba(244,63,94,.12);}
-    .sac-card-pill.orange{background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%);color:#ea580c;border:1px solid #fb923c;box-shadow:0 8px 16px rgba(249,115,22,.12);}
-    .sac-card-pill.yellow{background:linear-gradient(180deg,#fefce8 0%,#fef3c7 100%);color:#ca8a04;border:1px solid #facc15;box-shadow:0 8px 16px rgba(234,179,8,.12);}
-    .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
-    .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
-    .sac-task-list{display:flex;flex-direction:column;gap:16px;}
-    .sac-task{border:1px solid #e3edf9;border-radius:24px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 14px 28px rgba(148,163,184,.10);}
-    .sac-task.red{background:linear-gradient(180deg,#fff7f8 0%,#fff1f2 100%);border-color:#fecdd3;}
-    .sac-task.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
-    .sac-task.yellow{background:linear-gradient(180deg,#fffef6 0%,#fefce8 100%);border-color:#fde68a;}
-    .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
-    .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
-    .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
-    .sac-tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);}
-    .sac-tag.red{background:linear-gradient(180deg,#ffe4e6 0%,#fecdd3 100%);color:#be123c;border:1px solid #fb7185;}
-    .sac-tag.orange{background:linear-gradient(180deg,#ffedd5 0%,#fed7aa 100%);color:#c2410c;border:1px solid #fb923c;}
-    .sac-tag.yellow{background:linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);color:#a16207;border:1px solid #eab308;}
-    .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:linear-gradient(180deg,#eef4ff 0%,#dbeafe 100%);border:1px solid #93c5fd;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(59,130,246,.08);}
-    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:linear-gradient(180deg,#ecfeff 0%,#ccfbf1 100%);border:1px solid #67e8f9;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(45,212,191,.08);}
-    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:28px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.08);height:100%;}
-    .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
-    .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
-    .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
-    .sac-priority-item:last-child{border-bottom:none;padding-bottom:4px;}
-    .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
-    .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
-    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
-    .sac-side-box{padding:16px;border-radius:22px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 20px rgba(59,130,246,.06);}
-    .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
-    .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
-    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 16px rgba(148,163,184,.05);}
-    @media (max-width: 1200px){
-        .sac-title{font-size:34px;}
-        .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
-    }
-    </style>
-    ''', unsafe_allow_html=True)
-
-    def _render_action_list(df_in, tone="red"):
-        if df_in.empty:
-            st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
-            return
-        tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
-        rows = []
-        for _, row in df_in.iterrows():
-            customer = _safe_html(str(row.get("Customer Name", "") or "-"))
-            province = _safe_html(str(row.get("Province", "") or "ไม่ระบุจังหวัด"))
-            industry = _safe_html(str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม"))
-            gap = int(float(row.get("gap_kg", 0) or 0))
-            ach = float(row.get("achievement_pct", 0) or 0)
-            days = int(float(row.get("last_activity_days", 0) or 0))
-            score = float(row.get("opportunity_score", 0) or 0)
-            next_action = _safe_html(str(row.get("next_action", "Follow-up")))
-            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
-            rows.append(
-                f'<div class="sac-task {tone}">'
-                f'<div class="sac-task-head">'
-                f'<div>'
-                f'<div class="sac-task-name">{tone_emoji.get(tone, "✨")} {customer}</div>'
-                f'<div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>'
-                f'</div>'
-                f'<span class="sac-tag {tone}">{tag_text}</span>'
-                f'</div>'
-                f'<div class="sac-task-foot">'
-                f'<span class="sac-next">{tone_emoji.get(tone, "✨")} Next: {next_action}</span>'
-                f'<span class="sac-score">⭐ Score {score:.1f}</span>'
-                f'</div>'
-                f'</div>'
-            )
-        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
-    st.markdown(f'''
-    <div class="sac-hero">
-        <div class="sac-hero-inner">
-            <div>
-                <div class="sac-kicker">Sales Execution Workspace</div>
-                <div class="sac-title">{hero_title}</div>
-                <p class="sac-subtitle">{hero_subtitle}</p>
-            </div>
-            <div class="sac-badge">{hero_badge}</div>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
-
-    top1, top2, top3, top4 = st.columns(4)
-    with top1:
-        render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
-    with top2:
-        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่ score สูงสุดในพอร์ตนี้", "🎯")
-    with top3:
-        render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
-    with top4:
-        render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
-
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
-    render_section_header(
-        title="📊 My Performance Snapshot",
-        subtitle="ภาพรวมผลงานของพอร์ตที่คุณดูแล เพื่อดูยอดและช่องว่างก่อนลงมือทำในวันนี้",
-        icon="💎",
-        accent="#7c3aed",
+    render_info_banner(
+        title=title,
+        subtitle=subtitle,
+        badge=f"{badge} • {_dept_label(st.session_state.get('dept') or '')}",
+        gradient="linear-gradient(135deg, #172554 0%, #2563eb 55%, #38bdf8 100%)",
     )
-    perf1, perf2 = st.columns(2)
-    with perf1:
-        render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
-    with perf2:
-        render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
 
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    total_sales = float(rep["Sales/Year"].sum())
+    total_budget = float(rep["Budget_kg"].sum())
+    total_actual = float(rep["Actual_kg"].sum())
+    total_gap = float(rep["gap_kg"].sum())
+    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
+    priority_accounts = int((rep["opportunity_score"] >= rep["opportunity_score"].quantile(0.8)).sum()) if len(rep) else 0
+    risk_accounts = int(((rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)).sum())
+    province_focus = int(rep["Province"].astype(str).replace("", pd.NA).dropna().nunique())
+
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    with k1:
+        render_kpi_card("Customers", f"{len(rep):,}", "ลูกค้าที่อยู่ในมุมมองนี้", "🏢")
+    with k2:
+        render_kpi_card("Sales", f"฿{total_sales/1e6:,.1f}M", "ยอดขายของ portfolio ปัจจุบัน", "💰")
+    with k3:
+        render_kpi_card("Budget", f"{int(total_budget):,}", "Budget รวม (kg)", "🎯")
+    with k4:
+        render_kpi_card("Actual", f"{int(total_actual):,}", "Actual รวม (kg)", "✅")
+    with k5:
+        render_kpi_card("Priority", f"{priority_accounts:,}", "ลูกค้าที่ควรทำก่อน", "🔥")
+    with k6:
+        render_kpi_card("At-Risk", f"{risk_accounts:,}", "ลูกค้าที่ต้อง follow-up", "⚠️")
+
     render_section_header(
-        title="✨ Today Action Board",
-        subtitle="เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน",
-        icon="🚀",
+        title="Priority Accounts",
+        subtitle="ลำดับลูกค้าที่ควรเข้าเยี่ยมหรือ follow-up ก่อน จาก gap, achievement และมูลค่าที่ทำได้",
+        icon="🎯",
         accent="#2563eb",
     )
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">🚨 Overdue</div>
-                <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(overdue_df):,}</div>
-            <div class="sac-mini-sub">งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(overdue_df, "red")
-    with col_b:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">📌 Today</div>
-                <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(today_df):,}</div>
-            <div class="sac-mini-sub">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(today_df, "orange")
-    with col_c:
-        st.markdown(f'''
-        <div class="sac-action-card">
-            <div class="sac-card-top">
-                <div class="sac-card-title">🗓️ This Week</div>
-                <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
-            </div>
-            <div class="sac-mini-kpi">{len(week_df):,}</div>
-            <div class="sac-mini-sub">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div>
-        </div>
-        ''', unsafe_allow_html=True)
-        _render_action_list(week_df, "yellow")
 
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12).copy()
+    pc1, pc2 = st.columns([1.15, 0.85])
+    with pc1:
+        opp_view = opp[[
+            "Customer Name", "Salesperson", "Industry", "Province",
+            "Sales/Year", "Budget_kg", "Actual_kg", "gap_kg",
+            "achievement_pct", "opportunity_score"
+        ]].rename(columns={
+            "Customer Name": "Customer",
+            "Sales/Year": "Sales",
+            "Budget_kg": "Budget",
+            "Actual_kg": "Actual",
+            "gap_kg": "Gap",
+            "achievement_pct": "Achievement %",
+            "opportunity_score": "Score",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(opp_view, numeric_cols=["Sales", "Budget", "Actual", "Gap", "Score"], pct_cols=["Achievement %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=388,
+        )
+    with pc2:
+        opp_chart = opp.head(8).sort_values("opportunity_score", ascending=True)
+        fig_opp = px.bar(
+            opp_chart,
+            x="opportunity_score",
+            y="Customer Name",
+            orientation="h",
+            text=opp_chart["opportunity_score"].apply(lambda v: f"{v:.1f}"),
+            color="gap_kg",
+            color_continuous_scale="Sunsetdark",
+            labels={"Customer Name": "", "opportunity_score": "Score", "gap_kg": "Gap"},
+        )
+        fig_opp.update_traces(textposition="outside", marker_line_width=0)
+        fig_opp.update_layout(height=388, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_opp, use_container_width=True)
+
     render_section_header(
-        title="🌈 Priority Accounts & Quick Summary",
-        subtitle="ฝั่งซ้ายคือลูกค้าที่ควรโฟกัสก่อน ฝั่งขวาคือ action summary สำหรับเริ่มทำงานทันที",
-        icon="🌟",
+        title="Visit & Area Focus",
+        subtitle="ดูว่าควรลงพื้นที่จังหวัดไหนก่อน และลูกค้ากลุ่มไหนรวมกันได้สำหรับการวางแผน route",
+        icon="🧭",
         accent="#0f766e",
     )
-    p1, p2 = st.columns([1.1, 0.9])
-    with p1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>🌟 My Priority Accounts</h4><p>เฉพาะลูกค้าที่สำคัญที่สุดในมุมมองนี้ จัดจาก score, gap และโอกาสในการเร่งผลงาน</p>', unsafe_allow_html=True)
-        for _, row in priority_df.iterrows():
-            st.markdown(f'''
-            <div class="sac-priority-item">
-                <div>
-                    <div class="sac-priority-name">{str(row.get("Customer Name", "-") or "-")}</div>
-                    <div class="sac-priority-meta">{str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")} • {str(row.get("Industry", "ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")}<br>Gap {int(float(row.get("gap_kg", 0) or 0)):,} kg • Score {float(row.get("opportunity_score", 0) or 0):.1f}</div>
-                </div>
-                <div class="sac-priority-meta" style="text-align:right;white-space:nowrap;">
-                    {str(row.get("next_action", "Follow-up"))}<br><span style="font-weight:800;color:#0f172a;">{float(row.get("achievement_pct", 0) or 0):.1f}%</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    with p2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>✨ Quick Summary</h4><p>สรุปภาพรวมแบบสดใสและอ่านง่าย เพื่อช่วยตัดสินใจว่าควรเริ่มโฟกัสพอร์ตส่วนไหนก่อน</p>', unsafe_allow_html=True)
-        st.markdown(f'''
-        <div class="sac-side-stat">
-            <div class="sac-side-box"><div class="n">{total_customers:,}</div><div class="l">Customers in view</div></div>
-            <div class="sac-side-box"><div class="n">{today_actions:,}</div><div class="l">Actions today</div></div>
-            <div class="sac-side-box"><div class="n">{high_priority_count:,}</div><div class="l">High priority</div></div>
-            <div class="sac-side-box"><div class="n">{risk_count:,}</div><div class="l">Need recovery</div></div>
-        </div>
-        ''', unsafe_allow_html=True)
-        quick_view = priority_df[["Customer Name", "Province", "priority_label", "next_action"]].rename(columns={
-            "Customer Name": "Customer",
-            "Province": "Province",
-            "priority_label": "Priority",
-            "next_action": "Next Action",
-        }).copy()
-        st.dataframe(style_rich_dataframe(quick_view), use_container_width=True, hide_index=True, height=310)
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    province_focus_df = rep.groupby("Province", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_score=("opportunity_score", "mean"),
+    ).reset_index().sort_values(["gap_kg", "avg_score"], ascending=[False, False]).head(12)
+
+    salesperson_focus_df = rep.groupby("Salesperson", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
+    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
+
+    vf1, vf2 = st.columns([1, 1])
+    with vf1:
+        fig_prov = px.bar(
+            province_focus_df.sort_values("gap_kg", ascending=True),
+            x="gap_kg",
+            y="Province",
+            orientation="h",
+            text=province_focus_df.sort_values("gap_kg", ascending=True)["gap_kg"].apply(lambda v: f"{int(v):,}"),
+            color="customers",
+            color_continuous_scale="Teal",
+            labels={"gap_kg": "Gap (kg)", "customers": "Customers", "Province": ""},
+        )
+        fig_prov.update_traces(textposition="outside", marker_line_width=0)
+        fig_prov.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_prov, use_container_width=True)
+    with vf2:
+        sp_focus_chart = salesperson_focus_df.head(10).sort_values("gap_kg", ascending=True)
+        fig_sp = px.bar(
+            sp_focus_chart,
+            x="gap_kg",
+            y="Salesperson",
+            orientation="h",
+            text=sp_focus_chart["gap_kg"].apply(lambda v: f"{int(v):,}"),
+            color="avg_achievement",
+            color_continuous_scale="Blues",
+            labels={"gap_kg": "Gap (kg)", "avg_achievement": "Achievement %", "Salesperson": ""},
+        )
+        fig_sp.update_traces(textposition="outside", marker_line_width=0)
+        fig_sp.update_layout(height=360, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
+        st.plotly_chart(fig_sp, use_container_width=True)
+
     render_section_header(
-        title="📊 Pipeline & Risk Signals",
-        subtitle="ดูภาพรวม stage ของพอร์ตคุณควบคู่กับลูกค้าที่ต้องกู้กลับมา เพื่อให้ execution ไหลลื่นและไม่พลาดดีลสำคัญ",
-        icon="💫",
+        title="Action Queue",
+        subtitle="แปลงข้อมูลให้เป็นสิ่งที่ควรทำต่อทันที เช่น follow-up, recover หรือ close gap",
+        icon="📌",
         accent="#f97316",
     )
-    r1, r2 = st.columns([1, 1])
-    with r1:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>📊 My Pipeline</h4><p>เห็นสัดส่วนลูกค้าในแต่ละช่วง เพื่อบาลานซ์ระหว่างการสร้างโอกาสใหม่กับการเร่งปิดดีล</p>', unsafe_allow_html=True)
-        fig_pipe = px.bar(
-            pipeline_df,
-            x="stage_label",
-            y="customers",
-            text="customers",
-            color="stage_label",
-            color_discrete_map={"Lead": "#93c5fd", "Deal": "#60a5fa", "Closing": "#1d4ed8"},
-            labels={"stage_label": "Stage", "customers": "Customers"},
-        )
-        fig_pipe.update_traces(marker_line_width=0, textposition="outside")
-        fig_pipe.update_layout(height=310, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
-        st.plotly_chart(fig_pipe, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r2:
-        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
-        risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
+
+    action_df = rep.copy()
+    action_df["priority_bucket"] = action_df["opportunity_score"].apply(lambda v: "🔥 Close Now" if v >= 80 else ("🟠 Push This Week" if v >= 60 else "🟡 Monitor"))
+    action_df["risk_flag"] = action_df.apply(lambda r: "⚠️ Recover" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ Healthy", axis=1)
+    action_df["next_action"] = action_df.apply(
+        lambda r: "นัดเข้าพบ / ปิด gap" if r["opportunity_score"] >= 80
+        else ("โทร follow-up และอัปเดตแผน" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0)
+              else "รักษาความสัมพันธ์และตรวจโอกาสเพิ่ม"),
+        axis=1
+    )
+    action_queue = action_df.sort_values(["opportunity_score", "gap_kg"], ascending=False).head(15)
+
+    aq1, aq2 = st.columns([1.15, 0.85])
+    with aq1:
+        queue_view = action_queue[[
+            "Customer Name", "Salesperson", "Province", "gap_kg",
+            "achievement_pct", "yoy_pct", "priority_bucket", "risk_flag", "next_action"
+        ]].rename(columns={
             "Customer Name": "Customer",
+            "gap_kg": "Gap",
             "achievement_pct": "Achievement %",
             "yoy_pct": "YoY %",
-            "risk_label": "Risk",
+            "priority_bucket": "Priority",
+            "risk_flag": "Risk",
             "next_action": "Next Action",
         }).copy()
-        st.dataframe(style_rich_dataframe(risk_view, pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=310)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.dataframe(
+            style_rich_dataframe(queue_view, numeric_cols=["Gap"], pct_cols=["Achievement %", "YoY %"]),
+            use_container_width=True,
+            hide_index=True,
+            height=400,
+        )
+    with aq2:
+        bucket_summary = action_df.groupby("priority_bucket", dropna=False).agg(
+            customers=("Customer Name", "count"),
+            gap_kg=("gap_kg", "sum"),
+        ).reset_index().sort_values("customers", ascending=False)
+        fig_bucket = px.pie(
+            bucket_summary,
+            names="priority_bucket",
+            values="customers",
+            hole=0.45,
+        )
+        fig_bucket.update_traces(textinfo="label+percent")
+        fig_bucket.update_layout(height=240, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_bucket, use_container_width=True)
 
-    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+        st.markdown("**Area Focus Table**")
+        province_show = province_focus_df.rename(columns={
+            "Province": "Province",
+            "customers": "Customers",
+            "total_sales": "Sales",
+            "gap_kg": "Gap",
+            "avg_score": "Avg Score",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(province_show, numeric_cols=["Customers", "Sales", "Gap", "Avg Score"]),
+            use_container_width=True,
+            hide_index=True,
+            height=150,
+        )
+
     render_section_header(
-        title="📦 Download & Share",
-        subtitle="ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ",
+        title="Exports",
+        subtitle="ส่งออก action list ไปใช้งานต่อกับ SharePoint, map, route planning หรือการประชุมทีมได้ทันที",
         icon="📦",
         accent="#7c3aed",
     )
-    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
-    st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
-    export_sheets = {
-            "Sales Action Center": rep,
-            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
-            "Priority Accounts": priority_df,
-            "Risk Signals": risk_df,
-        }
-    report_xlsx = to_excel_bytes_multi(export_sheets)
-    ex1, ex2, ex3 = st.columns(3)
-    with ex1:
+
+    report_xlsx = to_excel_bytes_multi({
+        "Sales Action Center": rep,
+        "Priority Accounts": opp,
+        "Action Queue": action_queue,
+        "Province Focus": province_focus_df,
+    })
+
+    cexp1, cexp2, cexp3 = st.columns(3)
+    with cexp1:
         st.download_button(
-            "⬇️ Action Excel",
+            "⬇️ Download Sales Action Excel",
             data=report_xlsx,
             file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
-    with ex2:
-        export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+    with cexp2:
         st.download_button(
-            "⬇️ Action CSV",
-            data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
-            file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+            "⬇️ Download Action Queue CSV",
+            data=action_queue.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
             mime="text/csv",
             use_container_width=True,
         )
-    with ex3:
-        if st.button("☁️ Upload SharePoint", use_container_width=True):
+    with cexp3:
+        if st.button("☁️ Upload Sales Action to SharePoint", use_container_width=True):
             remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             if ok:
                 append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
                 st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    render_section_header(
+        title="Map Export",
+        subtitle="ส่งออกรายชื่อลูกค้า priority เพื่อใช้วางแผน route หรือเตรียมลงพื้นที่ต่อได้ทันที",
+        icon="🗺️",
+        accent="#0f766e",
+    )
+    map_export = action_queue[["Customer Name", "Salesperson", "Province", "Region_TH", "Plus_Code", "Sales/Year", "opportunity_score", "next_action"]].copy()
+    st.download_button(
+        "⬇️ Download Priority Map Customer List",
+        data=map_export.to_csv(index=False, encoding="utf-8-sig"),
+        file_name=f"priority_map_export_{st.session_state.get('dept') or 'ALL'}.csv",
+        mime="text/csv",
+        use_container_width=False,
+    )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 3 – EDIT / ADD
