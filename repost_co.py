@@ -91,7 +91,6 @@ HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
     "Pornphavit.Bu@optimal.co.th":"CO",
-    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
