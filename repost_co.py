@@ -2786,7 +2786,7 @@ td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
       🗺️ เปิด Google Maps
     </a>
   </div>
-  <div class="route-hint" id="route-hint">⏳ กำลังโหลด Open Location Code library…</div>
+  <div class="route-hint" id="route-hint">⏳ กำลังเตรียมแผนที่…</div>
 </div>
 
 <div class="map-wrap"><div id="leaflet-map"></div></div>\n<div id="marker-hint" style="font-size:11px;color:#64748b;padding:6px 4px 0 4px;"></div>
@@ -2859,6 +2859,14 @@ function escapeHtml(s) {{
 }}
 
 (function renderMarkers() {{
+    var skipped = MAP_POINTS_NO_COORD.length;
+    if (!HAS_LEAFLET) {{
+        document.getElementById('marker-hint').textContent =
+            '📌 ' + MAP_POINTS.length + ' หมุด'
+            + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (ใช้ค้นหาเมื่อคลิก)' : '')
+            + ' • กำลังแสดงแบบโหมดสำรอง';
+        return;
+    }}
     clusterGroup.clearLayers();
     if (!MAP_POINTS || MAP_POINTS.length === 0) {{
         document.getElementById('marker-hint').textContent =
@@ -2891,7 +2899,6 @@ function escapeHtml(s) {{
     if (heatData.length) {{ heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}}); }}
     if (heatLayer && (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid')) {{ heatLayer.addTo(map); }}
     if (DEFAULT_VIEW_MODE === 'Heatmap' && clusterGroup) {{ try {{ map.removeLayer(clusterGroup); }} catch(e) {{}} }}
-    var skipped = MAP_POINTS_NO_COORD.length;
     document.getElementById('marker-hint').textContent =
         '📌 ' + MAP_POINTS.length + ' หมุด'
         + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '');
@@ -3017,11 +3024,19 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
     document.querySelectorAll('tbody tr').forEach(function(r){{r.classList.remove('active');}});
     var tr = e && (e.currentTarget || (e.target && e.target.closest('tr')));
     if (tr) tr.classList.add('active');
-    if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
-    if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
+    if (HAS_LEAFLET && map) {{
+        if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
+        if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
+    }}
     var coords = prefetchedCoords || (await geocode(rawDest));
     if (!coords) {{
         document.getElementById('route-hint').textContent = '❌ ไม่พบตำแหน่ง — กด "เปิด Google Maps"';
+        return;
+    }}
+    if (!HAS_LEAFLET || !map) {{
+        setEmbeddedMap(buildEmbedUrl(coords[0], coords[1], rawDest || name));
+        document.getElementById('route-hint').textContent =
+            drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps Embed แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว';
         return;
     }}
     var destIcon = L.divIcon({{
