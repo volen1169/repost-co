@@ -831,6 +831,13 @@ def clean_plus_code(value: str) -> str:
     return code
 
 
+def is_short_plus_code(value: str) -> bool:
+    code = clean_plus_code(value)
+    if not code or '+' not in code:
+        return False
+    return len(code.split('+', 1)[0]) < 8
+
+
 def merge_address_parts(address: str, plus_code_value: str) -> str:
     addr = str(address or "").strip()
     _, plus_tail = extract_plus_code_and_address(plus_code_value)
@@ -1136,30 +1143,33 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
         region = str(row.get("Region", "") or "").strip()
         address = str(row.get("Address", "") or "").strip()
         plus_code = str(row.get("Plus_Code", "") or "").strip()
+        short_plus = is_short_plus_code(plus_code)
         row_ref_lat, row_ref_lng = resolve_reference_latlng(province, region, address)
-        if plus_code and "+" in plus_code:
-            query = f"{plus_code} {address} {province} Thailand".strip()
-        else:
-            query = f"{name} {address} {province} Thailand".strip()
-        coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng) if plus_code else None
+
+        address_query = f"{name} {address} {province} Thailand".strip()
+        plus_query = f"{plus_code} {address} {province} Thailand".strip() if plus_code and "+" in plus_code else ""
+        query = address_query if (short_plus and address) else (plus_query or address_query)
+
+        coords = None
+        if plus_code and not (short_plus and address):
+            coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng)
+
+        payload = {
+            "name": name,
+            "plus_code": plus_code,
+            "lat": round(float(coords[0]), 7) if coords else None,
+            "lng": round(float(coords[1]), 7) if coords else None,
+            "salesperson": salesperson,
+            "province": province,
+            "query": query,
+            "address_query": address_query,
+            "plus_query": plus_query,
+            "is_short_plus": short_plus,
+        }
         if coords:
-            map_points.append({
-                "name": name,
-                "plus_code": plus_code,
-                "lat": round(float(coords[0]), 7),
-                "lng": round(float(coords[1]), 7),
-                "salesperson": salesperson,
-                "province": province,
-                "query": query,
-            })
+            map_points.append(payload)
         else:
-            map_points_no_coords.append({
-                "name": name,
-                "plus_code": plus_code,
-                "salesperson": salesperson,
-                "province": province,
-                "query": query,
-            })
+            map_points_no_coords.append(payload)
     return json.dumps(map_points, ensure_ascii=False), json.dumps(map_points_no_coords, ensure_ascii=False)
 
 
@@ -2883,10 +2893,10 @@ function escapeHtml(s) {{
         mk.bindPopup(popup);
         mk.on('click', function() {{
             showMap(
-                encodeURIComponent(item.query||''),
+                encodeURIComponent((item.is_short_plus && item.address_query) ? item.address_query : (item.query||'')),
                 item.name||'',
                 null, false,
-                [Number(item.lat), Number(item.lng)]
+                (item.is_short_plus && item.address_query) ? null : [Number(item.lat), Number(item.lng)]
             );
         }});
         clusterGroup.addLayer(mk);
@@ -2956,7 +2966,15 @@ function plusCodeToCoords(code) {{
 async function geocode(query) {{
     var q = decodeURIComponent(String(query||'')).trim(); if (!q) return null;
     var pm = q.match(/([23456789CFGHJMPQRVWX]{{4,8}}[+][23456789CFGHJMPQRVWX]{{2,3}})/i);
-    if (pm) {{ var c = plusCodeToCoords(pm[1]); if (c) return c; }}
+    var shortPlus = false;
+    if (pm) {{
+        var before = String(pm[1]).split('+')[0] || '';
+        shortPlus = before.length < 8;
+        if (!shortPlus) {{
+            var c = plusCodeToCoords(pm[1]);
+            if (c) return c;
+        }}
+    }}
     for (var attempt = 0; attempt < 2; attempt++) {{
         try {{
             var qe = encodeURIComponent(attempt===0 ? q : q+' Thailand');
@@ -2968,6 +2986,10 @@ async function geocode(query) {{
             var d = await r.json();
             if (d.length > 0) return [parseFloat(d[0].lat), parseFloat(d[0].lon)];
         }} catch(e) {{ console.warn('Nominatim:', e.message); }}
+    }}
+    if (pm) {{
+        var fallback = plusCodeToCoords(pm[1]);
+        if (fallback) return fallback;
     }}
     return null;
 }}
