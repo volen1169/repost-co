@@ -32,7 +32,6 @@ import traceback
 import json
 import os
 import textwrap
-import html
 import msal
 from datetime import datetime
 
@@ -92,7 +91,6 @@ HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
     "Pornphavit.Bu@optimal.co.th":"CO",
-    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1220,10 +1218,6 @@ def _normalize_person_name(value: str) -> str:
     return s
 
 
-def _safe_html(value: object) -> str:
-    return html.escape(str(value or ""), quote=True)
-
-
 def _get_staff_visible_names() -> list[str]:
     candidates = []
     user_name = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
@@ -1319,46 +1313,16 @@ def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient
 def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
     numeric_cols = numeric_cols or []
     pct_cols = pct_cols or []
-    styler = df_show.style.hide(axis="index")
+    styler = df_show.style
     styler = styler.set_properties(**{
         "background-color": "#ffffff",
-        "border-color": "#e5eefb",
+        "border-color": "#e2e8f0",
         "font-size": "13px",
-        "color": "#0f172a",
-        "padding": "10px 12px",
-        "white-space": "nowrap",
     })
     styler = styler.set_table_styles([
-        {"selector": "table", "props": [
-            ("border-collapse", "separate"),
-            ("border-spacing", "0"),
-            ("width", "100%"),
-            ("border", "1px solid #dbe7f7"),
-            ("border-radius", "18px"),
-            ("overflow", "hidden"),
-            ("box-shadow", "0 14px 28px rgba(148,163,184,.10)")
-        ]},
-        {"selector": "thead th", "props": [
-            ("background", "linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%)"),
-            ("color", "#334155"),
-            ("font-weight", "800"),
-            ("font-size", "12px"),
-            ("text-transform", "uppercase"),
-            ("letter-spacing", ".04em"),
-            ("padding", "12px 12px"),
-            ("border-bottom", "1px solid #dbe7f7"),
-            ("position", "sticky"),
-            ("top", "0"),
-            ("z-index", "1")
-        ]},
-        {"selector": "tbody td", "props": [
-            ("border-bottom", "1px solid #edf3fb"),
-            ("padding", "10px 12px"),
-            ("vertical-align", "middle")
-        ]},
-        {"selector": "tbody tr:nth-child(even) td", "props": [("background-color", "#fbfdff")]},
-        {"selector": "tbody tr:hover td", "props": [("background-color", "#f3f8ff")]},
-        {"selector": "tbody tr:last-child td", "props": [("border-bottom", "none")]},
+        {"selector": "thead th", "props": [("background", "#eff6ff"), ("color", "#0f172a"), ("font-weight", "700"), ("border", "1px solid #dbeafe")]},
+        {"selector": "tbody tr:hover", "props": [("background-color", "#f8fbff")]},
+        {"selector": "tbody td", "props": [("border", "1px solid #eef2ff"), ("padding", "8px 10px")]},
     ])
     if numeric_cols:
         existing = [c for c in numeric_cols if c in df_show.columns]
@@ -1989,8 +1953,8 @@ with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
                 "⬇️ Download Audit Log",
                 data=_audit_df.to_csv(index=False, encoding="utf-8-sig"),
                 file_name="sales_dashboard_audit_log.csv",
-            mime="text/csv",
-            use_container_width=True,
+                mime="text/csv",
+                use_container_width=True,
             )
         except Exception:
             pass
@@ -2734,7 +2698,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
-.page{{display:flex;flex-direction:column;gap:12px;padding:6px 4px 4px 4px;}}
+.page{{display:flex;flex-direction:column;gap:10px;padding:4px;}}
 .route-bar{{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
   padding:10px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
 .route-title{{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}}
@@ -2742,33 +2706,28 @@ html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
 .route-arrow{{font-size:15px;opacity:.8;}}
-.route-hint{{font-size:10.5px;opacity:.78;margin-top:2px;}}
+.route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
 .btn-gmaps{{display:inline-flex;align-items:center;gap:3px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
   padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;
   text-decoration:none;white-space:nowrap;}}
 .btn-gmaps:hover{{background:#dbeafe;}}
 .map-wrap{{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;
-  box-shadow:0 2px 12px rgba(0,0,0,0.08);background:#f8fafc;}}
-.map-shell{{position:relative;width:100%;height:340px;background:#dbeafe;}}
-#leaflet-map, #fallback-map{{width:100%;height:340px;}}
-#fallback-map{{display:none;border:0;background:#fff;}}
-.fallback-overlay{{position:absolute;right:12px;top:12px;z-index:999;background:rgba(255,255,255,.92);
-  color:#334155;border:1px solid #cbd5e1;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;
-  box-shadow:0 8px 18px rgba(15,23,42,.10);display:none;}}
-.wrap{{max-height:380px;overflow-y:auto;border:1px solid #dbe7f7;border-radius:16px;
-  box-shadow:0 12px 24px rgba(148,163,184,.10); background:#ffffff;}}
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);}}
+#leaflet-map{{width:100%;height:340px;}}
+.wrap{{max-height:380px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);}}
 table{{width:100%;border-collapse:collapse;}}
 thead tr{{background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;
   position:sticky;top:0;z-index:10;}}
-thead th{{padding:12px 14px;text-align:left;font-size:11.5px;font-weight:800;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;}}
+thead th{{padding:11px 13px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap;}}
 tbody tr{{transition:background .12s;}}
-tbody tr:nth-child(even){{background:#fbfdff;}}
+tbody tr:nth-child(even){{background:#f8fafc;}}
 tbody tr.clickable{{cursor:pointer;}}
-tbody tr.clickable:hover{{background:#eef5ff;}}
+tbody tr.clickable:hover{{background:#dbeafe;}}
 tbody tr.clickable.active{{background:#bfdbfe!important;box-shadow:inset 3px 0 0 #2563eb;}}
 tbody tr.no-map{{cursor:default;opacity:.55;}}
-td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
+td{{padding:9px 13px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}}
 .co{{font-weight:600;font-size:12px;}}
 .has-map{{color:#2563eb;}}
 .no-loc{{color:#94a3b8;}}
@@ -2777,8 +2736,6 @@ td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
 .sal{{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}}
 .loc{{color:#374151;font-size:11.5px;word-break:break-word;min-width:160px;line-height:1.5;}}
 .legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:12px;background:#f8fafc;}}
-.leaflet-popup-content-wrapper{{border-radius:16px;box-shadow:0 18px 32px rgba(15,23,42,.18);}}
-.leaflet-popup-content{{margin:12px 14px;}}
 </style>
 </head>
 <body><div class="page">
@@ -2793,17 +2750,10 @@ td{{padding:11px 14px;border-bottom:1px solid #edf3fb;vertical-align:middle;}}
       🗺️ เปิด Google Maps
     </a>
   </div>
-  <div class="route-hint" id="route-hint">⏳ กำลังเตรียมแผนที่…</div>
+  <div class="route-hint" id="route-hint">⏳ กำลังโหลด Open Location Code library…</div>
 </div>
 
-<div class="map-wrap">
-  <div class="map-shell">
-    <div id="leaflet-map"></div>
-    <iframe id="fallback-map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    <div class="fallback-overlay" id="fallback-badge">Fallback map mode</div>
-  </div>
-</div>
-<div id="marker-hint" style="font-size:11px;color:#64748b;padding:6px 4px 0 4px;"></div>
+<div class="map-wrap"><div id="leaflet-map"></div></div>\n<div id="marker-hint" style="font-size:11px;color:#64748b;padding:6px 4px 0 4px;"></div>
 
 <div class="wrap">
   <div class="legend">
@@ -2838,63 +2788,37 @@ const MAP_POINTS          = {map_points_json};
 const MAP_POINTS_NO_COORD = {map_points_no_coords_json};
 const DEFAULT_VIEW_MODE   = "{default_view}";
 const AUTO_FIT_BOUNDS     = {str(auto_fit_bounds).lower()};
-const GMAPS_ORIGIN = "{gmaps_origin}";
 
-const HAS_LEAFLET = typeof window.L !== 'undefined';
-const HAS_CLUSTER = HAS_LEAFLET && typeof window.L.markerClusterGroup === 'function';
-const HAS_HEAT = HAS_LEAFLET && typeof window.L.heatLayer === 'function';
+let destMarker = null, routeLayer = null, heatLayer = null;
+let HAS_LEAFLET = (typeof L !== 'undefined');
+let map = null;
+let clusterGroup = null;
 
-let map = null, clusterGroup = null, pointLayer = null, destMarker = null, routeLayer = null, heatLayer = null;
-
-function escapeHtml(s) {{
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}}
-function showLeafletShell() {{
-    document.getElementById('leaflet-map').style.display = 'block';
-    document.getElementById('fallback-map').style.display = 'none';
-    document.getElementById('fallback-badge').style.display = 'none';
-}}
-function showFallbackShell() {{
-    document.getElementById('leaflet-map').style.display = 'none';
-    document.getElementById('fallback-map').style.display = 'block';
-    document.getElementById('fallback-badge').style.display = 'block';
-}}
 function buildEmbedUrl(lat, lng, label) {{
-    const q = encodeURIComponent((label || 'Destination') + ' @' + lat + ',' + lng);
-    return 'https://www.google.com/maps?q=' + q + '&z=12&output=embed';
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(String(lat)+','+String(lng))
+        + '&z=11&output=embed';
 }}
 function setEmbeddedMap(url) {{
-    showFallbackShell();
-    const frame = document.getElementById('fallback-map');
-    if (frame && url) frame.src = url;
+    var el = document.getElementById('leaflet-map');
+    if (!el) return;
+    el.innerHTML = '<iframe src="'+url+'" width="100%" height="100%" style="border:0;border-radius:16px;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>';
 }}
 
-function initMap() {{
-    if (!HAS_LEAFLET) {{
-        setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
-        document.getElementById('route-hint').textContent = '⚠️ ใช้โหมดสำรอง — เปิดแผนที่ผ่าน Google Maps Embed';
-        return;
-    }}
+if (HAS_LEAFLET) {{
     try {{
-        showLeafletShell();
-        map = L.map('leaflet-map', {{ zoomControl: true, scrollWheelZoom: true }}).setView([ORIGIN_LAT, ORIGIN_LNG], 10);
+        clusterGroup = L.markerClusterGroup({{
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            maxClusterRadius: 45
+        }});
+
+        map = L.map('leaflet-map').setView([ORIGIN_LAT, ORIGIN_LNG], 10);
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             attribution: '© OpenStreetMap contributors', maxZoom: 19
         }}).addTo(map);
+        clusterGroup.addTo(map);
 
-        if (HAS_CLUSTER) {{
-            clusterGroup = L.markerClusterGroup({{
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                maxClusterRadius: 45
-            }});
-            clusterGroup.addTo(map);
-        }} else {{
-            pointLayer = L.featureGroup().addTo(map);
-        }}
-
-        const originIcon = L.divIcon({{
+        var originIcon = L.divIcon({{
             html: '<div style="background:#1e3a5f;color:#fff;border-radius:50%;width:40px;height:40px;'
                 + 'display:flex;align-items:center;justify-content:center;font-size:18px;'
                 + 'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">🏠</div>',
@@ -2905,61 +2829,71 @@ function initMap() {{
             .bindPopup('<b>' + ORIGIN_LABEL + '</b><br><small>' + ORIGIN_SHORT + ' — Bangna/Phra Khanong</small>')
             .openPopup();
 
-        document.getElementById('route-hint').textContent = '✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง';
+        document.getElementById('route-hint').textContent =
+            '✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง';
     }} catch (err) {{
-        console.warn('Leaflet init failed:', err);
+        HAS_LEAFLET = false;
         map = null;
+        clusterGroup = null;
         setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
-        document.getElementById('route-hint').textContent = '⚠️ ใช้โหมดสำรอง — Leaflet โหลดไม่สำเร็จ';
+        document.getElementById('route-hint').textContent =
+            '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
     }}
+}} else {{
+    setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
+    document.getElementById('route-hint').textContent =
+        '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
+}}
+
+function escapeHtml(s) {{
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }}
 
 (function renderMarkers() {{
-    initMap();
-    const skipped = MAP_POINTS_NO_COORD.length;
-    if (!map) {{
-        document.getElementById('marker-hint').textContent =
-            '📌 ' + MAP_POINTS.length + ' หมุด'
-            + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (ใช้ค้นหาเมื่อคลิก)' : '')
-            + ' • กำลังแสดงแบบโหมดสำรอง';
-        return;
-    }}
-    if (clusterGroup) clusterGroup.clearLayers();
-    if (pointLayer) pointLayer.clearLayers();
+    var skipped = MAP_POINTS_NO_COORD.length;
     if (!MAP_POINTS || MAP_POINTS.length === 0) {{
         document.getElementById('marker-hint').textContent =
             'ℹ️ ไม่มีข้อมูล Plus Code ในชุดนี้ — คลิกชื่อบริษัทเพื่อค้นหาตำแหน่ง';
         return;
     }}
-    const bounds = [];
-    const heatData = [];
+    if (!HAS_LEAFLET || !map || !clusterGroup) {{
+        document.getElementById('marker-hint').textContent =
+            '📌 ' + MAP_POINTS.length + ' หมุด'
+            + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '')
+            + ' • โหมด fallback';
+        return;
+    }}
+    clusterGroup.clearLayers();
+    var bounds = [];
+    var heatData = [];
     MAP_POINTS.forEach(function(item) {{
-        const coords = [Number(item.lat), Number(item.lng)];
-        const popup  = '<b>' + escapeHtml(item.name) + '</b>'
+        var coords = [Number(item.lat), Number(item.lng)];
+        var popup  = '<b>' + escapeHtml(item.name) + '</b>'
             + '<br><small>👤 ' + escapeHtml(item.salesperson||'—') + '</small>'
             + '<br><small>📍 ' + escapeHtml(item.province||'—') + '</small>'
             + (item.plus_code ? '<br><small>📌 ' + escapeHtml(item.plus_code) + '</small>' : '');
-        const mk = L.marker(coords);
+        var mk = L.marker(coords);
         heatData.push([coords[0], coords[1], 0.7]);
         mk.bindPopup(popup);
         mk.on('click', function() {{
-            showMap(encodeURIComponent(item.query||''), item.name||'', null, false, [coords[0], coords[1]]);
+            showMap(
+                encodeURIComponent(item.query||''),
+                item.name||'',
+                null, false,
+                [Number(item.lat), Number(item.lng)]
+            );
         }});
-        if (clusterGroup) clusterGroup.addLayer(mk); else if (pointLayer) pointLayer.addLayer(mk);
+        clusterGroup.addLayer(mk);
         bounds.push(coords);
     }});
-
-    if (HAS_HEAT && heatLayer) {{ try {{ map.removeLayer(heatLayer); }} catch(e) {{}} heatLayer = null; }}
-    if (HAS_HEAT && heatData.length) {{
-        heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}});
-        if (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid') heatLayer.addTo(map);
-    }}
+    if (heatLayer) {{ map.removeLayer(heatLayer); heatLayer = null; }}
+    if (heatData.length && typeof L.heatLayer === 'function') {{ heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}}); }}
+    if (heatLayer && (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid')) {{ heatLayer.addTo(map); }}
     if (DEFAULT_VIEW_MODE === 'Heatmap' && clusterGroup) {{ try {{ map.removeLayer(clusterGroup); }} catch(e) {{}} }}
     document.getElementById('marker-hint').textContent =
         '📌 ' + MAP_POINTS.length + ' หมุด'
-        + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '')
-        + (!HAS_CLUSTER ? ' • Cluster fallback' : '')
-        + (!HAS_HEAT ? ' • Heatmap fallback' : '');
+        + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '');
     if (AUTO_FIT_BOUNDS) {{
         if (bounds.length > 1) map.fitBounds(bounds, {{padding:[40,40]}});
         else if (bounds.length === 1) map.setView(bounds[0], 11);
@@ -3034,11 +2968,6 @@ async function geocode(query) {{
 }}
 
 async function drawRoute(dLat, dLng, destName) {{
-    if (!map) {{
-        setEmbeddedMap(buildEmbedUrl(dLat, dLng, destName));
-        document.getElementById('route-hint').textContent = '🗺️ แสดงปลายทางบน fallback map แล้ว';
-        return;
-    }}
     var url = 'https://router.project-osrm.org/route/v1/driving/'
         + ORIGIN_LNG+','+ORIGIN_LAT+';'+dLng+','+dLat
         + '?overview=full&geometries=geojson';
@@ -3080,14 +3009,14 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
     var rawDest = decodeURIComponent(String(destQuery||''));
     var btn = document.getElementById('open-gmaps');
     btn.href = 'https://www.google.com/maps/dir/?api=1'
-        +'&origin='+GMAPS_ORIGIN
+        +'&origin='+encodeURIComponent(ORIGIN_SHORT+' Bangkok Thailand')
         +'&destination='+encodeURIComponent(rawDest)
         +'&travelmode=driving';
     btn.style.display = 'inline-flex';
     document.querySelectorAll('tbody tr').forEach(function(r){{r.classList.remove('active');}});
     var tr = e && (e.currentTarget || (e.target && e.target.closest('tr')));
     if (tr) tr.classList.add('active');
-    if (map) {{
+    if (HAS_LEAFLET && map) {{
         if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
         if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
     }}
@@ -3096,10 +3025,10 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
         document.getElementById('route-hint').textContent = '❌ ไม่พบตำแหน่ง — กด "เปิด Google Maps"';
         return;
     }}
-    if (!map) {{
+    if (!HAS_LEAFLET || !map) {{
         setEmbeddedMap(buildEmbedUrl(coords[0], coords[1], rawDest || name));
         document.getElementById('route-hint').textContent =
-            drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps Embed แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว';
+            drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps fallback แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว';
         return;
     }}
     var destIcon = L.divIcon({{
@@ -3112,7 +3041,8 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
         .addTo(map).bindPopup('<b>'+name+'</b>').openPopup();
     if (!drawRouteLine) {{
         map.setView(coords, 11);
-        document.getElementById('route-hint').textContent = '📍 คลิกแถวในตารางเพื่อดูเส้นทาง';
+        document.getElementById('route-hint').textContent =
+            '📍 คลิกแถวในตารางเพื่อดูเส้นทาง';
         return;
     }}
     document.getElementById('route-hint').textContent = '⏳ กำลังคำนวณเส้นทาง…';
@@ -3120,6 +3050,7 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
 }}
 </script>
 </body></html>"""
+
     components.html(html_table, height=800, scrolling=False)
 
     st.markdown("<br>", unsafe_allow_html=True)
