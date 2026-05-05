@@ -269,7 +269,7 @@ def resolve_reference_latlng(province: str = "", region: str = "", address: str 
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI = "https://optimal-sales-territory.streamlit.app/~/+/oauth2callback"
+REDIRECT_URI = "https://optimal-sales-territory.streamlit.app/oauth2callback"
 TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
@@ -1155,33 +1155,27 @@ if not _session_logged_in():
     .stApp {
         background: linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
     }
-    .hero {
-        background: rgba(255,255,255,0.08);
-        backdrop-filter: blur(20px);
-        border-radius:24px;
-        padding:40px;
-        color:white;
-        box-shadow:0 20px 50px rgba(0,0,0,0.3);
-    }
-    .feature {
-        background: rgba(255,255,255,0.08);
-        padding:14px;
-        border-radius:12px;
-        margin-bottom:10px;
+    .login-container {
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:80vh;
     }
     .login-card {
-        background: rgba(255,255,255,0.12);
-        backdrop-filter: blur(20px);
-        border-radius:24px;
-        padding:30px;
+        width:420px;
+        padding:40px;
+        border-radius:20px;
+        background:rgba(255,255,255,0.1);
+        backdrop-filter:blur(20px);
+        text-align:center;
         color:white;
         box-shadow:0 20px 50px rgba(0,0,0,0.3);
     }
-    .btn-login {
+    .login-btn {
         width:100%;
         padding:14px;
         border-radius:14px;
-        background: linear-gradient(135deg,#2563eb,#38bdf8);
+        background:linear-gradient(135deg,#2563eb,#38bdf8);
         border:none;
         color:white;
         font-weight:600;
@@ -1190,31 +1184,20 @@ if not _session_logged_in():
     </style>
     """, unsafe_allow_html=True)
 
-    left, right = st.columns([1.6, 1], gap="large")
-
-    with left:
-        st.markdown("""
-        <div class="hero">
-            <h1>Sales Territory Dashboard</h1>
-            <p>Modern workspace for sales operations</p>
-            <div class="feature">📊 Team Dashboard</div>
-            <div class="feature">🎯 Sales Action Center</div>
-            <div class="feature">🗺 Route & Coverage Ready</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with right:
-        st.markdown(f"""
+    st.markdown(f"""
+    <div class="login-container">
         <div class="login-card">
-            <h2>ยินดีต้อนรับกลับ</h2>
-            <p>เข้าสู่ระบบด้วย Microsoft 365</p>
-            <a href="{login_url}" target="_self">
-                <button class="btn-login">
-                    🔐 Sign in with Microsoft 365
-                </button>
+            <h2>🚀 Sales Platform</h2>
+            <p>Login with Microsoft 365</p>
+
+            <a href="{login_url}" target="_self" style="text-decoration:none;">
+                <div class="login-btn">
+                    🔐 Sign in with Microsoft
+                </div>
             </a>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
     st.stop()
     st.link_button("Login with Microsoft", _build_login_url())
