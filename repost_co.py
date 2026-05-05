@@ -73,6 +73,20 @@ DEPARTMENT_LABELS = {
 }
 
 DEPT_GROUPS = {
+
+# 🔥 Enterprise Role Mapping
+ROLE_GROUP_MAP = {
+    "admin": ["OPT_Admin"],
+    "manager": [
+        "OPT_CA_Manager", "OPT_CO_Manager", "OPT_PH_Manager",
+        "OPT_PL_Manager", "OPT_PO_Manager", "OPT_SF_Manager"
+    ],
+    "staff": [
+        "OPT_CA_Staff", "OPT_CO_Staff", "OPT_PH_Staff",
+        "OPT_PL_Staff", "OPT_PO_Staff", "OPT_SF_Staff"
+    ]
+}
+
     "CA": "OPT Care Solutions",
     "CO": "OPT Colourant Solutions",
     "PH": "OPT Personalcare & Homecare",
@@ -529,6 +543,16 @@ def _complete_login_from_query():
     name = claims.get("name", email)
     st.session_state["auth_user"] = {"email": email, "name": name}
     st.session_state["auth_access_token"] = result["access_token"]
+
+    role, dept = _resolve_role_and_dept_enterprise()
+    if not role:
+        st.error("⛔ Unauthorized")
+        st.stop()
+
+    st.session_state["user_role"] = role
+    st.session_state["dept"] = dept
+    st.session_state["is_admin"] = (role == "admin")
+
     _set_auth_cookies(email=email, name=name, auth_mode="m365")
     try:
         st.query_params.clear()
@@ -586,16 +610,23 @@ def _get_user_groups() -> list[str]:
         return []
     return groups
 
-def _resolve_role_and_dept(email: str | None = None, user_groups: list | None = None):
-    email = str(email or _get_user_email() or "").strip().lower()
-    groups = set(str(g).strip() for g in (user_groups or _get_user_groups()) if str(g).strip())
+def _resolve_role_and_dept_enterprise():
+    email = _get_user_email()
+    groups = _get_user_groups()
+    groups = set(g.strip() for g in groups)
 
-    if email in {e.lower() for e in ADMIN_EMAILS}:
+    if any(g in groups for g in ROLE_GROUP_MAP["admin"]):
         return "admin", None
 
-    user_depts = [dept for dept, group_name in DEPT_GROUPS.items() if group_name in groups]
-    if not user_depts:
-        return None, None
+    for dept in DEPT_GROUPS.keys():
+        if f"OPT_{dept}_Manager" in groups:
+            return "manager", dept
+
+    for dept in DEPT_GROUPS.keys():
+        if f"OPT_{dept}_Staff" in groups:
+            return "staff", dept
+
+    return None, None
 
     head_map = {str(k).strip().lower(): str(v).strip().upper() for k, v in HEAD_EMAIL_TO_DEPT.items()}
     if email in head_map:
