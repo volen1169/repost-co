@@ -10,7 +10,7 @@ pip install streamlit[auth] pandas plotly openpyxl msal requests
 
 MICROSOFT 365 / OIDC CONFIG (.streamlit/secrets.toml example)
 [auth]
-redirect_uri = "https://optimal-sales-territory.streamlit.app/oauth2callback"
+redirect_uri = "http://localhost:8501/oauth2callback"
 cookie_secret = "CHANGE_ME_TO_A_LONG_RANDOM_SECRET"
 client_id = "YOUR_ENTRA_APP_CLIENT_ID"
 client_secret = "YOUR_ENTRA_APP_CLIENT_SECRET"
