@@ -1150,85 +1150,18 @@ if not _session_logged_in():
 
     login_url = _build_login_url()
 
-    st.markdown("""
-    <style>
-    .stApp {
-        background: #f3f2f1;
-    }
-    .ms-login-wrapper {
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        height:90vh;
-    }
-    .ms-card {
-        width:360px;
-        background:white;
-        padding:40px 30px;
-        border-radius:8px;
-        box-shadow:0 10px 25px rgba(0,0,0,0.1);
-        text-align:left;
-        font-family: "Segoe UI", sans-serif;
-    }
-    .ms-logo {
-        width:36px;
-        margin-bottom:20px;
-    }
-    .ms-title {
-        font-size:24px;
-        font-weight:600;
-        margin-bottom:10px;
-        color:#1b1b1b;
-    }
-    .ms-sub {
-        font-size:14px;
-        color:#605e5c;
-        margin-bottom:25px;
-    }
-    .ms-btn {
-        display:block;
-        width:100%;
-        background:#0078d4;
-        color:white;
-        padding:12px;
-        border-radius:4px;
-        text-align:center;
-        text-decoration:none;
-        font-weight:600;
-        transition:0.2s;
-    }
-    .ms-btn:hover {
-        background:#106ebe;
-    }
-    .ms-footer {
-        margin-top:20px;
-        font-size:12px;
-        color:#888;
-        text-align:center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    st.set_page_config(layout="centered")
 
-    st.markdown(f"""
-    <div class="ms-login-wrapper">
-        <div class="ms-card">
+    col1, col2, col3 = st.columns([1,2,1])
 
-            <img class="ms-logo" src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg"/>
+    with col2:
+        st.title("🚀 Sales Platform")
+        st.caption("Sign in with Microsoft 365")
 
-            <div class="ms-title">Sign in</div>
-            <div class="ms-sub">Use your Microsoft 365 account</div>
+        st.link_button("🔐 Sign in with Microsoft", login_url, use_container_width=True)
 
-            <a href="{login_url}" target="_self" class="ms-btn">
-                Sign in with Microsoft
-            </a>
-
-            <div class="ms-footer">
-                Sales Platform © 2026
-            </div>
-
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown("---")
+        st.caption("© 2026 Sales Platform")
 
     st.stop()
     st.link_button("Login with Microsoft", _build_login_url())
