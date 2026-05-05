@@ -1147,10 +1147,76 @@ _restore_session_from_cookies()
 _complete_login_from_query()
 
 if not _session_logged_in():
-    st.markdown("## 🔐 Login Required")
-    if not _auth_configured():
-        st.error("OAuth not configured")
-        st.stop()
+
+    login_url = _build_login_url()
+
+    st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
+    }
+    .hero {
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(20px);
+        border-radius:24px;
+        padding:40px;
+        color:white;
+        box-shadow:0 20px 50px rgba(0,0,0,0.3);
+    }
+    .feature {
+        background: rgba(255,255,255,0.08);
+        padding:14px;
+        border-radius:12px;
+        margin-bottom:10px;
+    }
+    .login-card {
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(20px);
+        border-radius:24px;
+        padding:30px;
+        color:white;
+        box-shadow:0 20px 50px rgba(0,0,0,0.3);
+    }
+    .btn-login {
+        width:100%;
+        padding:14px;
+        border-radius:14px;
+        background: linear-gradient(135deg,#2563eb,#38bdf8);
+        border:none;
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    left, right = st.columns([1.6, 1], gap="large")
+
+    with left:
+        st.markdown("""
+        <div class="hero">
+            <h1>Sales Territory Dashboard</h1>
+            <p>Modern workspace for sales operations</p>
+            <div class="feature">📊 Team Dashboard</div>
+            <div class="feature">🎯 Sales Action Center</div>
+            <div class="feature">🗺 Route & Coverage Ready</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with right:
+        st.markdown(f"""
+        <div class="login-card">
+            <h2>ยินดีต้อนรับกลับ</h2>
+            <p>เข้าสู่ระบบด้วย Microsoft 365</p>
+            <a href="{login_url}" target="_self">
+                <button class="btn-login">
+                    🔐 Sign in with Microsoft 365
+                </button>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.stop()
     st.link_button("Login with Microsoft", _build_login_url())
     st.stop()
 
