@@ -33,6 +33,51 @@ import json
 import os
 import textwrap
 import msal
+
+# =========================
+# 🔥 GLOBAL CALLBACK FIX (TOP OF FILE)
+# =========================
+query_params = st.query_params
+
+if "code" in query_params:
+
+    st.write("🚀 CALLBACK DETECTED")
+
+    code = query_params["code"]
+
+    result = _msal_app().acquire_token_by_authorization_code(
+        code=code,
+        scopes=["openid", "profile", "email", "User.Read"],
+        redirect_uri=REDIRECT_URI,
+    )
+
+    st.write("DEBUG LOGIN RESULT:", result)
+
+    if "id_token_claims" in result:
+        claims = result["id_token_claims"]
+
+        email = (claims.get("preferred_username")
+                 or claims.get("email")
+                 or claims.get("upn")
+                 or "").lower()
+
+        name = claims.get("name", email)
+
+        st.session_state["auth_user"] = {
+            "email": email,
+            "name": name
+        }
+
+        st.session_state["auth_access_token"] = result.get("access_token", "")
+
+        st.success("LOGIN SUCCESS")
+
+    else:
+        st.error("❌ NO ID TOKEN")
+
+    st.query_params.clear()
+    st.rerun()
+
 from datetime import datetime
 
 APP_ENV = os.getenv("SALES_DASHBOARD_ENV", "development")
@@ -525,7 +570,7 @@ def _build_login_url():
         prompt="select_account",
     )
 
-def _complete_login_from_query():
+def # _complete_login_from_query():
     params = st.query_params
     code = params.get("code")
     if not code:
@@ -1177,7 +1222,7 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
 # =========================
 _restore_session_from_query_params()
 _restore_session_from_cookies()
-_complete_login_from_query()
+# _complete_login_from_query()
 
 if not _session_logged_in():
 
@@ -1197,8 +1242,7 @@ if not _session_logged_in():
         st.caption("© 2026 Sales Platform")
 
     st.stop()
-    st.link_button("Login with Microsoft", _build_login_url())
-    st.stop()
+    
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SESSION STATE INIT
