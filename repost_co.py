@@ -31,6 +31,8 @@ import requests
 import traceback
 import json
 import os
+import textwrap
+import html
 import msal
 from datetime import datetime
 
@@ -62,24 +64,35 @@ GRAPH_BASE       = "https://graph.microsoft.com/v1.0"
 
 DEPARTMENTS = ["CA", "CO", "PH", "PL", "PO", "SF"]
 
+DEPARTMENT_LABELS = {
+    "CA": "Care Solutions",
+    "CO": "Colourant Solutions",
+    "PH": "Personalcare & Homecare",
+    "PL": "Petroleum&Lubricant Solutions",
+    "PO": "Polymer Solutions",
+    "SF": "Surface Solutions",
+}
+
 DEPT_GROUPS = {
     "CA": "OPT Care Solutions",
-    "CO": "OPT Color Solutions",
-    "PH": "OPT Pharma Solutions",
-    "PL": "OPT Plastic Solutions",
-    "PO": "OPT Polyolefin Solutions",
-    "SF": "OPT Specialty Food Solutions",
+    "CO": "OPT Colourant Solutions",
+    "PH": "OPT Personalcare & Homecare",
+    "PL": "OPT Petroleum&Lubricant Solutions",
+    "PO": "OPT Polymer Solutions",
+    "SF": "OPT Surface Solutions",
 }
 
 ADMIN_EMAILS = {
-    "it@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
-    "ratchaphruek.r@optimal.co.th",
+    "Teerapat.Po@optimal.co.th",
+    "itsupport1@poonyaruk.co.th",
+    "IT_Network@poonyaruk.co.th",
 }
 
 HEAD_EMAIL_TO_DEPT = {
     # ตัวอย่าง
     # "manager.ca@optimal.co.th": "CA",
+    "Pornphavit.Bu@optimal.co.th":"CO",
+    "itsupport@poonyaruk.co.th":"CO",
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -213,18 +226,256 @@ GRADE_BASE = {"A": 5_000_000, "A-": 4_000_000, "B": 3_000_000, "B-": 2_500_000,
 TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
                  "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "Plus_Code", "Address"]
 
+PROVINCE_CENTERS = {
+    "กรุงเทพมหานคร": (13.7563, 100.5018), "นนทบุรี": (13.8621, 100.5144),
+    "ปทุมธานี": (14.0208, 100.5250), "พระนครศรีอยุธยา": (14.3532, 100.5689),
+    "สมุทรปราการ": (13.5991, 100.5998), "นครปฐม": (13.8199, 100.0622),
+    "สมุทรสาคร": (13.5475, 100.2744), "ชลบุรี": (13.3611, 100.9847),
+    "ระยอง": (12.6814, 101.2813), "ฉะเชิงเทรา": (13.6904, 101.0779),
+    "ปราจีนบุรี": (14.0509, 101.3704), "นครนายก": (14.2069, 101.2131),
+    "สระแก้ว": (13.8240, 102.0646), "ราชบุรี": (13.5367, 99.8171),
+    "กาญจนบุรี": (14.0228, 99.5328), "เพชรบุรี": (13.1119, 99.9447),
+    "ประจวบคีรีขันธ์": (11.8124, 99.7973), "เชียงใหม่": (18.7883, 98.9853),
+    "เชียงราย": (19.9105, 99.8406), "ขอนแก่น": (16.4322, 102.8236),
+    "นครราชสีมา": (14.9799, 102.0977), "อุดรธานี": (17.4138, 102.7872),
+    "อุบลราชธานี": (15.2448, 104.8473), "สงขลา": (7.1898, 100.5951),
+    "สุราษฎร์ธานี": (9.1382, 99.3215), "นครศรีธรรมราช": (8.4304, 99.9631),
+    "ภูเก็ต": (7.8804, 98.3923), "กระบี่": (8.0863, 98.9063)
+}
+
+REGION_CENTERS = {
+    "Central": (13.7367, 100.5231), "East": (13.1500, 101.1000),
+    "North": (18.7900, 98.9800), "Northeast": (16.4322, 102.8236),
+    "West": (13.7000, 99.5000), "South": (8.4300, 99.9600),
+    "Unknown": (13.6776, 100.6262)
+}
+
+def resolve_reference_latlng(province: str = "", region: str = "", address: str = ""):
+    prov = str(province or "").strip()
+    if prov and prov in PROVINCE_CENTERS:
+        return PROVINCE_CENTERS[prov]
+    reg = str(region or "").strip()
+    if reg and reg in REGION_CENTERS:
+        return REGION_CENTERS[reg]
+    addr = str(address or "").strip()
+    if addr:
+        _sub, _dis, _prov, _reg = parse_address(addr)
+        if _prov and _prov in PROVINCE_CENTERS:
+            return PROVINCE_CENTERS[_prov]
+        if _reg and _reg in REGION_CENTERS:
+            return REGION_CENTERS[_reg]
+    return REGION_CENTERS["Unknown"]
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI   = os.getenv("REDIRECT_URI", APP_BASE_URL)
+REDIRECT_URI   = os.getenv("REDIRECT_URI", f"{APP_BASE_URL}/oauth2callback")
 TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
-OIDC_SCOPES    = ["openid", "profile", "email", "User.Read", "GroupMember.Read.All"]
+OIDC_SCOPES = ["User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
+AUTH_COOKIE_DAYS = 7
+AUTH_COOKIE_PREFIX = "salesdash_"
+LOCAL_USER_EMAIL = "local.user@salesdash.local"
+PERSIST_PARAM_PREFIX = "sd_"
+
+
+def _set_query_params_safe(**kwargs):
+    try:
+        qp = dict(st.query_params)
+        for k, v in kwargs.items():
+            key = f"{PERSIST_PARAM_PREFIX}{k}"
+            if v is None or str(v) == "":
+                qp.pop(key, None)
+            else:
+                qp[key] = str(v)
+        st.query_params.from_dict(qp)
+    except Exception:
+        pass
+
+
+def _clear_persisted_query_params():
+    try:
+        qp = dict(st.query_params)
+        for k in list(qp.keys()):
+            if str(k).startswith(PERSIST_PARAM_PREFIX):
+                qp.pop(k, None)
+        st.query_params.from_dict(qp)
+    except Exception:
+        pass
+
+
+def _set_persisted_login_state(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False, auth_mode: str = ""):
+    _set_query_params_safe(
+        email=(email or ""),
+        name=(name or ""),
+        role=(role or ""),
+        dept=(dept or ""),
+        is_admin=("1" if is_admin else "0"),
+        auth_mode=(auth_mode or ""),
+    )
+
+
+def _set_persisted_ui_state(menu: str = "", sp_file: str = ""):
+    _set_query_params_safe(menu=(menu or ""), sp_file=(sp_file or ""))
+
+
+def _restore_session_from_query_params():
+    try:
+        qp = st.query_params
+
+        if not st.session_state.get("ui_menu"):
+            st.session_state["ui_menu"] = str(qp.get(f"{PERSIST_PARAM_PREFIX}menu", "") or "").strip()
+        if not st.session_state.get("sp_file"):
+            st.session_state["sp_file"] = str(qp.get(f"{PERSIST_PARAM_PREFIX}sp_file", "") or "").strip() or None
+
+        if st.session_state.get("auth_user") or st.session_state.get("dept"):
+            return
+
+        email = str(qp.get(f"{PERSIST_PARAM_PREFIX}email", "") or "").strip().lower()
+        name = str(qp.get(f"{PERSIST_PARAM_PREFIX}name", "") or "").strip()
+        role = str(qp.get(f"{PERSIST_PARAM_PREFIX}role", "") or "").strip()
+        dept = str(qp.get(f"{PERSIST_PARAM_PREFIX}dept", "") or "").strip()
+        is_admin_raw = str(qp.get(f"{PERSIST_PARAM_PREFIX}is_admin", "") or "").strip()
+        auth_mode = str(qp.get(f"{PERSIST_PARAM_PREFIX}auth_mode", "") or "").strip().lower()
+        is_admin = is_admin_raw in ("1", "true", "True", "yes", "on")
+
+        if auth_mode == "local" and dept:
+            st.session_state["auth_user"] = {"email": LOCAL_USER_EMAIL, "name": name or "Local User"}
+            st.session_state["user_email"] = ""
+            st.session_state["user_name"] = name or "Local User"
+            st.session_state["user_role"] = role or ("admin" if is_admin else "manager")
+            st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "local"
+            return
+
+        if auth_mode == "m365" and email:
+            st.session_state["auth_user"] = {"email": email, "name": name or (email.split("@")[0] if "@" in email else email)}
+            st.session_state["user_email"] = email
+            st.session_state["user_name"] = name or (email.split("@")[0] if "@" in email else email)
+            if role:
+                st.session_state["user_role"] = role
+            if dept:
+                st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "m365"
+    except Exception:
+        pass
+
+
+def _js_escape(v: str) -> str:
+    return str(v or "").replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ")
+
+def _set_auth_cookies(email: str = "", name: str = "", role: str = "", dept: str = "", is_admin: bool = False, auth_mode: str = "m365"):
+    _set_persisted_login_state(email=email, name=name, role=role, dept=dept, is_admin=is_admin, auth_mode=auth_mode)
+    email_js = _js_escape(email)
+    name_js = _js_escape(name)
+    role_js = _js_escape(role)
+    dept_js = _js_escape(dept)
+    is_admin_js = "1" if is_admin else "0"
+    auth_mode_js = _js_escape(auth_mode or "m365")
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            var d = new Date();
+            d.setTime(d.getTime() + ({AUTH_COOKIE_DAYS}*24*60*60*1000));
+            var expires = "; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+            document.cookie = "{AUTH_COOKIE_PREFIX}email=" + encodeURIComponent('{email_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}name=" + encodeURIComponent('{name_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}role=" + encodeURIComponent('{role_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}dept=" + encodeURIComponent('{dept_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}is_admin=" + encodeURIComponent('{is_admin_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}auth_mode=" + encodeURIComponent('{auth_mode_js}') + expires;
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+def _set_ui_cookies(menu: str = "", sp_file: str = ""):
+    _set_persisted_ui_state(menu=menu, sp_file=sp_file)
+    menu_js = _js_escape(menu)
+    sp_file_js = _js_escape(sp_file)
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            var d = new Date();
+            d.setTime(d.getTime() + ({AUTH_COOKIE_DAYS}*24*60*60*1000));
+            var expires = "; expires=" + d.toUTCString() + "; path=/; SameSite=Lax";
+            document.cookie = "{AUTH_COOKIE_PREFIX}menu=" + encodeURIComponent('{menu_js}') + expires;
+            document.cookie = "{AUTH_COOKIE_PREFIX}sp_file=" + encodeURIComponent('{sp_file_js}') + expires;
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+def _clear_auth_cookies():
+    _clear_persisted_query_params()
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            var names = ["email","name","role","dept","is_admin","auth_mode","menu","sp_file"];
+            names.forEach(function(n) {{
+                document.cookie = "{AUTH_COOKIE_PREFIX}" + n + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
+            }});
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+def _restore_session_from_cookies():
+    try:
+        cookies = st.context.cookies
+        if not st.session_state.get("ui_menu"):
+            st.session_state["ui_menu"] = str(cookies.get(f"{AUTH_COOKIE_PREFIX}menu", "") or "").strip()
+        if not st.session_state.get("sp_file"):
+            st.session_state["sp_file"] = str(cookies.get(f"{AUTH_COOKIE_PREFIX}sp_file", "") or "").strip() or None
+
+        if st.session_state.get("auth_user") or st.session_state.get("dept"):
+            return
+
+        email = str(cookies.get(f"{AUTH_COOKIE_PREFIX}email", "") or "").strip().lower()
+        name = str(cookies.get(f"{AUTH_COOKIE_PREFIX}name", "") or "").strip()
+        role = str(cookies.get(f"{AUTH_COOKIE_PREFIX}role", "") or "").strip()
+        dept = str(cookies.get(f"{AUTH_COOKIE_PREFIX}dept", "") or "").strip()
+        is_admin_raw = str(cookies.get(f"{AUTH_COOKIE_PREFIX}is_admin", "") or "").strip()
+        auth_mode = str(cookies.get(f"{AUTH_COOKIE_PREFIX}auth_mode", "") or "").strip().lower()
+        is_admin = is_admin_raw in ("1", "true", "True", "yes", "on")
+
+        if auth_mode == "local" and dept:
+            st.session_state["auth_user"] = {"email": LOCAL_USER_EMAIL, "name": name or "Local User"}
+            st.session_state["user_email"] = ""
+            st.session_state["user_name"] = name or "Local User"
+            st.session_state["user_role"] = role or ("admin" if is_admin else "manager")
+            st.session_state["dept"] = dept
+            st.session_state["is_admin"] = is_admin
+            st.session_state["auth_mode"] = "local"
+            return
+
+        if not email:
+            return
+
+        st.session_state["auth_user"] = {"email": email, "name": name or (email.split("@")[0] if "@" in email else email)}
+        st.session_state["user_email"] = email
+        st.session_state["user_name"] = name or (email.split("@")[0] if "@" in email else email)
+        if role:
+            st.session_state["user_role"] = role
+        if dept:
+            st.session_state["dept"] = dept
+        st.session_state["is_admin"] = is_admin
+        st.session_state["auth_mode"] = auth_mode or "m365"
+    except Exception:
+        pass
 
 def _msal_app():
     return msal.ConfidentialClientApplication(
@@ -243,6 +494,7 @@ def _auth_logout():
     for k in ["auth_user", "auth_access_token", "auth_id_token_claims", "oauth_state"]:
         if k in st.session_state:
             del st.session_state[k]
+    _clear_auth_cookies()
     try:
         st.query_params.clear()
     except Exception:
@@ -300,13 +552,16 @@ def _complete_login_from_query():
         "email": email,
         "name": name,
     }
+    st.session_state["auth_mode"] = "m365"
+    _set_auth_cookies(email=email, name=name, auth_mode="m365")
     try:
         st.query_params.clear()
     except Exception:
         pass
+    _set_persisted_login_state(email=email, name=name, auth_mode="m365")
 
 def _get_allowed_email_domains() -> list:
-    raw = os.getenv("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th")
+    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
     return [x.strip().lower() for x in str(raw).split(",") if x.strip()]
 
 def _get_user_email() -> str:
@@ -319,9 +574,15 @@ def _user_email_allowed() -> bool:
     email = _get_user_email()
     if not email:
         return False
+
+    admin_emails = {e.strip().lower() for e in ADMIN_EMAILS}
+    if email in admin_emails:
+        return True
+
     domains = _get_allowed_email_domains()
     if not domains:
         return True
+
     return any(email.endswith("@" + d) for d in domains)
 
 def _get_user_groups() -> list[str]:
@@ -459,7 +720,8 @@ def sp_save(df: pd.DataFrame, dept: str, fname: str) -> bool:
         sid, did = _get_site_drive()
         url = (GRAPH_BASE + "/sites/" + sid + "/drives/" + did
                + "/root:/" + dept + "/" + fname + ":/content")
-        r = requests.put(url, headers=h, data=to_excel_bytes(df), timeout=30)
+        data = to_excel_bytes(df) if fname.lower().endswith(".xlsx") else df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+        r = requests.put(url, headers=h, data=data, timeout=30)
         if r.status_code in (200, 201):
             return True
         st.error("Upload failed HTTP " + str(r.status_code) + ": " + r.text[:200])
@@ -469,6 +731,19 @@ def sp_save(df: pd.DataFrame, dept: str, fname: str) -> bool:
         st.error("sp_save error: " + str(exc))
         st.code(traceback.format_exc())
         return False
+
+
+def sync_current_file_version(dept: str, fname: str):
+    try:
+        files = sp_list_files(dept)
+        meta = next((f for f in files if str(f.get("name", "")) == str(fname)), None)
+        if not meta:
+            return
+        st.session_state.sp_file_last_modified = str(meta.get("lastModifiedDateTime", "") or "")
+        st.session_state.sp_file_etag = str(meta.get("eTag", "") or "")
+        st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPERS
@@ -537,6 +812,40 @@ def parse_address(address: str):
     return sub_district, district, province, region_en
 
 
+def extract_plus_code_and_address(value: str):
+    s = str(value or "").strip()
+    if not s:
+        return "", ""
+    s = re.sub(r"\s+", " ", s).strip()
+    m = re.search(r'([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3})', s, re.IGNORECASE)
+    if not m:
+        return "", s
+    code = m.group(1).upper()
+    remainder = (s[:m.start()] + " " + s[m.end():]).strip(" ,;-\t")
+    remainder = re.sub(r"\s+", " ", remainder).strip()
+    return code, remainder
+
+
+def clean_plus_code(value: str) -> str:
+    code, _ = extract_plus_code_and_address(value)
+    return code
+
+
+def is_short_plus_code(value: str) -> bool:
+    code = clean_plus_code(value)
+    if not code or '+' not in code:
+        return False
+    return len(code.split('+', 1)[0]) < 8
+
+
+def merge_address_parts(address: str, plus_code_value: str) -> str:
+    addr = str(address or "").strip()
+    _, plus_tail = extract_plus_code_and_address(plus_code_value)
+    if addr:
+        return addr
+    return plus_tail
+
+
 def build_df_from_original(xl):
     import numpy as np
     if "All Customer" in xl:
@@ -555,13 +864,10 @@ def build_df_from_original(xl):
         raw["Colourant"] = ""
         raw["Address"] = raw["Address"].astype(str).str.replace(r"\n.*", "", regex=True).str.strip()
 
-        def clean_plus(v):
-            if pd.isna(v) or not str(v).strip(): return ""
-            s = str(v).strip()
-            m = re.search(r'[A-Z0-9]{4,6}[+][A-Z0-9]{2,3}(?:\s+\S+)?', s)
-            return m.group(0).strip() if m else s[:30]
-
-        raw["Plus_Code"] = raw["Plus_Code"].apply(clean_plus)
+        raw["Plus_Code_Raw"] = raw["Plus_Code"].astype(str).fillna("")
+        raw["Plus_Code"] = raw["Plus_Code_Raw"].apply(clean_plus_code)
+        raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code_Raw", "")), axis=1)
+        raw = raw.drop(columns=["Plus_Code_Raw"])
         raw["Budget_kg"] = pd.to_numeric(raw.get("Budget_kg", 0), errors="coerce").fillna(0).astype(int)
         for _col in ["Actual (kg/year)", "Actual_kg", "Actual kg", "Actual"]:
             if _col in raw.columns:
@@ -598,6 +904,12 @@ def build_df_from_original(xl):
         raw["Salesperson"] = [s.strip() for s in salespersons]
         raw["Colourant"] = [s.strip() for s in colourants]
         raw = raw.drop(columns=["col3", "col4"])
+        if "Plus_Code" not in raw.columns:
+            raw["Plus_Code"] = ""
+        raw["Plus_Code_Raw"] = raw["Plus_Code"].astype(str).fillna("")
+        raw["Plus_Code"] = raw["Plus_Code_Raw"].apply(clean_plus_code)
+        raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code_Raw", "")), axis=1)
+        raw = raw.drop(columns=["Plus_Code_Raw"])
     else:
         raise ValueError("ไม่พบ sheet 'All Customer' หรือ 'Original' ในไฟล์")
 
@@ -619,6 +931,7 @@ def build_df_from_original(xl):
     else:
         df["Sales/Year"] = pd.to_numeric(df["Sales/Year"], errors="coerce").fillna(0)
     if "Plus_Code"   not in df.columns: df["Plus_Code"]   = ""
+    df["Plus_Code"] = df["Plus_Code"].apply(clean_plus_code)
     if "Budget_kg"   not in df.columns: df["Budget_kg"]   = 0
     if "Actual_kg"   not in df.columns: df["Actual_kg"]   = 0
     if "LastYear_kg" not in df.columns: df["LastYear_kg"] = 0
@@ -708,7 +1021,7 @@ def _olc_recover(short_code: str, ref_lat: float, ref_lng: float):
     return best
 
 def plus_code_to_coords(code: str, ref_lat: float = 13.6776, ref_lng: float = 100.6262):
-    s = str(code or "").strip()
+    s = clean_plus_code(code)
     if not s or "+" not in s:
         return None
     before = s.split("+", 1)[0]
@@ -749,36 +1062,149 @@ def append_audit_log(action: str, detail: str = "", dept: str = ""):
     except Exception:
         pass
 
+
+def sp_upload_bytes(content_bytes: bytes, remote_path: str, content_type: str = "application/octet-stream") -> bool:
+    try:
+        h = _gh()
+        h["Content-Type"] = content_type
+        sid, did = _get_site_drive()
+        safe_path = remote_path.strip("/").replace(" ", "%20")
+        url = GRAPH_BASE + "/sites/" + sid + "/drives/" + did + "/root:/" + safe_path + ":/content"
+        r = requests.put(url, headers=h, data=content_bytes, timeout=45)
+        if r.status_code in (200, 201):
+            return True
+        st.error("SharePoint upload failed HTTP " + str(r.status_code) + ": " + r.text[:250])
+        return False
+    except Exception as exc:
+        st.error("sp_upload_bytes error: " + str(exc))
+        return False
+
+def push_audit_log_to_sharepoint() -> bool:
+    log_path = "sales_dashboard_audit_log.csv"
+    if not os.path.exists(log_path):
+        st.warning("ยังไม่มี audit log ในเครื่องให้ส่งขึ้น SharePoint")
+        return False
+    try:
+        with open(log_path, "rb") as f:
+            data = f.read()
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dept = (st.session_state.get("dept") or "ALL").strip()
+        remote_path = f"Logs/{dept}/sales_dashboard_audit_log_{stamp}.csv"
+        ok = sp_upload_bytes(data, remote_path, "text/csv")
+        if ok:
+            append_audit_log("push_audit_log_sharepoint", remote_path, dept)
+            st.success("✅ ส่ง audit log ขึ้น SharePoint สำเร็จ")
+        return ok
+    except Exception as exc:
+        st.error("push_audit_log_to_sharepoint error: " + str(exc))
+        return False
+
+def build_executive_report_df(df_in: pd.DataFrame) -> pd.DataFrame:
+    rep = df_in.copy()
+    rep["Sales/Year"] = pd.to_numeric(rep.get("Sales/Year", 0), errors="coerce").fillna(0)
+    rep["Budget_kg"] = pd.to_numeric(rep.get("Budget_kg", 0), errors="coerce").fillna(0)
+    rep["Actual_kg"] = pd.to_numeric(rep.get("Actual_kg", 0), errors="coerce").fillna(0)
+    rep["LastYear_kg"] = pd.to_numeric(rep.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    rep["gap_kg"] = (rep["Budget_kg"] - rep["Actual_kg"]).clip(lower=0)
+    rep["achievement_pct"] = rep.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
+    rep["yoy_pct"] = rep.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
+    rep["opportunity_score"] = (
+        rep["gap_kg"].rank(pct=True).fillna(0) * 45
+        + (100 - rep["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
+        + rep["Sales/Year"].rank(pct=True).fillna(0) * 20
+    ).round(1)
+    cols = [
+        "Customer Name", "Salesperson", "Industry", "Province", "Region_TH", "Grade",
+        "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "gap_kg",
+        "achievement_pct", "yoy_pct", "opportunity_score", "Plus_Code"
+    ]
+    for c in cols:
+        if c not in rep.columns:
+            rep[c] = ""
+    return rep[cols].sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=[False, False, False])
+
+def to_excel_bytes_multi(sheets: dict[str, pd.DataFrame]) -> bytes:
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        for sheet_name, df_sheet in sheets.items():
+            clean_name = re.sub(r"[:\\/?*\[\]]", "_", str(sheet_name))[:31]
+            df_sheet.to_excel(writer, index=False, sheet_name=clean_name)
+    return buf.getvalue()
+
 def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: float = 100.6262):
+    import math
+
+    def _stable_jitter(seed_text: str, scale: float = 0.018):
+        seed = sum(ord(ch) for ch in str(seed_text))
+        lat_j = math.sin(seed * 12.9898) * scale
+        lng_j = math.cos(seed * 78.233) * scale
+        return lat_j, lng_j
+
     map_points = []
     map_points_no_coords = []
     if df_in is None or df_in.empty:
         return "[]", "[]"
+
     for _, row in df_in.iterrows():
         name = str(row.get("Customer Name", "") or "").strip()
         salesperson = str(row.get("Salesperson", "") or "").strip()
         province = str(row.get("Province", "") or "").strip()
+        region = str(row.get("Region", "") or "").strip()
+        address = str(row.get("Address", "") or "").strip()
         plus_code = str(row.get("Plus_Code", "") or "").strip()
-        query = plus_code if plus_code and "+" in plus_code else f"{name} {province} Thailand".strip()
-        coords = plus_code_to_coords(plus_code, ref_lat=ref_lat, ref_lng=ref_lng) if plus_code else None
+        short_plus = is_short_plus_code(plus_code)
+        row_ref_lat, row_ref_lng = resolve_reference_latlng(province, region, address)
+
+        address_query = f"{name} {address} {province} Thailand".strip()
+        plus_query = f"{plus_code} {address} {province} Thailand".strip() if plus_code and "+" in plus_code else ""
+        query = address_query if (short_plus and address) else (plus_query or address_query)
+
+        coords = None
+        exact = False
+        marker_kind = "approx"
+
+        # 1) Full Plus Code = exact marker
+        if plus_code and "+" in plus_code and not short_plus:
+            try:
+                coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng)
+                if coords:
+                    exact = True
+                    marker_kind = "exact"
+            except Exception:
+                coords = None
+
+        # 2) Short Plus Code or missing exact coords = province/address based approximate marker
+        if not coords:
+            try:
+                approx_lat, approx_lng = resolve_reference_latlng(province, region, address)
+                # spread markers slightly so nearby companies do not overlap exactly
+                j_lat, j_lng = _stable_jitter(f"{name}|{address}|{province}", scale=0.018)
+                coords = (approx_lat + j_lat, approx_lng + j_lng)
+                exact = False
+                marker_kind = "approx"
+            except Exception:
+                coords = None
+
+        payload = {
+            "name": name,
+            "plus_code": plus_code,
+            "lat": round(float(coords[0]), 7) if coords else None,
+            "lng": round(float(coords[1]), 7) if coords else None,
+            "salesperson": salesperson,
+            "province": province,
+            "query": query,
+            "address_query": address_query,
+            "plus_query": plus_query,
+            "is_short_plus": short_plus,
+            "exact": exact,
+            "marker_kind": marker_kind,
+        }
+
         if coords:
-            map_points.append({
-                "name": name,
-                "plus_code": plus_code,
-                "lat": round(float(coords[0]), 7),
-                "lng": round(float(coords[1]), 7),
-                "salesperson": salesperson,
-                "province": province,
-                "query": query,
-            })
+            map_points.append(payload)
         else:
-            map_points_no_coords.append({
-                "name": name,
-                "plus_code": plus_code,
-                "salesperson": salesperson,
-                "province": province,
-                "query": query,
-            })
+            map_points_no_coords.append(payload)
+
     return json.dumps(map_points, ensure_ascii=False), json.dumps(map_points_no_coords, ensure_ascii=False)
 
 
@@ -792,7 +1218,13 @@ EMPTY_DF = pd.DataFrame(columns=TEMPLATE_COLS + [
 for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
                ("is_admin", False), ("user_role", "staff"), ("user_email", ""), ("user_name", ""),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
-               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))]:
+               ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+               ("last_menu_logged", ""),
+               ("ui_menu", ""),
+               ("sp_file_last_modified", ""),
+               ("sp_file_etag", ""),
+               ("sync_mode", "event_based"),
+               ("remote_changed", False)]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
@@ -800,9 +1232,13 @@ for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
 # ═══════════════════════════════════════════════════════════════════════════════
 # UI Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
+def _dept_label(dept_code: str | None) -> str:
+    code = str(dept_code or "").strip()
+    return DEPARTMENT_LABELS.get(code, code)
+
 def _role_label():
     role = st.session_state.get("user_role", "")
-    dept = st.session_state.get("dept", "")
+    dept = _dept_label(st.session_state.get("dept", ""))
     if role == "admin":
         return "👑 Admin (ทุกแผนก)"
     elif role == "manager":
@@ -821,22 +1257,436 @@ def _can_view_customer_data():
 def _can_edit_data():
     return st.session_state.get("user_role", "") in ["admin", "manager", "staff"]
 
+
+def _normalize_person_name(value: str) -> str:
+    s = str(value or "").strip().lower()
+    s = re.sub(r"[^a-z0-9ก-๙\s]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+def _safe_html(value: object) -> str:
+    return html.escape(str(value or ""), quote=True)
+
+
+def _get_staff_visible_names() -> list[str]:
+    candidates = []
+    user_name = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
+    user_email = str(st.session_state.get("user_email") or _get_user_email() or "").strip().lower()
+
+    if user_name:
+        candidates.append(user_name)
+
+    if user_email and "@" in user_email:
+        local = user_email.split("@", 1)[0].strip()
+        local_space = re.sub(r"[._-]+", " ", local).strip()
+        if local_space:
+            candidates.append(local_space)
+        parts = [p for p in re.split(r"[._-]+", local) if p]
+        if len(parts) >= 2:
+            candidates.append(" ".join(parts))
+            candidates.append(f"{parts[0]} {parts[-1]}")
+            candidates.append(f"{parts[-1]} {parts[0]}")
+
+    seen, out = set(), []
+    for c in candidates:
+        n = _normalize_person_name(c)
+        if n and n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
+
+
+def filter_df_for_current_user(df_in: pd.DataFrame) -> pd.DataFrame:
+    if df_in is None or df_in.empty:
+        return df_in.copy() if isinstance(df_in, pd.DataFrame) else pd.DataFrame()
+
+    role = str(st.session_state.get("user_role") or "").strip().lower()
+    if role in ["admin", "manager"]:
+        return df_in.copy()
+
+    if "Salesperson" not in df_in.columns:
+        return df_in.iloc[0:0].copy()
+
+    allowed_names = _get_staff_visible_names()
+    if not allowed_names:
+        return df_in.iloc[0:0].copy()
+
+    salesperson_norm = df_in["Salesperson"].astype(str).apply(_normalize_person_name)
+    mask = salesperson_norm.isin(allowed_names)
+    return df_in.loc[mask].copy()
+
+def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊"):
+    st.markdown(f"""
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.92) 100%); border:1px solid rgba(191,219,254,0.9); border-radius:22px; padding:18px 18px 16px 18px; box-shadow:0 12px 28px rgba(30,64,175,0.08); min-height:132px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div style="font-size:12px; color:#475569; font-weight:700;">{label}</div>
+            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:20px; box-shadow:0 10px 18px rgba(37,99,235,0.18);">{icon}</div>
+        </div>
+        <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
+        <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_section_header(title: str, subtitle: str = "", icon: str = "✨", accent: str = "#2563eb"):
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(255,255,255,0.98) 100%); border:1px solid rgba(191,219,254,0.8); border-left:6px solid {accent}; border-radius:22px; padding:18px 20px; box-shadow:0 10px 24px rgba(15,23,42,0.05); margin: 4px 0 14px 0;">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, {accent}, #38bdf8); color:#fff; font-size:18px; box-shadow:0 10px 18px rgba(37,99,235,0.14); flex:0 0 40px;">{icon}</div>
+            <div>
+                <div style="font-size:18px; font-weight:800; color:#0f172a; line-height:1.2;">{title}</div>
+                <div style="font-size:12px; color:#475569; margin-top:4px;">{subtitle}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
+    badge_html = f'<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.18); color:#eff6ff; font-size:12px; font-weight:700;">{badge}</span>' if badge else ''
+    st.markdown(f"""
+    <div style="background:{gradient}; border-radius:24px; padding:28px 30px; box-shadow:0 20px 44px rgba(30,64,175,0.20); margin-bottom:12px; color:white; overflow:hidden; position:relative;">
+        <div style="position:absolute; right:-40px; top:-40px; width:180px; height:180px; border-radius:999px; background:rgba(255,255,255,0.08);"></div>
+        <div style="position:absolute; right:80px; bottom:-60px; width:200px; height:200px; border-radius:999px; background:rgba(255,255,255,0.06);"></div>
+        <div style="position:relative; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;">
+            <div style="max-width:860px;">
+                <div style="font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#dbeafe; margin-bottom:8px;">Sales Intelligence Workspace</div>
+                <div style="font-size:34px; line-height:1.08; font-weight:800; margin-bottom:8px;">{title}</div>
+                <div style="font-size:14px; line-height:1.7; color:#e0f2fe;">{subtitle}</div>
+            </div>
+            <div>{badge_html}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
+    numeric_cols = numeric_cols or []
+    pct_cols = pct_cols or []
+    styler = df_show.style
+    styler = styler.set_properties(**{
+        "background-color": "#ffffff",
+        "border-color": "#e2e8f0",
+        "font-size": "13px",
+    })
+    styler = styler.set_table_styles([
+        {"selector": "thead th", "props": [("background", "#eff6ff"), ("color", "#0f172a"), ("font-weight", "700"), ("border", "1px solid #dbeafe")]},
+        {"selector": "tbody tr:hover", "props": [("background-color", "#f8fbff")]},
+        {"selector": "tbody td", "props": [("border", "1px solid #eef2ff"), ("padding", "8px 10px")]},
+    ])
+    if numeric_cols:
+        existing = [c for c in numeric_cols if c in df_show.columns]
+        if existing:
+            styler = styler.format({c: "{:,.0f}" for c in existing})
+    if pct_cols:
+        existing_pct = [c for c in pct_cols if c in df_show.columns]
+        if existing_pct:
+            styler = styler.format({c: "{:.1f}%" for c in existing_pct})
+    return styler
+
+
+def render_login_page(auth_ready: bool):
+    st.markdown(textwrap.dedent("""
+    <style>
+    .stApp {
+        background:
+            radial-gradient(circle at 12% 16%, rgba(96,165,250,.14) 0%, transparent 24%),
+            radial-gradient(circle at 86% 12%, rgba(56,189,248,.10) 0%, transparent 26%),
+            linear-gradient(135deg, #0a1b3d 0%, #1c469e 55%, #46a8e8 100%);
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    [data-testid="stAppViewBlockContainer"], .block-container {
+        padding-top: .18rem !important;
+        padding-bottom: .12rem !important;
+        max-width: 1380px !important;
+    }
+    div[data-testid="column"] { padding-top: 0 !important; }
+    .login-shell { position: relative; min-height: 0; height: 0; }
+    .login-orb {
+        position: fixed; border-radius: 999px; filter: blur(80px); opacity: .22;
+        pointer-events: none; z-index: 0; animation: floatOrb 18s ease-in-out infinite;
+    }
+    .login-orb.orb1 { width: 320px; height: 320px; left: -4%; top: 10%; background: rgba(96,165,250,.24); }
+    .login-orb.orb2 { width: 360px; height: 360px; right: 2%; top: 18%; background: rgba(56,189,248,.20); animation-delay: 3s; }
+    .login-orb.orb3 { width: 300px; height: 300px; left: 34%; bottom: 2%; background: rgba(255,255,255,.08); animation-delay: 6s; }
+    @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(16px, -14px) scale(1.04); }
+        100% { transform: translate(0, 0) scale(1); }
+    }
+    .login-hero-card, .login-auth-card {
+        position: relative; z-index: 1; overflow: hidden;
+        border-radius: 34px;
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 24px 60px rgba(2,6,23,.18);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+    }
+    .login-hero-card {
+        padding: 24px 26px 22px 26px;
+        min-height: 620px;
+        background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.06) 100%);
+    }
+    .login-auth-card {
+        padding: 24px 24px 20px 24px;
+        min-height: 620px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.10) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+    .hero-top-badge {
+        display:inline-flex; align-items:center; gap:10px; padding:10px 18px; border-radius:999px;
+        background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10);
+        color:#e6eefc; font-size:11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+        margin-bottom:12px;
+    }
+    .hero-top-badge::before {
+        content:'';
+        width:8px; height:8px; border-radius:999px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        box-shadow: 0 0 0 5px rgba(255,255,255,.05);
+    }
+    .brand-row { display:flex; gap:20px; align-items:flex-start; margin-bottom: 18px; }
+    .brand-logo {
+        width: 92px; height: 92px; border-radius: 30px; display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(229,237,255,.94) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 34px rgba(15,23,42,.12); flex: 0 0 92px;
+    }
+    .brand-logo-bars { display:flex; align-items:flex-end; gap:7px; height:42px; }
+    .brand-logo-bars span { width:10px; border-radius:999px; display:block; }
+    .brand-logo-bars span:nth-child(1){ height:27px; background:#7c3aed; }
+    .brand-logo-bars span:nth-child(2){ height:32px; background:#22c55e; }
+    .brand-logo-bars span:nth-child(3){ height:22px; background:#f59e0b; }
+    .brand-logo-bars span:nth-child(4){ height:32px; background:#38bdf8; }
+    .brand-eyebrow { color: #d7e5ff; font-weight: 800; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; }
+    .brand-title { color: #ffffff; font-size: 44px; line-height: 1.02; font-weight: 900; margin: 8px 0 0 0; letter-spacing:-.04em; }
+    .brand-sub { color: #edf4ff; font-size: 14px; line-height: 1.7; margin-top: 12px; max-width: 760px; }
+    .hero-chip-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; margin-bottom: 16px; }
+    .hero-chip {
+        display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px;
+        background: rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10); color:#eff6ff; font-size:12px; font-weight:700;
+    }
+    .chip-dot { width:12px; height:12px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; }
+    .chip-dot.secure::before { content:'⊞'; color:#dbeafe; }
+    .chip-dot.map::before { content:'📍'; }
+    .chip-dot.insight::before { content:'📈'; }
+    .feature-stack { display:grid; grid-template-columns: 1fr; gap:12px; margin-top: 2px; }
+    .feature-item {
+        border-radius: 24px; padding: 14px 18px; background: linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.05) 100%);
+        border: 1px solid rgba(255,255,255,.09); min-height: 92px; display:flex; align-items:center; gap:16px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .feature-item:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.14); box-shadow: 0 14px 26px rgba(2,6,23,.10); }
+    .feature-icon {
+        width:40px; height:40px; border-radius:15px; display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.10); color:#fff; font-size:18px; flex:0 0 54px;
+    }
+    .feature-copy { display:flex; flex-direction:column; gap:3px; }
+    .feature-title { color:#fff; font-size:15px; font-weight:800; line-height:1.25; }
+    .feature-text { color:#dce8ff; font-size:12.5px; line-height:1.55; }
+    .auth-top { display:flex; flex-direction:column; }
+    .auth-kicker { color:#deebff; font-weight:800; letter-spacing:.16em; text-transform:uppercase; font-size:12px; margin-bottom:14px; }
+    .login-panel-title { color:#ffffff; font-size: 42px; font-weight:900; margin-bottom:12px; line-height:1.02; letter-spacing:-.04em; }
+    .login-panel-sub { color:#edf4ff; font-size:14px; line-height:1.7; margin-bottom:14px; max-width: 460px; }
+    .auth-bottom { margin-top: 14px; display:flex; flex-direction:column; gap:14px; }
+    .login-mini-card {
+        background: linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,250,255,.94) 100%);
+        border:1px solid rgba(219,234,254,.95);
+        border-radius:24px;
+        padding:18px 18px 16px 18px;
+        box-shadow: 0 14px 28px rgba(15,23,42,.08);
+    }
+    .login-mini-head { display:flex; align-items:flex-start; gap:12px; }
+    .login-mini-icon {
+        width:40px; height:40px; border-radius:14px; flex:0 0 40px;
+        display:flex; align-items:center; justify-content:center;
+        background: linear-gradient(135deg, #2563eb, #38bdf8); color:#fff; font-size:18px; font-weight:800;
+        box-shadow: 0 10px 18px rgba(37,99,235,.18);
+    }
+    .login-mini-title { color:#0f172a; font-size:15px; font-weight:800; margin-bottom:4px; }
+    .login-mini-text { color:#5f6f86; font-size:12.5px; line-height:1.7; }
+    .auth-divider {
+        height: 1px; width:100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.20), rgba(255,255,255,0));
+        margin: 0 0 0 0;
+    }
+    .ms-login-link {
+        display:flex; align-items:center; justify-content:center; gap:12px; width:100%;
+        text-align:center; padding:16px 18px; border-radius:20px; text-decoration:none; font-weight:800; font-size:16px;
+        background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.09) 100%);
+        color:#ffffff; border: 1px solid rgba(255,255,255,.20);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 28px rgba(2,6,23,.16);
+        transition: all .22s ease; position:relative; overflow:hidden;
+    }
+    .ms-login-link::after {
+        content:''; position:absolute; inset:0; background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.18) 45%, transparent 100%);
+        transform: translateX(-120%); transition: transform .45s ease;
+    }
+    .ms-login-link:hover::after { transform: translateX(120%); }
+    .ms-login-link:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 18px 30px rgba(2,6,23,.18); }
+    .ms-logo-grid {
+        width:22px; height:22px; display:grid; grid-template-columns:repeat(2,1fr); gap:2px; flex:0 0 22px;
+    }
+    .ms-logo-grid span { border-radius:3px; display:block; }
+    .ms-logo-grid span:nth-child(1){ background:#f25022; }
+    .ms-logo-grid span:nth-child(2){ background:#7fba00; }
+    .ms-logo-grid span:nth-child(3){ background:#00a4ef; }
+    .ms-logo-grid span:nth-child(4){ background:#ffb900; }
+    .trust-line {
+        display:flex; align-items:center; gap:10px; margin-top:6px; color:#dce8ff; font-size:11.8px; line-height:1.6;
+    }
+    .trust-badge {
+        width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+        background: rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.12); font-size:12px;
+    }
+    .login-note { color:#dce8ff; font-size:11.6px; line-height:1.5; margin-top:4px; opacity:.92; }
+    .login-footer { text-align:left; color:#dce8ff; font-size:11.8px; margin-top:8px; }
+    .login-footer a { color:#ffffff; text-decoration:none; font-weight:800; }
+    .loading-overlay {
+        display:none; position: fixed; inset:0; background: rgba(15,23,42,.28); backdrop-filter: blur(8px);
+        z-index: 99999; align-items:center; justify-content:center; flex-direction:column; gap:12px;
+    }
+    .loading-overlay.show { display:flex; }
+    .loading-spinner {
+        width:56px; height:56px; border-radius:999px; border:5px solid rgba(255,255,255,.28); border-top-color:#ffffff;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color:#ffffff; font-weight:800; font-size:15px; }
+    @media (max-width: 1100px) {
+        .brand-title { font-size: 44px; }
+        .login-panel-title { font-size: 44px; }
+        .login-hero-card, .login-auth-card { min-height:auto; }
+    }
+    @media (max-width: 720px) {
+        .brand-row { flex-direction:column; gap:16px; }
+        .brand-title { font-size:34px; }
+        .login-panel-title { font-size: 34px; }
+        .login-hero-card, .login-auth-card { padding:24px; }
+        .feature-item { min-height:auto; }
+    }
+    </style>
+    <div class="loading-overlay" id="login-loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">กำลังพาไปหน้า Microsoft 365...</div>
+    </div>
+    <script>
+    function showLoginLoading(){
+        const el = window.parent.document.getElementById('login-loading-overlay') || document.getElementById('login-loading-overlay');
+        if(el){ el.classList.add('show'); }
+    }
+    </script>
+    <div class="login-shell">
+        <div class="login-orb orb1"></div>
+        <div class="login-orb orb2"></div>
+        <div class="login-orb orb3"></div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    left, right = st.columns([1.50, 0.88], gap="medium")
+    with left:
+        st.markdown(textwrap.dedent("""
+        <div class="login-hero-card">
+            <div class="hero-top-badge">Modern workspace for sales operations</div>
+            <div class="brand-row">
+                <div class="brand-logo">
+                    <div class="brand-logo-bars"><span></span><span></span><span></span><span></span></div>
+                </div>
+                <div>
+                    <div class="brand-eyebrow">Optimal Group Platform</div>
+                    <div class="brand-title">Sales Territory Dashboard</div>
+                    <div class="brand-sub">รวมข้อมูลลูกค้า แผนที่ยอดขาย Budget และสิทธิ์การเข้าถึงไว้ในหน้าจอเดียว ช่วยให้ทีมงานเห็นโอกาสขาย สำรวจพื้นที่ และทำงานร่วมกันได้ง่ายขึ้น</div>
+                </div>
+            </div>
+            <div class="hero-chip-row">
+                <div class="hero-chip"><span class="chip-dot secure"></span>Microsoft 365</div>
+                <div class="hero-chip"><span class="chip-dot map"></span>Smart Mapping</div>
+                <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
+            </div>
+            <div class="feature-stack">
+                <div class="feature-item"><div class="feature-icon">📊</div><div class="feature-copy"><div class="feature-title">Team Dashboard</div><div class="feature-text">มุมมองสำหรับหัวหน้า ดูภาพรวมทีม Ranking พื้นที่ และความเสี่ยงของทั้งแผนก</div></div></div>
+                <div class="feature-item"><div class="feature-icon">🎯</div><div class="feature-copy"><div class="feature-title">Sales Action Center</div><div class="feature-text">มุมมองสำหรับ Sales ใช้ลำดับลูกค้าที่ต้องเข้า Follow-up และวาง action next step ได้ทันที</div></div></div>
+                <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-copy"><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div>
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+
+    with right:
+        if auth_ready:
+            login_url = _build_login_url()
+            st.markdown(textwrap.dedent(f"""
+            <div class="login-auth-card">
+                <div class="auth-top">
+                    <div class="auth-kicker">Secure sign in</div>
+                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                </div>
+                <div class="auth-bottom">
+                    <div class="login-mini-card">
+                        <div class="login-mini-head">
+                            <div class="login-mini-icon">🛡️</div>
+                            <div>
+                                <div class="login-mini-title">Role-based access</div>
+                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{login_url}" target="_self" onclick="showLoginLoading()" class="ms-login-link">
+                        <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
+                        <span>Sign in with Microsoft 365</span>
+                    </a>
+                    <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
+                    <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
+                    <div class="login-footer">
+                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    </div>
+                </div>
+            </div>
+            """), unsafe_allow_html=True)
+        else:
+            st.markdown(textwrap.dedent("""
+            <div class="login-auth-card">
+                <div class="auth-top">
+                    <div class="auth-kicker">Secure sign in</div>
+                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                </div>
+                <div class="auth-bottom">
+                    <div class="login-mini-card">
+                        <div class="login-mini-head">
+                            <div class="login-mini-icon">🛡️</div>
+                            <div>
+                                <div class="login-mini-title">Role-based access</div>
+                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>
+                    <div class="login-footer">
+                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    </div>
+                </div>
+            </div>
+            """), unsafe_allow_html=True)
+            st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
 # ═══════════════════════════════════════════════════════════════════════════════
 auth_ready = _auth_configured()
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+_complete_login_from_query()
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+is_logged_in = _session_logged_in()
 
-if auth_ready and not st.user.is_logged_in:
-    st.title("🔐 Sales Territory Dashboard")
-    st.markdown("### เข้าสู่ระบบด้วย Microsoft 365")
-    st.info("ระบบนี้กำหนดสิทธิ์ตามบัญชีงานและแผนกของผู้ใช้")
-    c1, c2, c3 = st.columns([1, 1.4, 1])
-    with c2:
-        st.button("🔵 Login with Microsoft 365", on_click=st.login, use_container_width=True, type="primary")
-    st.caption("สิทธิ์การใช้งาน: Admin ดูได้ทุกแผนก • หัวหน้าแผนกดู Dashboard ได้เฉพาะแผนกตัวเอง • ลูกทีมดูข้อมูลลูกค้าและแก้ไขข้อมูล")
+if not st.session_state.dept and not (auth_ready and is_logged_in):
+    render_login_page(auth_ready)
     st.stop()
 
-if auth_ready and st.user.is_logged_in and not _user_email_allowed():
+if auth_ready and is_logged_in and not _user_email_allowed():
     st.title("⛔ ไม่ได้รับสิทธิ์เข้าใช้งาน")
     st.error("บัญชี Microsoft 365 นี้ไม่มีสิทธิ์เข้าใช้งานระบบ")
     st.caption("อนุญาตเฉพาะโดเมน: " + ", ".join(_get_allowed_email_domains()))
@@ -844,27 +1694,37 @@ if auth_ready and st.user.is_logged_in and not _user_email_allowed():
         _auth_logout()
     st.stop()
 
-if auth_ready and st.user.is_logged_in:
+if auth_ready and is_logged_in:
     st.session_state.user_email = _get_user_email()
     st.session_state.user_name = _get_user_name()
-    user_groups = _get_user_groups()
-    resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+    if st.session_state.get("auth_access_token"):
+        user_groups = _get_user_groups()
+        resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+    else:
+        user_groups = []
+        resolved_role = st.session_state.get("user_role")
+        resolved_dept = st.session_state.get("dept")
 
     if not resolved_role:
         st.title("⛔ ไม่มีสิทธิ์เข้าใช้งาน")
         st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
         st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
         with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
-            st.write({
-                "email": st.session_state.user_email,
-                "groups": user_groups,
-            })
+            st.write({"email": st.session_state.user_email, "groups": user_groups})
         if st.button("🚪 Log out"):
             _auth_logout()
         st.stop()
 
     st.session_state.user_role = resolved_role
     st.session_state.is_admin = (resolved_role == "admin")
+    _set_auth_cookies(
+        email=st.session_state.get("user_email", ""),
+        name=st.session_state.get("user_name", ""),
+        role=resolved_role,
+        dept=(resolved_dept or st.session_state.get("dept") or ""),
+        is_admin=(resolved_role == "admin"),
+        auth_mode="m365",
+    )
 
     target_dept = st.session_state.dept
     if resolved_role == "admin":
@@ -877,6 +1737,8 @@ if auth_ready and st.user.is_logged_in:
         st.session_state.dept = target_dept
         st.session_state.sp_file = None
         st.session_state.df = EMPTY_DF
+        st.session_state.sp_file_last_modified = ""
+        st.session_state.sp_file_etag = ""
         append_audit_log("login_role_resolved", f"m365 role={resolved_role} dept={target_dept}", target_dept or "")
         st.rerun()
 
@@ -888,11 +1750,29 @@ st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
 st.sidebar.title("📂 เมนูหลัก")
 
 role_label = _role_label()
-allowed_menus = ["🏢 ข้อมูลบริษัทลูกค้า", "✏️ แก้ไข / เพิ่มข้อมูล"]
-if _can_view_dashboard():
-    allowed_menus.insert(0, "📊 Dashboard")
+if st.session_state.get("user_role") == "staff":
+    allowed_menus = [
+        "🎯 Sales Action Center",
+        "🏢 ข้อมูลบริษัทลูกค้า",
+        "✏️ แก้ไข / เพิ่มข้อมูล",
+    ]
+else:
+    allowed_menus = [
+        "📊 Team Dashboard",
+        "🎯 Sales Action Center",
+        "🏢 ข้อมูลบริษัทลูกค้า",
+        "✏️ แก้ไข / เพิ่มข้อมูล",
+    ]
 
-menu = st.sidebar.radio("", allowed_menus, label_visibility="collapsed")
+preferred_menu = st.session_state.get("ui_menu", "")
+if preferred_menu not in allowed_menus:
+    preferred_menu = allowed_menus[0]
+menu = st.sidebar.radio("", allowed_menus, index=allowed_menus.index(preferred_menu), key="menu_radio", label_visibility="collapsed")
+st.session_state["ui_menu"] = menu
+_set_ui_cookies(menu=menu, sp_file=st.session_state.get("sp_file") or "")
+if st.session_state.get("last_menu_logged") != menu:
+    append_audit_log("page_view", menu, st.session_state.get("dept") or "")
+    st.session_state["last_menu_logged"] = menu
 st.sidebar.divider()
 
 st.sidebar.subheader("🔐 บัญชีผู้ใช้งาน")
@@ -905,21 +1785,33 @@ if auth_ready:
     if st.session_state.get("user_role") == "admin":
         switch = st.sidebar.selectbox("เลือกแผนก", DEPARTMENTS,
                                       index=DEPARTMENTS.index(st.session_state.dept) if st.session_state.dept in DEPARTMENTS else 0,
-                                      key="dept_switch_auth")
+                                      key="dept_switch_auth",
+                                      format_func=lambda x: DEPARTMENT_LABELS.get(x, x))
         if switch != st.session_state.dept:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
+            st.session_state.sp_file_last_modified = ""
+            st.session_state.sp_file_etag = ""
+            _set_auth_cookies(
+                email=st.session_state.get("user_email", ""),
+                name=st.session_state.get("user_name", ""),
+                role=st.session_state.get("user_role", ""),
+                dept=switch,
+                is_admin=bool(st.session_state.get("is_admin", False)),
+                auth_mode=st.session_state.get("auth_mode", "m365") or "m365",
+            )
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
-        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.caption("สิทธิ์ Admin: ดูได้ทุกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         if _can_view_dashboard():
-            st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Dashboard ได้เฉพาะแผนกตัวเอง")
+            st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Team Dashboard และ Sales Action Center ของแผนกตัวเอง")
         else:
-            st.sidebar.caption("สิทธิ์ลูกทีม: ดูข้อมูลลูกค้าและแก้ไขข้อมูลเฉพาะแผนกตัวเอง")
+            st.sidebar.caption("สิทธิ์ลูกทีม: โฟกัส Sales Action Center และข้อมูลลูกค้าที่รับผิดชอบเท่านั้น")
 
     if st.sidebar.button("🚪 ออกจากระบบ", use_container_width=True):
         append_audit_log("logout", "m365 logout", st.session_state.get("dept") or "")
@@ -938,14 +1830,25 @@ else:
                 st.session_state.user_role = "admin" if st.session_state.is_admin else "manager"
                 st.session_state.user_name = "Local User"
                 st.session_state.user_email = ""
+                st.session_state.auth_user = {"email": LOCAL_USER_EMAIL, "name": "Local User"}
+                st.session_state.auth_mode = "local"
                 st.session_state.sp_file = None
                 st.session_state.df = EMPTY_DF
+                _set_auth_cookies(
+                    email=LOCAL_USER_EMAIL,
+                    name="Local User",
+                    role=st.session_state.user_role,
+                    dept=sel_dept,
+                    is_admin=st.session_state.is_admin,
+                    auth_mode="local",
+                )
+                _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
                 append_audit_log("login", f"login to {sel_dept}", sel_dept)
                 st.rerun()
             else:
                 st.sidebar.warning("กรุณาเลือกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{st.session_state.dept}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
         st.sidebar.info(f"สิทธิ์: {_role_label()}")
         if st.session_state.is_admin:
             switch = st.sidebar.selectbox("สลับแผนก", DEPARTMENTS,
@@ -955,12 +1858,22 @@ else:
                 st.session_state.dept = switch
                 st.session_state.sp_file = None
                 st.session_state.df = EMPTY_DF
+                _set_auth_cookies(
+                    email=LOCAL_USER_EMAIL,
+                    name=st.session_state.get("user_name", "Local User"),
+                    role=st.session_state.get("user_role", "manager"),
+                    dept=switch,
+                    is_admin=bool(st.session_state.get("is_admin", False)),
+                    auth_mode="local",
+                )
+                _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
                 append_audit_log("switch_dept", f"switch to {switch}", switch)
                 st.rerun()
         if st.sidebar.button("🚪 ออกจากระบบ", use_container_width=True):
             append_audit_log("logout", "local logout", st.session_state.get("dept") or "")
             for k in ["dept", "sp_file", "df", "is_admin", "user_role", "user_email", "user_name"]:
                 st.session_state[k] = None if k not in ["df", "user_role", "user_email", "user_name"] else (EMPTY_DF if k=="df" else ("staff" if k=="user_role" else ""))
+            _auth_logout()
             st.rerun()
 
 # ── File Selector + SharePoint Load ──────────────────────────────────────────
@@ -979,29 +1892,84 @@ if st.session_state.dept:
                 default_idx = fnames.index(st.session_state.sp_file)
 
             chosen = st.sidebar.selectbox("ไฟล์ใน SharePoint", fnames, index=default_idx, key="file_sel")
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=chosen)
 
+            selected_meta = next((f for f in files if f["name"] == chosen), {})
+            selected_modified = str(selected_meta.get("lastModifiedDateTime", "") or "")
+            selected_etag = str(selected_meta.get("eTag", "") or "")
+
+            prev_file = str(st.session_state.get("sp_file") or "")
+            prev_modified = str(st.session_state.get("sp_file_last_modified") or "")
+            prev_etag = str(st.session_state.get("sp_file_etag") or "")
+
+            file_changed = prev_file != chosen
+            version_changed = (
+                (selected_modified and selected_modified != prev_modified)
+                or (selected_etag and selected_etag != prev_etag)
+            )
+
+            df_current = st.session_state.get("df")
             auto_load_needed = (
-                st.session_state.sp_file != chosen
-                or st.session_state.df is None
-                or st.session_state.df.empty
+                file_changed
+                or version_changed
+                or df_current is None
+                or df_current.empty
             )
 
             if auto_load_needed:
+                reason = []
+                if file_changed:
+                    reason.append("file_changed")
+                if version_changed:
+                    reason.append("version_changed")
+                if df_current is None:
+                    reason.append("df_none")
+                elif getattr(df_current, "empty", False):
+                    reason.append("df_empty")
+
                 st.session_state.sp_file = chosen
                 st.session_state.df = sp_load(st.session_state.dept, chosen)
+                st.session_state.sp_file_last_modified = selected_modified
+                st.session_state.sp_file_etag = selected_etag
                 st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                append_audit_log("load_sharepoint", f"auto-load {chosen}", st.session_state.dept)
+
+                append_audit_log(
+                    "load_sharepoint",
+                    f"auto-load {chosen} | reason={','.join(reason) if reason else 'unknown'} | modified={selected_modified}",
+                    st.session_state.dept
+                )
                 st.rerun()
 
-            if st.sidebar.button("🔄 รีโหลดไฟล์", use_container_width=True):
-                st.session_state.df = sp_load(st.session_state.dept, chosen)
-                st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                append_audit_log("reload_sharepoint", chosen, st.session_state.dept)
-                st.rerun()
+            c1, c2 = st.sidebar.columns(2)
+
+            with c1:
+                if st.button("🔄 รีโหลดไฟล์", use_container_width=True):
+                    st.session_state.df = sp_load(st.session_state.dept, chosen)
+                    st.session_state.sp_file = chosen
+                    st.session_state.sp_file_last_modified = selected_modified
+                    st.session_state.sp_file_etag = selected_etag
+                    st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    append_audit_log("reload_sharepoint", chosen, st.session_state.dept)
+                    st.rerun()
+
+            with c2:
+                if st.button("🧹 Force Refresh", use_container_width=True):
+                    st.session_state.df = EMPTY_DF
+                    st.session_state.sp_file = chosen
+                    st.session_state.sp_file_last_modified = ""
+                    st.session_state.sp_file_etag = ""
+                    st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    append_audit_log("force_refresh_prepare", chosen, st.session_state.dept)
+                    st.rerun()
 
             if st.session_state.sp_file:
-                st.sidebar.caption(f"✅ โหลดแล้วอัตโนมัติ: **{st.session_state.sp_file}**  "
-                                   f"({len(st.session_state.df):,} ราย)")
+                st.sidebar.caption(
+                    f"✅ โหลดแล้ว: **{st.session_state.sp_file}** ({len(st.session_state.df):,} ราย)"
+                )
+                if selected_modified:
+                    st.sidebar.caption(f"🕒 SharePoint modified: {selected_modified}")
+                st.sidebar.caption(f"🕒 App refresh: {st.session_state.last_refresh}")
+
         else:
             st.sidebar.info(f"ไม่พบไฟล์ในโฟลเดอร์ {st.session_state.dept}")
     except Exception as e:
@@ -1019,6 +1987,7 @@ st.sidebar.download_button(
 
 st.sidebar.divider()
 with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
+    st.write("**Sync mode:** Event-based only (ไม่มี timer refresh)")
     st.write(f"**Environment:** {APP_ENV}")
     st.write(f"**Department:** {st.session_state.get('dept') or '-'}")
     st.write(f"**Current file:** {st.session_state.get('sp_file') or '-'}")
@@ -1028,6 +1997,8 @@ with st.sidebar.expander("🛡️ System / Production Status", expanded=False):
         try:
             _audit_df = pd.read_csv("sales_dashboard_audit_log.csv")
             st.write(f"**Audit rows:** {len(_audit_df):,}")
+            if st.button("☁️ Push Audit Log to SharePoint", use_container_width=True):
+                push_audit_log_to_sharepoint()
             st.download_button(
                 "⬇️ Download Audit Log",
                 data=_audit_df.to_csv(index=False, encoding="utf-8-sig"),
@@ -1051,9 +2022,17 @@ if uploaded:
                                        "Business type": "Industry"})
             for col in TEMPLATE_COLS:
                 if col not in raw.columns: raw[col] = ""
+            if "Plus_Code" in raw.columns:
+                raw["Plus_Code"] = raw["Plus_Code"].apply(clean_plus_code)
+            else:
+                raw["Plus_Code"] = ""
+            if "Address" not in raw.columns:
+                raw["Address"] = ""
+            raw["Address"] = raw.apply(lambda r: merge_address_parts(r.get("Address", ""), r.get("Plus_Code", "")), axis=1)
             def _enrich(row):
+                addr_for_parse = merge_address_parts(row.get("Address", ""), row.get("Plus_Code", ""))
                 if pd.notna(row.get("Province")) and str(row.get("Province")).strip(): return row
-                sub, dis, prov, reg = parse_address(str(row.get("Address", "")))
+                sub, dis, prov, reg = parse_address(str(addr_for_parse))
                 if not str(row.get("Sub-district", "")).strip(): row["Sub-district"] = sub
                 if not str(row.get("District", "")).strip():     row["District"] = dis
                 if not str(row.get("Province", "")).strip():     row["Province"] = prov
@@ -1063,10 +2042,12 @@ if uploaded:
             raw["Region_TH"] = raw["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ")
             st.session_state.df = raw
             st.session_state.sp_file = uploaded.name
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=uploaded.name)
         else:
             raw_xl = pd.read_excel(uploaded, sheet_name=None)
             st.session_state.df = build_df_from_original(raw_xl)
             st.session_state.sp_file = uploaded.name
+            _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=uploaded.name)
         append_audit_log("manual_upload", uploaded.name, st.session_state.get("dept", ""))
         st.sidebar.success(f"✅ โหลดสำเร็จ ({len(st.session_state.df):,} ราย)")
     except Exception as e:
@@ -1083,240 +2064,451 @@ if not st.session_state.dept:
 # MENU 1 – DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 
-if menu == "📊 Dashboard":
+
+if menu == "📊 Team Dashboard":
     if not _can_view_dashboard():
-        st.error("คุณไม่มีสิทธิ์ดูหน้า Dashboard")
+        st.error("คุณไม่มีสิทธิ์ดูหน้า Team Dashboard")
         st.stop()
     _scroll_top()
-    st.title("📊 Sales Territory Dashboard")
-    st.caption("ภาพรวมยอดขายและลูกค้าแยกตามภูมิภาค")
 
     if df.empty or "Customer Name" not in df.columns:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน (ด้านซ้าย)")
         st.stop()
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("👥 ลูกค้าทั้งหมด", f"{len(df):,} ราย")
-    k2.metric("💰 ยอดขายรวม", f"฿{df['Sales/Year'].sum()/1e6:,.1f} M")
-    k3.metric("📈 เฉลี่ย/ลูกค้า", f"฿{df['Sales/Year'].mean()/1e6:,.2f} M")
-    k4.metric("🗺️ ระบุภูมิภาคได้", f"{(df['Region'] != 'Unknown').sum():,} ราย")
-    st.divider()
-
-    rsum = (df.groupby("Region_TH")
-            .agg(count=("Customer Name", "count"), total_sales=("Sales/Year", "sum"))
-            .reset_index().rename(columns={"Region_TH": "region"})
-            .sort_values("total_sales", ascending=False))
-
-    cl, cr = st.columns([1.2, 1])
-    with cl:
-        st.subheader("💹 ยอดขายรวมแยกตามภูมิภาค")
-        f1 = px.bar(rsum, x="region", y="total_sales", color="region",
-                    color_discrete_map=REGION_COLORS,
-                    text=rsum["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                    labels={"total_sales": "ยอดขาย (บาท)", "region": ""})
-        f1.update_traces(textposition="outside")
-        f1.update_layout(showlegend=False, yaxis_tickformat=",.0f",
-                         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                         margin=dict(t=20, b=10), height=380)
-        st.plotly_chart(f1, use_container_width=True)
-    with cr:
-        st.subheader("🗺️ สัดส่วนลูกค้าตามภูมิภาค")
-        f2 = px.pie(rsum, names="region", values="count", color="region",
-                    color_discrete_map=REGION_COLORS, hole=0.45)
-        f2.update_traces(textinfo="label+percent", pull=[0.03] * len(rsum))
-        f2.update_layout(showlegend=False, margin=dict(t=20, b=10),
-                         height=380, paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(f2, use_container_width=True)
-
-    st.subheader("📋 ตารางสรุปแยกภูมิภาค")
-    tbl = rsum.rename(columns={"region": "ภูมิภาค", "count": "จำนวนลูกค้า",
-                                "total_sales": "ยอดขายรวม"}).copy()
-    tbl["ยอดขายรวม"] = tbl["ยอดขายรวม"].apply(lambda v: f"฿{v:,.0f}")
-    st.dataframe(tbl, use_container_width=True, hide_index=True)
-    st.divider()
-
-    st.subheader("🏭 ยอดขายแยกตาม Industry")
-    ind = (df.groupby("Industry").agg(total_sales=("Sales/Year", "sum"))
-           .reset_index().sort_values("total_sales", ascending=True))
-    f3 = px.bar(ind, x="total_sales", y="Industry", orientation="h",
-                text=ind["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                color="total_sales", color_continuous_scale="Blues",
-                labels={"total_sales": "ยอดขาย (บาท)"})
-    f3.update_traces(textposition="outside")
-    f3.update_layout(coloraxis_showscale=False, xaxis_tickformat=",.0f",
-                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                     margin=dict(t=10, b=10), height=300)
-    st.plotly_chart(f3, use_container_width=True)
-
-    st.subheader("👤 ยอดขายแยกตาม Salesperson")
-    sp_g = (df.groupby("Salesperson").agg(total_sales=("Sales/Year", "sum"))
-            .reset_index().sort_values("total_sales", ascending=False))
-    f4 = px.bar(sp_g, x="Salesperson", y="total_sales",
-                text=sp_g["total_sales"].apply(lambda v: f"฿{v/1e6:.1f}M"),
-                color="total_sales", color_continuous_scale="Teal",
-                labels={"total_sales": "ยอดขาย (บาท)", "Salesperson": ""})
-    f4.update_traces(textposition="outside")
-    f4.update_layout(coloraxis_showscale=False, yaxis_tickformat=",.0f",
-                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                     margin=dict(t=10, b=10), height=350)
-    st.plotly_chart(f4, use_container_width=True)
-
-    st.divider()
-    st.subheader("🧠 Executive Insights / Opportunity Ranking")
-    insight_df = df.copy()
-    insight_df["Sales/Year"] = pd.to_numeric(insight_df.get("Sales/Year", 0), errors="coerce").fillna(0)
-    insight_df["Budget_kg"] = pd.to_numeric(insight_df.get("Budget_kg", 0), errors="coerce").fillna(0)
-    insight_df["Actual_kg"] = pd.to_numeric(insight_df.get("Actual_kg", 0), errors="coerce").fillna(0)
-    insight_df["LastYear_kg"] = pd.to_numeric(insight_df.get("LastYear_kg", 0), errors="coerce").fillna(0)
-    insight_df["gap_kg"] = (insight_df["Budget_kg"] - insight_df["Actual_kg"]).clip(lower=0)
-    insight_df["achievement_pct"] = insight_df.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
-    insight_df["yoy_pct"] = insight_df.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
-    insight_df["opportunity_score"] = (
-        insight_df["gap_kg"].rank(pct=True).fillna(0) * 45
-        + (100 - insight_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
-        + insight_df["Sales/Year"].rank(pct=True).fillna(0) * 20
+    team_df = df.copy()
+    team_df["Sales/Year"] = pd.to_numeric(team_df.get("Sales/Year", 0), errors="coerce").fillna(0)
+    team_df["Budget_kg"] = pd.to_numeric(team_df.get("Budget_kg", 0), errors="coerce").fillna(0)
+    team_df["Actual_kg"] = pd.to_numeric(team_df.get("Actual_kg", 0), errors="coerce").fillna(0)
+    team_df["LastYear_kg"] = pd.to_numeric(team_df.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    team_df["gap_kg"] = (team_df["Budget_kg"] - team_df["Actual_kg"]).clip(lower=0)
+    team_df["achievement_pct"] = team_df.apply(lambda r: (r["Actual_kg"] / r["Budget_kg"] * 100) if r["Budget_kg"] > 0 else 0, axis=1)
+    team_df["yoy_pct"] = team_df.apply(lambda r: ((r["Actual_kg"] - r["LastYear_kg"]) / r["LastYear_kg"] * 100) if r["LastYear_kg"] > 0 else 0, axis=1)
+    team_df["opportunity_score"] = (
+        team_df["gap_kg"].rank(pct=True).fillna(0) * 45
+        + (100 - team_df["achievement_pct"].clip(upper=100)).rank(pct=True).fillna(0) * 35
+        + team_df["Sales/Year"].rank(pct=True).fillna(0) * 20
     ).round(1)
+    team_df["Salesperson"] = team_df["Salesperson"].fillna("").astype(str).replace("", "Unassigned")
+    team_df["Province"] = team_df.get("Province", "").fillna("").astype(str).replace("", "ไม่ระบุ")
+    team_df["Region_TH"] = team_df.get("Region_TH", "ไม่ระบุ").fillna("ไม่ระบุ").astype(str)
 
-    ex1, ex2 = st.columns([1.25, 1])
-    with ex1:
-        top_opp = insight_df.sort_values(["opportunity_score", "gap_kg"], ascending=False).head(12).copy()
-        top_opp_show = top_opp[["Customer Name", "Salesperson", "Industry", "gap_kg", "achievement_pct", "opportunity_score"]].copy()
-        top_opp_show["gap_kg"] = top_opp_show["gap_kg"].apply(lambda v: f"{int(v):,} kg")
-        top_opp_show["achievement_pct"] = top_opp_show["achievement_pct"].apply(lambda v: f"{v:.1f}%")
-        top_opp_show["opportunity_score"] = top_opp_show["opportunity_score"].apply(lambda v: f"{v:.1f}")
-        st.markdown("**🎯 ลูกค้าที่ควรเร่งตามมากที่สุด**")
-        st.dataframe(top_opp_show.rename(columns={
-            "gap_kg": "Gap", "achievement_pct": "Achievement", "opportunity_score": "Score"
-        }), use_container_width=True, hide_index=True, height=360)
-    with ex2:
-        sp_perf = insight_df.groupby("Salesperson").agg(
-            total_sales=("Sales/Year", "sum"),
-            budget_kg=("Budget_kg", "sum"),
-            actual_kg=("Actual_kg", "sum"),
-            customers=("Customer Name", "count"),
-            avg_score=("opportunity_score", "mean"),
-        ).reset_index()
-        sp_perf["achievement_pct"] = sp_perf.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
-        fig_exec = px.scatter(
-            sp_perf, x="achievement_pct", y="total_sales", size="customers",
-            hover_name="Salesperson", text="Salesperson", color="avg_score",
-            color_continuous_scale="Turbo", labels={"achievement_pct": "Achievement %", "total_sales": "Total Sales"}
+    total_sales = float(team_df["Sales/Year"].sum())
+    total_budget = float(team_df["Budget_kg"].sum())
+    total_actual = float(team_df["Actual_kg"].sum())
+    total_last_year = float(team_df["LastYear_kg"].sum())
+    total_gap = float(team_df["gap_kg"].sum())
+    team_ach = (total_actual / total_budget * 100) if total_budget > 0 else 0.0
+    yoy_total_pct = ((total_actual - total_last_year) / total_last_year * 100) if total_last_year > 0 else 0.0
+    risk_accounts = int(((team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)).sum())
+    positive_yoy = int((team_df["yoy_pct"] > 0).sum())
+    active_sales = int(team_df["Salesperson"].astype(str).replace("", pd.NA).dropna().nunique())
+
+    by_sp = team_df.groupby("Salesperson", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        budget_kg=("Budget_kg", "sum"),
+        actual_kg=("Actual_kg", "sum"),
+        avg_yoy=("yoy_pct", "mean"),
+        risk_accounts=("achievement_pct", lambda s: int((s < 50).sum())),
+    ).reset_index()
+    by_sp["achievement_pct"] = by_sp.apply(lambda r: (r["actual_kg"] / r["budget_kg"] * 100) if r["budget_kg"] > 0 else 0, axis=1)
+    by_sp = by_sp.sort_values(["achievement_pct", "total_sales"], ascending=[False, False]).reset_index(drop=True)
+
+    by_region = team_df.groupby("Region_TH", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
+    ).reset_index().rename(columns={"Region_TH": "region"}).sort_values("total_sales", ascending=False)
+
+    by_province = team_df.groupby("Province", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        total_sales=("Sales/Year", "sum"),
+        gap_kg=("gap_kg", "sum"),
+        avg_achievement=("achievement_pct", "mean"),
+    ).reset_index().sort_values(["gap_kg", "total_sales"], ascending=[False, False])
+
+    top_sales = by_sp.head(5).copy()
+    trend = by_sp.head(8).copy()
+    high_potential = by_province.head(5).copy()
+    top_opp = team_df.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(6).copy()
+    at_risk = team_df[(team_df["achievement_pct"] < 50) | (team_df["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(6).copy()
+    strongest_rep = by_sp.iloc[0] if not by_sp.empty else None
+    most_risky_rep = by_sp.sort_values(["risk_accounts", "achievement_pct"], ascending=[False, True]).iloc[0] if not by_sp.empty else None
+    dept_label = _dept_label(st.session_state.get("dept") or "")
+
+    def _safe_html(value):
+        return (
+            str(value or "")
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
         )
-        fig_exec.update_traces(textposition="top center")
-        fig_exec.update_layout(height=360, margin=dict(t=15, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_exec, use_container_width=True)
 
-    if "Budget_kg" in df.columns and df["Budget_kg"].sum() > 0:
-        st.divider()
-        st.subheader("📦 Budget vs Actual & การวิเคราะห์ ปี 2026")
-        bdf = df[df["Budget_kg"] > 0].copy()
-        bdf["Actual_kg"] = pd.to_numeric(bdf.get("Actual_kg", 0), errors="coerce").fillna(0)
+    def _fmt_m(v):
+        return f"฿{float(v)/1e6:,.1f}M"
 
-        total_budget = int(bdf["Budget_kg"].sum())
-        total_actual = int(bdf["Actual_kg"].sum())
-        gap  = total_actual - total_budget
-        pct  = (total_actual / total_budget * 100) if total_budget > 0 else 0
+    def _fmt_gap(v):
+        return f"+{float(v)/1e6:,.1f}M"
 
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("🎯 Budget รวม",    f"{total_budget:,} kg")
-        k2.metric("✅ Actual รวม",    f"{total_actual:,} kg",  delta=f"{gap:+,} kg")
-        k3.metric("📊 Achievement",   f"{pct:.1f}%")
-        k4.metric("📋 บริษัทที่มีข้อมูล", f"{len(bdf):,} ราย")
+    def _saas_card(title: str, subtitle: str, body_html: str, tone: str = ""):
+        st.markdown(
+            f"""
+            <div class="saas-card {tone}">
+                <div class="saas-card-head">
+                    <div>
+                        <div class="saas-card-title">{title}</div>
+                        <div class="saas-card-sub">{subtitle}</div>
+                    </div>
+                </div>
+                <div class="saas-card-body">{body_html}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        gc1, gc2 = st.columns(2)
-        with gc1:
-            st.markdown("**📊 Budget vs Actual แยก Industry**")
-            b_ind = (bdf.groupby("Industry")
-                     .agg(Budget=("Budget_kg", "sum"), Actual=("Actual_kg", "sum"))
-                     .reset_index().sort_values("Budget", ascending=True))
-            fig_ind = go.Figure()
-            fig_ind.add_trace(go.Bar(name="Budget", y=b_ind["Industry"], x=b_ind["Budget"],
-                                     orientation="h", marker_color="#fb923c",
-                                     text=b_ind["Budget"].apply(lambda v: f"{int(v):,}"),
-                                     textposition="outside"))
-            fig_ind.add_trace(go.Bar(name="Actual", y=b_ind["Industry"], x=b_ind["Actual"],
-                                     orientation="h", marker_color="#22c55e",
-                                     text=b_ind["Actual"].apply(lambda v: f"{int(v):,}" if v > 0 else ""),
-                                     textposition="outside"))
-            fig_ind.update_layout(barmode="group", height=280, xaxis_tickformat=",.0f",
-                                  plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                                  margin=dict(t=10, b=10), legend=dict(orientation="h", y=1.1))
-            st.plotly_chart(fig_ind, use_container_width=True)
+    st.markdown("""
+    <style>
+    [data-testid="stHeader"] {display:none !important; height:0 !important;}
+    [data-testid="stToolbar"] {display:none !important;}
+    .stApp {
+        background:
+            radial-gradient(circle at 8% 6%, rgba(125,211,252,.16), transparent 18%),
+            radial-gradient(circle at 92% 4%, rgba(196,181,253,.14), transparent 20%),
+            linear-gradient(180deg, #f8fbff 0%, #eef5ff 42%, #f7fbff 100%);
+    }
+    [data-testid="stAppViewContainer"] > .main {padding-top:0 !important;}
+    section.main > div {padding-top:0 !important;}
+    [data-testid="stAppViewBlockContainer"] {padding-top:0.08rem !important; padding-bottom:0.8rem !important;}
+    .main .block-container{max-width:1480px; padding-top:0.08rem !important; padding-bottom:2.2rem;}
+    div[data-testid="stVerticalBlock"]{gap:1.25rem;}
+    div[data-testid="column"] > div{gap:1.25rem;}
+    [data-testid="stExpander"]{border:1px solid rgba(219,234,254,.95); border-radius:22px; background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,250,255,.94)); box-shadow:0 14px 30px rgba(148,163,184,.10); margin-top:0.4rem;}
+    [data-testid="stExpander"] details summary{padding:0.95rem 1.05rem; font-weight:800; color:#0f172a;}
+    [data-testid="stExpanderDetails"]{padding:0.25rem 1rem 1rem 1rem;}
+    [data-testid="stMetric"]{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.96)); border:1px solid #dbe7f7; border-radius:20px; padding:14px 16px; box-shadow:0 12px 24px rgba(148,163,184,.08);}
+    [data-testid="stMetricLabel"]{font-weight:800; color:#475569;}
+    [data-testid="stMetricValue"]{font-weight:900; color:#0f172a;}
+    .stDownloadButton > button, .stButton > button{border-radius:16px; border:0; min-height:50px; font-weight:800;}
+    [data-testid="stDataFrame"]{border:1px solid rgba(219,234,254,.9); border-radius:18px; overflow:hidden; box-shadow:0 12px 24px rgba(148,163,184,.10);}
+    [data-testid="stDataFrame"] [role="columnheader"]{background:#eff6ff !important; color:#1e3a5f !important; font-weight:800 !important; border-bottom:1px solid #dbeafe !important;}
+    [data-testid="stDataFrame"] [role="gridcell"]{border-color:#eef2ff !important;}
+     .saas-shell{position:relative; overflow:hidden; border-radius:34px; padding:18px 28px 26px 28px; margin-top:-0.2rem; margin-bottom:1.8rem; background:linear-gradient(135deg, rgba(248,252,255,.98) 0%, rgba(232,243,255,.96) 56%, rgba(223,238,255,.94) 100%); border:1px solid rgba(191,219,254,.85); box-shadow:0 28px 60px rgba(59,130,246,.12);}
+    .saas-shell:before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 12% 12%, rgba(56,189,248,.08), transparent 22%), radial-gradient(circle at 88% 10%, rgba(167,139,250,.08), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,.58), transparent 30%); pointer-events:none;}
+    .saas-topbar{position:relative; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:20px; flex-wrap:wrap;}
+    .saas-title-wrap{display:flex; align-items:flex-start; gap:16px;}
+    .saas-logo{width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg,#38bdf8,#34d399); display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(56,189,248,.20); color:#fff; font-size:26px;}
+    .saas-eyebrow{font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#0369a1; margin-bottom:2px;}
+    .saas-title{font-size:34px; line-height:1.05; font-weight:900; color:#0f172a; margin:0 0 2px 0; letter-spacing:-.04em;}
+    .saas-sub{font-size:13px; color:#334155; margin-top:6px; line-height:1.65; max-width:920px;}
+    .saas-badge-row{display:flex; flex-wrap:wrap; gap:10px; align-self:flex-end;}
+    .saas-badge{display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(191,219,254,.95); color:#0f172a; font-size:12px; font-weight:800; box-shadow:0 8px 18px rgba(148,163,184,.12);}
+    .saas-grid-kpi{position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-top:4px;}
+    .saas-kpi{position:relative; overflow:hidden; border-radius:24px; padding:20px 20px 18px 20px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,247,255,.94)); border:1px solid rgba(203,213,225,.72); box-shadow:0 14px 30px rgba(148,163,184,.14); min-height:152px;}
+    .saas-kpi:after{content:''; position:absolute; width:110px; height:110px; right:-28px; top:-30px; border-radius:999px; background:rgba(59,130,246,.07);}
+    .saas-kpi-label{font-size:12px; font-weight:800; color:#475569; letter-spacing:.06em; text-transform:uppercase;}
+    .saas-kpi-value{font-size:38px; line-height:1.02; font-weight:900; color:#0f172a; margin-top:12px; letter-spacing:-.04em;}
+    .saas-kpi-sub{margin-top:10px; font-size:12.5px; color:#64748b; line-height:1.5;}
+    .saas-kpi.good .saas-kpi-value{color:#15803d;}
+    .saas-kpi.bad .saas-kpi-value{color:#dc2626;}
+    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:26px; box-shadow:0 16px 32px rgba(148,163,184,.10); overflow:hidden; margin-bottom:1.15rem;}
+    .saas-card.dark{background:linear-gradient(180deg, rgba(239,246,255,.98), rgba(224,242,254,.95)); border:1px solid rgba(186,230,253,.95);}
+    .saas-card.feature{box-shadow:0 18px 38px rgba(59,130,246,.12);}
+    .saas-card.flush{margin-bottom:0.2rem;}
+    .saas-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:20px 22px 12px 22px;}
+    .saas-card-title{font-size:17px; font-weight:900; color:#10224d; line-height:1.25;}
+    .saas-card-sub{font-size:12px; color:#64748b; margin-top:4px; line-height:1.55;}
+    .saas-card-body{padding:0 22px 22px 22px;}
+    .saas-mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+    .saas-mini-stat{border-radius:18px; padding:14px; background:linear-gradient(135deg, #ffffff, #eef6ff); border:1px solid rgba(191,219,254,.65); min-height:116px;}
+    .saas-mini-stat.purple{background:linear-gradient(135deg, #fdf4ff, #f5f3ff);}
+    .saas-mini-label{font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.05em;}
+    .saas-mini-value{font-size:28px; font-weight:900; color:#0f172a; margin-top:8px;}
+    .saas-mini-sub{font-size:12px; color:#64748b; margin-top:6px; line-height:1.5;}
+    .saas-list{display:flex; flex-direction:column; gap:6px;}
+    .saas-list-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 0; border-bottom:1px solid rgba(148,163,184,.14);}
+    .saas-list-row:last-child{border-bottom:none; padding-bottom:0;}
+    .saas-list-row:first-child{padding-top:4px;}
+    .saas-rank{width:34px; height:34px; border-radius:12px; background:linear-gradient(135deg,#38bdf8,#60a5fa); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; box-shadow:0 10px 18px rgba(56,189,248,.18); flex:0 0 34px;}
+    .saas-name{font-size:13px; font-weight:800; color:#0f172a; line-height:1.45;}
+    .saas-meta{font-size:12px; color:#64748b; margin-top:4px; line-height:1.5;}
+    .saas-pill{display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; min-width:92px; border-radius:999px; font-size:12px; font-weight:900; white-space:nowrap;}
+    .saas-pill.good{background:linear-gradient(135deg,#16a34a,#86efac); color:#fff;}
+    .saas-pill.warn{background:linear-gradient(135deg,#f59e0b,#fde68a); color:#7c2d12;}
+    .saas-pill.bad{background:linear-gradient(135deg,#ef4444,#fda4af); color:#fff;}
+    .saas-pill.info{background:linear-gradient(135deg,#38bdf8,#93c5fd); color:#0f172a;}
+    .saas-table-wrap{margin-top:10px; border:1px solid rgba(219,234,254,.9); border-radius:20px; overflow:hidden; background:rgba(255,255,255,.88);}
+    .saas-section-label{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#60a5fa; margin:2px 0 8px 2px;}
+    .saas-priority-table{width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed;}
+    .saas-priority-table thead th{background:#eff6ff; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#56708f; text-align:left; padding:14px 16px; border-bottom:1px solid rgba(191,219,254,.95);}
+    .saas-priority-table tbody td{padding:16px; border-bottom:1px solid rgba(226,232,240,.85); vertical-align:middle; color:#0f172a;}
+    .saas-priority-table tbody tr:nth-child(even){background:rgba(248,251,255,.92);}
+    .saas-priority-table tbody tr:hover{background:rgba(239,246,255,.96);}
+    .saas-priority-table tbody tr:last-child td{border-bottom:none;}
+    .saas-priority-table th.col-customer{width:40%;}
+    .saas-priority-table th.col-score{width:18%;}
+    .saas-priority-table th.col-sales{width:14%;}
+    .saas-priority-table th.col-achv{width:14%;}
+    .saas-priority-table th.col-gap{width:14%;}
+    .saas-table-num{font-weight:800; color:#10224d;}
+    .saas-table-gap{font-weight:900; color:#dc2626;}
+    .saas-chart-head{margin:0 0 0.35rem 0; padding:0 2px;}
+    .saas-chart-title{font-size:17px; font-weight:900; color:#10224d;}
+    .saas-chart-sub{font-size:12px; color:#64748b; margin-top:4px;}
+    .saas-chart-wrap{background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,248,255,.95)); border:1px solid rgba(226,232,240,.95); border-radius:24px; box-shadow:0 16px 32px rgba(148,163,184,.10); padding:18px 18px 8px 18px;}
+    @media (max-width: 1100px){.saas-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.saas-mini-grid{grid-template-columns:1fr;}}
+    @media (max-width: 860px){.saas-shell{padding:16px;}.saas-title{font-size:28px;}.saas-grid-kpi{grid-template-columns:1fr;}.saas-list-row{align-items:flex-start;}.saas-pill{min-width:80px;}}
+    </style>
+    """, unsafe_allow_html=True)
 
-        with gc2:
-            st.markdown("**📊 Budget vs Actual แยก Salesperson**")
-            b_sp2 = (bdf.groupby("Salesperson")
-                     .agg(Budget=("Budget_kg", "sum"), Actual=("Actual_kg", "sum"))
-                     .reset_index().sort_values("Budget", ascending=False))
-            fig_sp2 = go.Figure()
-            fig_sp2.add_trace(go.Bar(name="Budget", x=b_sp2["Salesperson"], y=b_sp2["Budget"],
-                                     marker_color="#fb923c",
-                                     text=b_sp2["Budget"].apply(lambda v: f"{int(v):,}"),
-                                     textposition="outside"))
-            fig_sp2.add_trace(go.Bar(name="Actual", x=b_sp2["Salesperson"], y=b_sp2["Actual"],
-                                     marker_color="#22c55e",
-                                     text=b_sp2["Actual"].apply(lambda v: f"{int(v):,}" if v > 0 else ""),
-                                     textposition="outside"))
-            fig_sp2.update_layout(barmode="group", height=280, yaxis_tickformat=",.0f",
-                                  plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                                  margin=dict(t=10, b=10), legend=dict(orientation="h", y=1.1))
-            st.plotly_chart(fig_sp2, use_container_width=True)
+    strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
+    most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
 
-        st.markdown("**🔍 Gap & Achievement Analysis รายบริษัท**")
-        gap_df = bdf[["Customer Name", "Salesperson", "Industry", "Budget_kg", "Actual_kg"]].copy()
-        gap_df["Gap (kg)"]     = gap_df["Actual_kg"] - gap_df["Budget_kg"]
-        gap_df["Achievement%"] = gap_df.apply(
-            lambda r: round(r["Actual_kg"] / r["Budget_kg"] * 100, 1) if r["Budget_kg"] > 0 else 0.0, axis=1)
-        gap_df["สถานะ"] = gap_df.apply(
-            lambda r: "✅ เกิน Budget" if r["Achievement%"] >= 100
-            else ("🟡 ใกล้ถึง" if r["Achievement%"] >= 70 else "🔴 ต้องเร่ง"), axis=1)
+    st.markdown(f"""
+    <div class="saas-shell">
+        <div class="saas-topbar">
+            <div class="saas-title-wrap">
+                <div class="saas-logo">📊</div>
+                <div>
+                    <div class="saas-eyebrow">Executive SaaS View</div>
+                    <h1 class="saas-title">Team Dashboard</h1>
+                    <div class="saas-sub">ภาพรวมผลงานทีม {dept_label} • สำหรับหัวหน้าในการดู performance, risk, priority accounts และพื้นที่ที่ควรเร่งเข้า</div>
+                </div>
+            </div>
+            <div class="saas-badge-row">
+                <div class="saas-badge">👥 {active_sales} Salespeople</div>
+                <div class="saas-badge">⚠️ {risk_accounts} Risk Accounts</div>
+                <div class="saas-badge">📈 {positive_yoy} Growing Accounts</div>
+            </div>
+        </div>
+        <div class="saas-grid-kpi">
+            <div class="saas-kpi">
+                <div class="saas-kpi-label">Total Sales</div>
+                <div class="saas-kpi-value">฿{total_sales/1e6:,.1f}M</div>
+                <div class="saas-kpi-sub">ยอดขายรวมของลูกค้าทั้งแผนก</div>
+            </div>
+            <div class="saas-kpi good">
+                <div class="saas-kpi-label">Achievement</div>
+                <div class="saas-kpi-value">{team_ach:,.1f}%</div>
+                <div class="saas-kpi-sub">Actual {total_actual:,.0f} kg จาก Budget {total_budget:,.0f} kg</div>
+            </div>
+            <div class="saas-kpi {'good' if yoy_total_pct >= 0 else 'bad'}">
+                <div class="saas-kpi-label">YoY Growth</div>
+                <div class="saas-kpi-value">{yoy_total_pct:+,.1f}%</div>
+                <div class="saas-kpi-sub">เทียบกับ Last Year {total_last_year:,.0f} kg</div>
+            </div>
+            <div class="saas-kpi bad">
+                <div class="saas-kpi-label">Remaining Gap</div>
+                <div class="saas-kpi-value">{total_gap/1e6:,.1f}M kg</div>
+                <div class="saas-kpi-sub">ช่องว่างที่ยังต้องปิดให้ถึงเป้า</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        gauge_pct = min(pct, 150)
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=pct,
-            number={"suffix": "%", "font": {"size": 36}},
-            delta={"reference": 100, "suffix": "%"},
-            title={"text": "Achievement vs Budget (รวม)", "font": {"size": 14}},
-            gauge={
-                "axis": {"range": [0, 150], "ticksuffix": "%"},
-                "bar": {"color": "#22c55e" if pct >= 100 else ("#f59e0b" if pct >= 70 else "#ef4444")},
-                "steps": [{"range": [0, 70], "color": "#fee2e2"},
-                           {"range": [70, 100], "color": "#fef9c3"},
-                           {"range": [100, 150], "color": "#dcfce7"}],
-                "threshold": {"line": {"color": "#1e3a5f", "width": 4}, "thickness": 0.75, "value": 100},
-            }
-        ))
-        fig_gauge.update_layout(height=260, margin=dict(t=30, b=10, l=30, r=30),
-                                paper_bgcolor="rgba(0,0,0,0)")
+    main_left, main_right = st.columns([1.52, 1.0], gap="large")
 
-        gg1, gg2 = st.columns([1.2, 2])
-        with gg1:
-            st.plotly_chart(fig_gauge, use_container_width=True)
-        with gg2:
-            top_ach = gap_df[gap_df["Actual_kg"] > 0].nlargest(8, "Achievement%")[
-                ["Customer Name", "Budget_kg", "Actual_kg", "Achievement%", "สถานะ"]].copy()
-            top_ach["Budget_kg"]    = top_ach["Budget_kg"].apply(lambda v: f"{int(v):,} kg")
-            top_ach["Actual_kg"]    = top_ach["Actual_kg"].apply(lambda v: f"{int(v):,} kg")
-            top_ach["Achievement%"] = top_ach["Achievement%"].apply(lambda v: f"{v:.1f}%")
-            st.markdown("**🏆 Top Achievement**")
-            st.dataframe(top_ach.rename(columns={"Budget_kg": "Budget", "Actual_kg": "Actual"}),
-                         use_container_width=True, hide_index=True, height=220)
+    with main_left:
+        st.markdown("<div class='saas-section-label'>Leadership overview</div>", unsafe_allow_html=True)
+        _saas_card(
+            "Manager Snapshot",
+            "ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า",
+            f"""
+            <div class="saas-mini-grid">
+                <div class="saas-mini-stat">
+                    <div class="saas-mini-label">Strongest Rep</div>
+                    <div class="saas-mini-value">{float(strongest_rep['achievement_pct']):.1f}%</div>
+                    <div class="saas-mini-sub">{strongest_rep_html}</div>
+                </div>
+                <div class="saas-mini-stat purple">
+                    <div class="saas-mini-label">Needs Attention</div>
+                    <div class="saas-mini-value">{int(most_risky_rep['risk_accounts']) if most_risky_rep is not None else 0}</div>
+                    <div class="saas-mini-sub">{most_risky_rep_html}</div>
+                </div>
+            </div>
+            """,
+            tone="dark feature",
+        )
 
-        tab_all, tab_actual, tab_behind = st.tabs(["📋 ทั้งหมด", "✅ มี Actual", "🔴 ต้องเร่ง"])
-        for tab, mask in [
-            (tab_all,    slice(None)),
-            (tab_actual, gap_df["Actual_kg"] > 0),
-            (tab_behind, gap_df["Achievement%"] < 70),
-        ]:
-            with tab:
-                show = gap_df[mask].sort_values("Achievement%", ascending=False).copy()
-                show["Budget_kg"]    = show["Budget_kg"].apply(lambda v: f"{int(v):,}")
-                show["Actual_kg"]    = show["Actual_kg"].apply(lambda v: f"{int(v):,}")
-                show["Gap (kg)"]     = show["Gap (kg)"].apply(lambda v: f"{int(v):+,}")
-                show["Achievement%"] = show["Achievement%"].apply(lambda v: f"{v:.1f}%")
-                st.dataframe(show.rename(columns={"Budget_kg": "Budget (kg)", "Actual_kg": "Actual (kg)"}),
-                             use_container_width=True, hide_index=True)
+        rank_rows = []
+        for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
+            tone = "good" if float(row["achievement_pct"]) >= 85 else ("warn" if float(row["achievement_pct"]) >= 65 else "bad")
+            rank_rows.append(
+                f"<div class='saas-list-row'><div style='display:flex;align-items:center;gap:12px;'><div class='saas-rank'>{idx}</div><div><div class='saas-name'>{_safe_html(row['Salesperson'])}</div><div class='saas-meta'>{int(row['customers']):,} accounts • {_fmt_m(row['total_sales'])}</div></div></div><div class='saas-pill {tone}'>{float(row['achievement_pct']):,.1f}%</div></div>"
+            )
+        _saas_card(
+            "Team Performance Ranking",
+            "เรียงตาม Achievement และยอดขายรวม",
+            f"<div class='saas-list'>{''.join(rank_rows) if rank_rows else '<div class=\'saas-meta\'>ยังไม่มีข้อมูลเพียงพอ</div>'}</div>",
+        )
+
+        opp_rows = []
+        for _, row in top_opp.iterrows():
+            score_tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 50 else "info")
+            opp_rows.append(
+                f"<tr><td><div class='saas-name'>{_safe_html(row['Customer Name'])}</div><div class='saas-meta'>{_safe_html(row['Salesperson'])} • {_safe_html(row['Province'])}</div></td><td><span class='saas-pill {score_tone}'>{float(row['opportunity_score']):.0f}</span></td><td class='saas-table-num'>{_fmt_m(row['Sales/Year'])}</td><td class='saas-table-num'>{float(row['achievement_pct']):,.1f}%</td><td class='saas-table-gap'>{_fmt_gap(row['gap_kg'])}</td></tr>"
+            )
+        _saas_card(
+            "Priority Accounts",
+            "ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth",
+            f"""
+            <div class="saas-table-wrap">
+                <table class="saas-priority-table">
+                    <thead>
+                        <tr>
+                            <th class="col-customer">Customer</th>
+                            <th class="col-score">Score</th>
+                            <th class="col-sales">Sales</th>
+                            <th class="col-achv">Achv.</th>
+                            <th class="col-gap">Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody>{''.join(opp_rows)}</tbody>
+                </table>
+            </div>
+            """,
+        )
+
+    with main_right:
+        command_rows = []
+        if strongest_rep is not None:
+            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Top performer</div><div class='saas-meta'>{_safe_html(strongest_rep['Salesperson'])} • Achievement {float(strongest_rep['achievement_pct']):,.1f}%</div></div><div class='saas-pill good'>Lead</div></div>")
+        if most_risky_rep is not None:
+            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Coaching needed</div><div class='saas-meta'>{_safe_html(most_risky_rep['Salesperson'])} • Risk accounts {int(most_risky_rep['risk_accounts'])}</div></div><div class='saas-pill bad'>Act now</div></div>")
+        if not top_opp.empty:
+            first_opp = top_opp.iloc[0]
+            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Priority account</div><div class='saas-meta'>{_safe_html(first_opp['Customer Name'])} • {_safe_html(first_opp['Salesperson'])} • Gap {float(first_opp['gap_kg'])/1e6:,.2f}M kg</div></div><div class='saas-pill warn'>Focus</div></div>")
+        if not high_potential.empty:
+            first_hp = high_potential.iloc[0]
+            command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Province to push</div><div class='saas-meta'>{_safe_html(first_hp['Province'])} • {int(first_hp['customers'])} accounts • Achv. {float(first_hp['avg_achievement']):,.1f}%</div></div><div class='saas-pill info'>Expand</div></div>")
+        st.markdown("<div class='saas-section-label'>Immediate actions</div>", unsafe_allow_html=True)
+        _saas_card(
+            "Manager Command Center",
+            "สรุปสิ่งที่หัวหน้าควรทำต่อทันทีในมุมมองเดียว",
+            f"<div class='saas-list'>{''.join(command_rows) if command_rows else '<div class=\'saas-meta\'>ยังไม่มี insight เพิ่มเติม</div>'}</div>",
+            tone="dark feature",
+        )
+
+        risk_rows = []
+        for _, row in at_risk.iterrows():
+            risk_rows.append(
+                f"<div class='saas-list-row'><div><div class='saas-name'>{_safe_html(row['Customer Name'])}</div><div class='saas-meta'>{_safe_html(row['Salesperson'])} • {_safe_html(row['Province'])}</div></div><div style='text-align:right;'><div class='saas-pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='saas-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
+            )
+        _saas_card(
+            "Risk Signals",
+            "บัญชีและพื้นที่ที่ต้องระวัง",
+            f"<div class='saas-list'>{''.join(risk_rows) if risk_rows else '<div class=\'saas-meta\'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>'}</div>",
+        )
+
+        hp_rows = []
+        for _, row in high_potential.iterrows():
+            tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
+            hp_rows.append(
+                f"<div class='saas-list-row'><div><div class='saas-name'>{_safe_html(row['Province'])}</div><div class='saas-meta'>{int(row['customers']):,} accounts • Sales {_fmt_m(row['total_sales'])}</div></div><div class='saas-pill {tone}'>{_fmt_gap(row['gap_kg'])}</div></div>"
+            )
+        _saas_card(
+            "High Potential Provinces",
+            "จังหวัดที่ gap สูงและมีโอกาสขยาย",
+            f"<div class='saas-list'>{''.join(hp_rows) if hp_rows else '<div class=\'saas-meta\'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>'}</div>",
+            tone="flush",
+        )
+
+    chart_left, chart_right = st.columns(2, gap="large")
+
+    with chart_left:
+        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Sales by Region</div><div class='saas-chart-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div>", unsafe_allow_html=True)
+        fig_region = px.bar(
+            by_region.head(6),
+            x="total_sales",
+            y="region",
+            orientation="h",
+            text="total_sales",
+            color="total_sales",
+            color_continuous_scale=["#93c5fd", "#60a5fa", "#818cf8"],
+        )
+        fig_region.update_traces(texttemplate="฿%{x:,.0f}", textposition="outside")
+        fig_region.update_layout(
+            height=300,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            xaxis_title=None,
+            yaxis_title=None,
+            coloraxis_showscale=False,
+            yaxis=dict(categoryorder="total ascending"),
+        )
+        st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with chart_right:
+        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Team Trend</div><div class='saas-chart-sub'>Achievement และ Avg YoY ของคนในทีม</div></div>", unsafe_allow_html=True)
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#3b82f6"), fill="tozeroy", fillcolor="rgba(59,130,246,.12)"))
+        fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
+        fig_trend.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    manager_report = to_excel_bytes_multi({
+        "Team Dashboard": team_df,
+        "Salesperson Summary": by_sp,
+        "Top Opportunities": top_opp,
+        "At Risk": at_risk,
+        "Province Focus": by_province,
+    })
+
+    action_left, action_right = st.columns(2, gap="large")
+    with action_left:
+        st.download_button(
+            "📁 Export Team Report",
+            data=manager_report,
+            file_name=f"team_dashboard_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with action_right:
+        if st.button("🔍 View Customer List", use_container_width=True):
+            st.session_state["ui_menu"] = "🏢 ข้อมูลบริษัทลูกค้า"
+            _set_ui_cookies(menu="🏢 ข้อมูลบริษัทลูกค้า", sp_file=st.session_state.get("sp_file") or "")
+            st.rerun()
+
+    with st.expander("📋 Detailed Team Performance", expanded=False):
+        sp_show = by_sp.rename(columns={
+            "customers": "Customers",
+            "total_sales": "Sales",
+            "budget_kg": "Budget",
+            "actual_kg": "Actual",
+            "achievement_pct": "Achievement %",
+            "avg_yoy": "Avg YoY %",
+            "risk_accounts": "Risk Accounts",
+        }).copy()
+        st.dataframe(
+            style_rich_dataframe(
+                sp_show,
+                numeric_cols=["Customers", "Sales", "Budget", "Actual", "Risk Accounts"],
+                pct_cols=["Achievement %", "Avg YoY %"],
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=320,
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            st.download_button(
+                "⬇️ Download Team Summary CSV",
+                data=by_sp.to_csv(index=False, encoding="utf-8-sig"),
+                file_name=f"team_summary_{st.session_state.get('dept') or 'ALL'}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with c2:
+            if st.button("☁️ Upload Team Dashboard to SharePoint", use_container_width=True):
+                remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/team_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                ok = sp_upload_bytes(manager_report, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if ok:
+                    append_audit_log("upload_team_dashboard", remote_path, st.session_state.get("dept") or "")
+                    st.success("✅ ส่ง Team Dashboard ขึ้น SharePoint สำเร็จ")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 2 – CUSTOMER TABLE
@@ -1330,19 +2522,24 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
 
+    base_df = filter_df_for_current_user(df)
+    if base_df.empty:
+        st.info("ไม่พบข้อมูลลูกค้าที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
     with st.expander("🔍 ตัวกรองข้อมูล", expanded=True):
         f1, f2, f3, f4 = st.columns(4)
-        sel_reg = f1.selectbox("ภูมิภาค", ["ทั้งหมด"] + sorted(df["Region_TH"].dropna().astype(str).unique().tolist()))
-        sel_ind = f2.selectbox("Industry", ["ทั้งหมด"] + sorted(df["Industry"].dropna().astype(str).unique().tolist()))
-        sel_grd = f3.selectbox("Grade", ["ทั้งหมด"] + sorted(df["Grade"].dropna().astype(str).unique().tolist()))
-        province_options = sorted([x for x in df.get("Province", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()])
+        sel_reg = f1.selectbox("ภูมิภาค", ["ทั้งหมด"] + sorted(base_df["Region_TH"].dropna().astype(str).unique().tolist()))
+        sel_ind = f2.selectbox("Industry", ["ทั้งหมด"] + sorted(base_df["Industry"].dropna().astype(str).unique().tolist()))
+        sel_grd = f3.selectbox("Grade", ["ทั้งหมด"] + sorted(base_df["Grade"].dropna().astype(str).unique().tolist()))
+        province_options = sorted([x for x in base_df.get("Province", pd.Series(dtype=str)).dropna().astype(str).unique().tolist() if str(x).strip()])
         sel_prov = f4.multiselect("Province", province_options)
         f5, f6 = st.columns([2, 2])
-        sp_options = sorted([x for x in df["Salesperson"].dropna().astype(str).unique().tolist() if str(x).strip()])
+        sp_options = sorted([x for x in base_df["Salesperson"].dropna().astype(str).unique().tolist() if str(x).strip()])
         sel_sp_multi = f5.multiselect("Salesperson", sp_options)
         srch = f6.text_input("🔎 ค้นหาชื่อบริษัท / จังหวัด / Plus Code")
 
-    flt = df.copy()
+    flt = base_df.copy()
     if sel_reg != "ทั้งหมด": flt = flt[flt["Region_TH"] == sel_reg]
     if sel_ind != "ทั้งหมด": flt = flt[flt["Industry"] == sel_ind]
     if sel_grd != "ทั้งหมด": flt = flt[flt["Grade"] == sel_grd]
@@ -1368,6 +2565,22 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
     sc3.metric("📊 เฉลี่ย/บริษัท",
                f"฿{(flt['Sales/Year'].sum()/len(flt)/1e6 if len(flt) else 0):,.2f} M")
     sc4.metric("📦 Budget รวม (kg/yr)",    f"{int(flt.get('Budget_kg', pd.Series(0)).sum()):,} kg")
+    cex1, cex2 = st.columns([1,1])
+    with cex1:
+        st.download_button(
+            "⬇️ Export Current Customer List (.csv)",
+            data=flt.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"customer_list_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with cex2:
+        if st.button("☁️ Upload Current Customer Export to SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/customer_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            ok = sp_upload_bytes(flt.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig"), remote_path, "text/csv")
+            if ok:
+                append_audit_log("upload_customer_export", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Customer Export ขึ้น SharePoint สำเร็จ")
     st.markdown("---")
 
     import urllib.parse
@@ -1406,6 +2619,12 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
         prov      = safe(row.get("Province"))
         plus_code = safe(row.get("Plus_Code", ""))
         reg       = region_badge(row.get("Region_TH", ""))
+        raw_address = str(row.get("Address", "") or "").strip()
+        raw_province = "" if prov == "—" else prov
+        raw_region = str(row.get("Region", "") or "").strip()
+        row_ref_lat, row_ref_lng = resolve_reference_latlng(raw_province, raw_region, raw_address)
+        row_coords = plus_code_to_coords(plus_code, ref_lat=row_ref_lat, ref_lng=row_ref_lng) if plus_code != "—" else None
+        prefetched_js = f"[{float(row_coords[0]):.7f},{float(row_coords[1]):.7f}]" if row_coords else "null"
 
         raw_addr = str(row.get("Address", "")) if pd.notna(row.get("Address", "")) else ""
         locations = []
@@ -1441,13 +2660,13 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
                         f"font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;"
                         f"margin-bottom:3px'>{icon} {lbl}</span><br>") if lbl else ""
             if plus_code != "—" and len(plus_code) >= 6:
-                q_loc = urllib.parse.quote(plus_code)
+                q_loc = urllib.parse.quote(f"{plus_code} {txt} {prov if prov != '—' else ''} Thailand".strip())
             elif lbl and prov != "—":
-                q_loc = urllib.parse.quote(f"{name} {lbl} {prov} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {lbl} {txt} {prov} Thailand")
             elif prov != "—":
-                q_loc = urllib.parse.quote(f"{name} {prov} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {txt} {prov} Thailand")
             else:
-                q_loc = urllib.parse.quote(f"{name} Thailand")
+                q_loc = urllib.parse.quote(f"{name} {txt} Thailand")
 
             n_js  = name.replace("'", "`").replace('"', "`")
             btn_label = f"🗺️ {lbl}" if lbl else "🗺️ ดูแผนที่"
@@ -1531,14 +2750,14 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 html,body{{font-family:'Sarabun',sans-serif;background:transparent;}}
 .page{{display:flex;flex-direction:column;gap:10px;padding:4px;}}
 .route-bar{{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:12px;
-  padding:12px 16px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
-.route-title{{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}}
-.route-steps{{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;}}
+  padding:10px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;}}
+.route-title{{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}}
+.route-steps{{display:flex;align-items:center;gap:7px;font-size:12px;flex-wrap:wrap;}}
 .route-box{{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
   font-size:12px;white-space:nowrap;}}
-.route-arrow{{font-size:16px;opacity:.8;}}
+.route-arrow{{font-size:15px;opacity:.8;}}
 .route-hint{{font-size:10.5px;opacity:.65;margin-top:2px;}}
-.btn-gmaps{{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
+.btn-gmaps{{display:inline-flex;align-items:center;gap:3px;margin-left:auto;
   background:#fff;color:#2563eb;border:none;border-radius:8px;
   padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;
   text-decoration:none;white-space:nowrap;}}
@@ -1559,14 +2778,14 @@ tbody tr.clickable:hover{{background:#dbeafe;}}
 tbody tr.clickable.active{{background:#bfdbfe!important;box-shadow:inset 3px 0 0 #2563eb;}}
 tbody tr.no-map{{cursor:default;opacity:.55;}}
 td{{padding:9px 13px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}}
-.co{{font-weight:600;font-size:13px;}}
+.co{{font-weight:600;font-size:12px;}}
 .has-map{{color:#2563eb;}}
 .no-loc{{color:#94a3b8;}}
 .sp{{color:#64748b;font-size:11px;margin-top:2px;}}
 .ind{{color:#374151;font-size:12px;}}
 .sal{{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}}
 .loc{{color:#374151;font-size:11.5px;word-break:break-word;min-width:160px;line-height:1.5;}}
-.legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:14px;background:#f8fafc;}}
+.legend{{font-size:11px;color:#64748b;padding:5px 13px 7px;display:flex;gap:12px;background:#f8fafc;}}
 </style>
 </head>
 <body><div class="page">
@@ -1621,32 +2840,60 @@ const DEFAULT_VIEW_MODE   = "{default_view}";
 const AUTO_FIT_BOUNDS     = {str(auto_fit_bounds).lower()};
 
 let destMarker = null, routeLayer = null, heatLayer = null;
+let HAS_LEAFLET = (typeof L !== 'undefined');
+let map = null;
+let clusterGroup = null;
 
-var clusterGroup = L.markerClusterGroup({{
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    maxClusterRadius: 45
-}});
+function buildEmbedUrl(lat, lng, label) {{
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(String(lat)+','+String(lng))
+        + '&z=11&output=embed';
+}}
+function setEmbeddedMap(url) {{
+    var el = document.getElementById('leaflet-map');
+    if (!el) return;
+    el.innerHTML = '<iframe src="'+url+'" width="100%" height="100%" style="border:0;border-radius:16px;" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>';
+}}
 
-var map = L.map('leaflet-map').setView([ORIGIN_LAT, ORIGIN_LNG], 10);
-L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-    attribution: '© OpenStreetMap contributors', maxZoom: 19
-}}).addTo(map);
-clusterGroup.addTo(map);
+if (HAS_LEAFLET) {{
+    try {{
+        clusterGroup = L.markerClusterGroup({{
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            maxClusterRadius: 45
+        }});
 
-var originIcon = L.divIcon({{
-    html: '<div style="background:#1e3a5f;color:#fff;border-radius:50%;width:40px;height:40px;'
-        + 'display:flex;align-items:center;justify-content:center;font-size:22px;'
-        + 'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">🏠</div>',
-    iconSize:[40,40], iconAnchor:[20,20]
-}});
-L.marker([ORIGIN_LAT, ORIGIN_LNG], {{icon: originIcon}})
-    .addTo(map)
-    .bindPopup('<b>' + ORIGIN_LABEL + '</b><br><small>' + ORIGIN_SHORT + ' — Bangna/Phra Khanong</small>')
-    .openPopup();
+        map = L.map('leaflet-map').setView([ORIGIN_LAT, ORIGIN_LNG], 10);
+        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+            attribution: '© OpenStreetMap contributors', maxZoom: 19
+        }}).addTo(map);
+        clusterGroup.addTo(map);
 
-document.getElementById('route-hint').textContent =
-    '✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง';
+        var originIcon = L.divIcon({{
+            html: '<div style="background:#1e3a5f;color:#fff;border-radius:50%;width:40px;height:40px;'
+                + 'display:flex;align-items:center;justify-content:center;font-size:18px;'
+                + 'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">🏠</div>',
+            iconSize:[40,40], iconAnchor:[20,20]
+        }});
+        L.marker([ORIGIN_LAT, ORIGIN_LNG], {{icon: originIcon}})
+            .addTo(map)
+            .bindPopup('<b>' + ORIGIN_LABEL + '</b><br><small>' + ORIGIN_SHORT + ' — Bangna/Phra Khanong</small>')
+            .openPopup();
+
+        document.getElementById('route-hint').textContent =
+            '✅ แผนที่พร้อม — คลิกชื่อบริษัทในตารางเพื่อดูเส้นทาง';
+    }} catch (err) {{
+        HAS_LEAFLET = false;
+        map = null;
+        clusterGroup = null;
+        setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
+        document.getElementById('route-hint').textContent =
+            '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
+    }}
+}} else {{
+    setEmbeddedMap(buildEmbedUrl(ORIGIN_LAT, ORIGIN_LNG, ORIGIN_LABEL));
+    document.getElementById('route-hint').textContent =
+        '🗺️ ใช้ Google Maps fallback — คลิกชื่อบริษัทเพื่อดูเส้นทาง';
+}}
 
 function escapeHtml(s) {{
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -1654,12 +2901,20 @@ function escapeHtml(s) {{
 }}
 
 (function renderMarkers() {{
-    clusterGroup.clearLayers();
+    var skipped = MAP_POINTS_NO_COORD.length;
     if (!MAP_POINTS || MAP_POINTS.length === 0) {{
         document.getElementById('marker-hint').textContent =
             'ℹ️ ไม่มีข้อมูล Plus Code ในชุดนี้ — คลิกชื่อบริษัทเพื่อค้นหาตำแหน่ง';
         return;
     }}
+    if (!HAS_LEAFLET || !map || !clusterGroup) {{
+        document.getElementById('marker-hint').textContent =
+            '📌 ' + MAP_POINTS.length + ' หมุด'
+            + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '')
+            + ' • โหมด fallback';
+        return;
+    }}
+    clusterGroup.clearLayers();
     var bounds = [];
     var heatData = [];
     MAP_POINTS.forEach(function(item) {{
@@ -1673,20 +2928,19 @@ function escapeHtml(s) {{
         mk.bindPopup(popup);
         mk.on('click', function() {{
             showMap(
-                encodeURIComponent(item.query||''),
+                encodeURIComponent((item.is_short_plus && item.address_query) ? item.address_query : (item.query||'')),
                 item.name||'',
                 null, false,
-                [Number(item.lat), Number(item.lng)]
+                (item.is_short_plus && item.address_query) ? null : [Number(item.lat), Number(item.lng)]
             );
         }});
         clusterGroup.addLayer(mk);
         bounds.push(coords);
     }});
     if (heatLayer) {{ map.removeLayer(heatLayer); heatLayer = null; }}
-    if (heatData.length) {{ heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}}); }}
+    if (heatData.length && typeof L.heatLayer === 'function') {{ heatLayer = L.heatLayer(heatData, {{radius: 28, blur: 20, maxZoom: 13}}); }}
     if (heatLayer && (DEFAULT_VIEW_MODE === 'Heatmap' || DEFAULT_VIEW_MODE === 'Hybrid')) {{ heatLayer.addTo(map); }}
     if (DEFAULT_VIEW_MODE === 'Heatmap' && clusterGroup) {{ try {{ map.removeLayer(clusterGroup); }} catch(e) {{}} }}
-    var skipped = MAP_POINTS_NO_COORD.length;
     document.getElementById('marker-hint').textContent =
         '📌 ' + MAP_POINTS.length + ' หมุด'
         + (skipped > 0 ? ' • อีก ' + skipped + ' รายการไม่มี Plus Code (geocode เมื่อคลิก)' : '');
@@ -1747,7 +3001,15 @@ function plusCodeToCoords(code) {{
 async function geocode(query) {{
     var q = decodeURIComponent(String(query||'')).trim(); if (!q) return null;
     var pm = q.match(/([23456789CFGHJMPQRVWX]{{4,8}}[+][23456789CFGHJMPQRVWX]{{2,3}})/i);
-    if (pm) {{ var c = plusCodeToCoords(pm[1]); if (c) return c; }}
+    var shortPlus = false;
+    if (pm) {{
+        var before = String(pm[1]).split('+')[0] || '';
+        shortPlus = before.length < 8;
+        if (!shortPlus) {{
+            var c = plusCodeToCoords(pm[1]);
+            if (c) return c;
+        }}
+    }}
     for (var attempt = 0; attempt < 2; attempt++) {{
         try {{
             var qe = encodeURIComponent(attempt===0 ? q : q+' Thailand');
@@ -1759,6 +3021,10 @@ async function geocode(query) {{
             var d = await r.json();
             if (d.length > 0) return [parseFloat(d[0].lat), parseFloat(d[0].lon)];
         }} catch(e) {{ console.warn('Nominatim:', e.message); }}
+    }}
+    if (pm) {{
+        var fallback = plusCodeToCoords(pm[1]);
+        if (fallback) return fallback;
     }}
     return null;
 }}
@@ -1812,16 +3078,24 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
     document.querySelectorAll('tbody tr').forEach(function(r){{r.classList.remove('active');}});
     var tr = e && (e.currentTarget || (e.target && e.target.closest('tr')));
     if (tr) tr.classList.add('active');
-    if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
-    if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
+    if (HAS_LEAFLET && map) {{
+        if (destMarker) {{ map.removeLayer(destMarker); destMarker = null; }}
+        if (routeLayer) {{ map.removeLayer(routeLayer); routeLayer = null; }}
+    }}
     var coords = prefetchedCoords || (await geocode(rawDest));
     if (!coords) {{
         document.getElementById('route-hint').textContent = '❌ ไม่พบตำแหน่ง — กด "เปิด Google Maps"';
         return;
     }}
+    if (!HAS_LEAFLET || !map) {{
+        setEmbeddedMap(buildEmbedUrl(coords[0], coords[1], rawDest || name));
+        document.getElementById('route-hint').textContent =
+            drawRouteLine ? '🗺️ แสดงตำแหน่งปลายทางใน Google Maps fallback แล้ว' : '📍 แสดงตำแหน่งปลายทางแล้ว';
+        return;
+    }}
     var destIcon = L.divIcon({{
         html:'<div style="background:#dc2626;color:#fff;border-radius:50%;width:40px;height:40px;'
-            +'display:flex;align-items:center;justify-content:center;font-size:22px;'
+            +'display:flex;align-items:center;justify-content:center;font-size:18px;'
             +'border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.4)">📍</div>',
         iconSize:[40,40], iconAnchor:[20,20]
     }});
@@ -1852,6 +3126,409 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
                        file_name="customers.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
+
+
+elif menu == "🎯 Sales Action Center":
+    _scroll_top()
+
+    if df.empty or "Customer Name" not in df.columns:
+        st.title("🎯 Sales Action Center")
+        st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
+        st.stop()
+
+    exec_source_df = filter_df_for_current_user(df)
+    if exec_source_df.empty:
+        st.title("🎯 Sales Action Center")
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
+    exec_source_df = exec_source_df.copy()
+    exec_source_df["Budget_kg"] = pd.to_numeric(exec_source_df.get("Budget_kg", 0), errors="coerce").fillna(0)
+    exec_source_df = exec_source_df[exec_source_df["Budget_kg"] > 0].copy()
+    if exec_source_df.empty:
+        st.title("🎯 Sales Action Center")
+        st.info("ยังไม่มีบริษัทในความรับผิดชอบของคุณที่มี Budget สำหรับแสดงในหน้า Sales Action Center")
+        st.stop()
+
+    rep = build_executive_report_df(exec_source_df)
+    rep["Sales/Year"] = pd.to_numeric(rep.get("Sales/Year", 0), errors="coerce").fillna(0)
+    rep["Budget_kg"] = pd.to_numeric(rep.get("Budget_kg", 0), errors="coerce").fillna(0)
+    rep["Actual_kg"] = pd.to_numeric(rep.get("Actual_kg", 0), errors="coerce").fillna(0)
+    rep["LastYear_kg"] = pd.to_numeric(rep.get("LastYear_kg", 0), errors="coerce").fillna(0)
+    rep["gap_kg"] = pd.to_numeric(rep.get("gap_kg", 0), errors="coerce").fillna(0)
+    rep["achievement_pct"] = pd.to_numeric(rep.get("achievement_pct", 0), errors="coerce").fillna(0)
+    rep["yoy_pct"] = pd.to_numeric(rep.get("yoy_pct", 0), errors="coerce").fillna(0)
+    rep["opportunity_score"] = pd.to_numeric(rep.get("opportunity_score", 0), errors="coerce").fillna(0)
+    rep["Province"] = rep.get("Province", "").fillna("").astype(str)
+    rep["Industry"] = rep.get("Industry", "").fillna("").astype(str)
+
+    role = str(st.session_state.get("user_role") or "").strip().lower()
+    user_name = str(st.session_state.get("user_name") or _get_user_name() or "Sales").strip()
+    dept_name = _dept_label(st.session_state.get("dept") or "")
+
+    score_q80 = rep["opportunity_score"].quantile(0.80) if len(rep) else 0
+    score_q60 = rep["opportunity_score"].quantile(0.60) if len(rep) else 0
+    gap_q70 = rep["gap_kg"].quantile(0.70) if len(rep) else 0
+
+    rep["last_activity_days"] = rep.apply(
+        lambda r: 14 if r["achievement_pct"] < 35 else (9 if r["yoy_pct"] < 0 else (5 if r["opportunity_score"] >= score_q80 else 2)),
+        axis=1,
+    )
+    rep["action_bucket"] = rep.apply(
+        lambda r: "overdue" if (r["achievement_pct"] < 45 or r["yoy_pct"] < -5)
+        else ("today" if (r["opportunity_score"] >= score_q80 or r["gap_kg"] >= gap_q70) else "week"),
+        axis=1,
+    )
+    rep["priority_label"] = rep["action_bucket"].map({
+        "overdue": "🔴 Overdue",
+        "today": "🟠 Today",
+        "week": "🟡 This Week",
+    }).fillna("🟡 This Week")
+    rep["risk_label"] = rep.apply(
+        lambda r: "⚠️ At risk" if (r["achievement_pct"] < 50 or r["yoy_pct"] < 0) else "✅ On track",
+        axis=1,
+    )
+    rep["next_action"] = rep.apply(
+        lambda r: "Call & recover plan" if r["action_bucket"] == "overdue"
+        else ("Follow-up today" if r["action_bucket"] == "today" else "Plan visit this week"),
+        axis=1,
+    )
+    rep["stage_label"] = rep["opportunity_score"].apply(
+        lambda v: "Closing" if v >= score_q80 else ("Deal" if v >= score_q60 else "Lead")
+    )
+
+    overdue_df = rep[rep["action_bucket"] == "overdue"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    today_df = rep[rep["action_bucket"] == "today"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    week_df = rep[rep["action_bucket"] == "week"].sort_values(["opportunity_score", "gap_kg"], ascending=False).head(6)
+    priority_df = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(8)
+    risk_df = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].sort_values(["achievement_pct", "yoy_pct", "gap_kg"], ascending=[True, True, False]).head(8)
+
+    pipeline_df = rep.groupby("stage_label", dropna=False).agg(
+        customers=("Customer Name", "count"),
+        sales=("Sales/Year", "sum"),
+        gap=("gap_kg", "sum"),
+    ).reset_index()
+    stage_order = ["Lead", "Deal", "Closing"]
+    if not pipeline_df.empty:
+        pipeline_df["stage_label"] = pd.Categorical(pipeline_df["stage_label"], categories=stage_order, ordered=True)
+        pipeline_df = pipeline_df.sort_values("stage_label")
+
+    total_customers = int(len(rep))
+    today_actions = int(len(overdue_df) + len(today_df))
+    high_priority_count = int((rep["opportunity_score"] >= score_q80).sum()) if len(rep) else 0
+    risk_count = int(len(risk_df))
+    avg_ach = float(rep["achievement_pct"].mean()) if len(rep) else 0.0
+
+    if role == "staff":
+        hero_title = f"Good morning, {user_name.split()[0]} 👋"
+        hero_subtitle = "หน้าทำงานส่วนตัวของคุณวันนี้ เห็นเฉพาะลูกค้า งาน และโอกาสที่เกี่ยวข้องกับตัวคุณเท่านั้น"
+        hero_badge = f"Personal Mode • {dept_name}"
+    elif role == "manager":
+        hero_title = "Sales Action Center"
+        hero_subtitle = "มุมมองเชิงลงมือทำของพอร์ตที่คุณดูแล ใช้ไล่ลูกค้าสำคัญ งานวันนี้ และความเสี่ยงที่ควรเข้าไปช่วยทันที"
+        hero_badge = f"Manager Action View • {dept_name}"
+    else:
+        hero_title = "Sales Action Center"
+        hero_subtitle = "มุมมอง action-first สำหรับข้อมูลที่กำลังเปิดอยู่ ใช้ติดตาม priority, risk และ next action ได้ทันที"
+        hero_badge = f"Admin Action View • {dept_name}"
+
+    st.markdown('''
+    <style>
+    .sac-shell{padding-top:.35rem;padding-bottom:1.2rem;}
+    .sac-section-gap{height:18px;}
+    .sac-hero{position:relative;overflow:hidden;border-radius:30px;padding:32px 34px 28px 34px;margin:8px 0 22px 0;background:linear-gradient(135deg,#18275f 0%,#2f5df5 50%,#57c7ff 100%);box-shadow:0 28px 60px rgba(37,99,235,.24);color:#fff;}
+    .sac-hero:before{content:"";position:absolute;width:250px;height:250px;right:-70px;top:-86px;border-radius:999px;background:rgba(255,255,255,.10);}
+    .sac-hero:after{content:"";position:absolute;width:210px;height:210px;right:108px;bottom:-90px;border-radius:999px;background:rgba(255,255,255,.06);}
+    .sac-hero-inner{position:relative;z-index:1;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+    .sac-kicker{font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#e0ecff;margin-bottom:10px;}
+    .sac-title{font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.04em;margin:0 0 10px 0;color:#fff;}
+    .sac-subtitle{max-width:860px;color:#eef7ff;font-size:15px;line-height:1.75;margin:0;}
+    .sac-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.20);color:#fff7ed;font-size:12px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+    .sac-action-card{border-radius:28px;padding:22px 22px 18px 22px;background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);border:1px solid #dbe9fb;box-shadow:0 18px 36px rgba(37,99,235,.10);margin-bottom:22px;}
+    .sac-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    .sac-card-title{font-size:17px;font-weight:900;color:#0f172a;display:flex;align-items:center;gap:8px;}
+    .sac-card-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;}
+    .sac-card-pill.red{background:linear-gradient(180deg,#fff1f2 0%,#ffe4e6 100%);color:#e11d48;border:1px solid #fb7185;box-shadow:0 8px 16px rgba(244,63,94,.12);}
+    .sac-card-pill.orange{background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%);color:#ea580c;border:1px solid #fb923c;box-shadow:0 8px 16px rgba(249,115,22,.12);}
+    .sac-card-pill.yellow{background:linear-gradient(180deg,#fefce8 0%,#fef3c7 100%);color:#ca8a04;border:1px solid #facc15;box-shadow:0 8px 16px rgba(234,179,8,.12);}
+    .sac-mini-kpi{font-size:42px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:8px;}
+    .sac-mini-sub{font-size:13px;color:#64748b;line-height:1.7;margin-bottom:0;}
+    .sac-task-list{display:flex;flex-direction:column;gap:16px;}
+    .sac-task{border:1px solid #e3edf9;border-radius:24px;padding:16px 16px 15px 16px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 14px 28px rgba(148,163,184,.10);}
+    .sac-task.red{background:linear-gradient(180deg,#fff7f8 0%,#fff1f2 100%);border-color:#fecdd3;}
+    .sac-task.orange{background:linear-gradient(180deg,#fffaf5 0%,#fff7ed 100%);border-color:#fdba74;}
+    .sac-task.yellow{background:linear-gradient(180deg,#fffef6 0%,#fefce8 100%);border-color:#fde68a;}
+    .sac-task-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
+    .sac-task-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.35;margin-bottom:4px;}
+    .sac-task-meta{font-size:13px;color:#5b6b83;line-height:1.7;}
+    .sac-tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);}
+    .sac-tag.red{background:linear-gradient(180deg,#ffe4e6 0%,#fecdd3 100%);color:#be123c;border:1px solid #fb7185;}
+    .sac-tag.orange{background:linear-gradient(180deg,#ffedd5 0%,#fed7aa 100%);color:#c2410c;border:1px solid #fb923c;}
+    .sac-tag.yellow{background:linear-gradient(180deg,#fef3c7 0%,#fde68a 100%);color:#a16207;border:1px solid #eab308;}
+    .sac-task-foot{margin-top:10px;padding-top:10px;border-top:1px dashed #dbe7f7;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .sac-next{font-size:12px;font-weight:800;color:#2563eb;background:linear-gradient(180deg,#eef4ff 0%,#dbeafe 100%);border:1px solid #93c5fd;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(59,130,246,.08);}
+    .sac-score{font-size:12px;font-weight:800;color:#0f766e;background:linear-gradient(180deg,#ecfeff 0%,#ccfbf1 100%);border:1px solid #67e8f9;padding:7px 10px;border-radius:999px;box-shadow:0 6px 14px rgba(45,212,191,.08);}
+    .sac-surface{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);border:1px solid #dce9fb;border-radius:28px;padding:22px 22px 18px 22px;box-shadow:0 18px 34px rgba(37,99,235,.08);height:100%;}
+    .sac-surface h4{margin:0 0 6px 0;color:#0f172a;font-size:18px;font-weight:900;}
+    .sac-surface p{margin:0 0 16px 0;color:#64748b;font-size:13px;line-height:1.7;}
+    .sac-priority-item{display:flex;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #edf3fb;}
+    .sac-priority-item:last-child{border-bottom:none;padding-bottom:4px;}
+    .sac-priority-name{font-size:14px;font-weight:900;color:#0f172a;line-height:1.45;}
+    .sac-priority-meta{font-size:12.5px;color:#64748b;line-height:1.65;}
+    .sac-side-stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:6px;margin-bottom:16px;}
+    .sac-side-box{padding:16px;border-radius:22px;background:linear-gradient(180deg,#f0f9ff 0%,#eff6ff 100%);border:1px solid #c7e0ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 20px rgba(59,130,246,.06);}
+    .sac-side-box .n{font-size:24px;font-weight:900;color:#0f172a;line-height:1;}
+    .sac-side-box .l{font-size:12px;color:#5f6f86;margin-top:5px;line-height:1.5;}
+    .sac-empty{border:1px dashed #cfe0f5;border-radius:20px;padding:22px;text-align:center;color:#64748b;background:linear-gradient(180deg,#fbfdff 0%,#f8fbff 100%);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 16px rgba(148,163,184,.05);}
+    @media (max-width: 1200px){
+        .sac-title{font-size:34px;}
+        .sac-action-card,.sac-surface{padding:20px 18px 16px 18px;}
+    }
+    </style>
+    ''', unsafe_allow_html=True)
+
+    def _render_action_list(df_in, tone="red"):
+        if df_in.empty:
+            st.markdown('<div class="sac-empty">🎉 ยังไม่มีรายการในช่วงนี้</div>', unsafe_allow_html=True)
+            return
+        tone_emoji = {"red": "🚨", "orange": "📌", "yellow": "🗓️"}
+        rows = []
+        for _, row in df_in.iterrows():
+            customer = _safe_html(str(row.get("Customer Name", "") or "-"))
+            province = _safe_html(str(row.get("Province", "") or "ไม่ระบุจังหวัด"))
+            industry = _safe_html(str(row.get("Industry", "") or "ไม่ระบุอุตสาหกรรม"))
+            gap = int(float(row.get("gap_kg", 0) or 0))
+            ach = float(row.get("achievement_pct", 0) or 0)
+            days = int(float(row.get("last_activity_days", 0) or 0))
+            score = float(row.get("opportunity_score", 0) or 0)
+            next_action = _safe_html(str(row.get("next_action", "Follow-up")))
+            tag_text = f"🚨 {days}d inactive" if tone == "red" else ("📌 Today" if tone == "orange" else "🗓️ This week")
+            rows.append(
+                f'<div class="sac-task {tone}">'
+                f'<div class="sac-task-head">'
+                f'<div>'
+                f'<div class="sac-task-name">{tone_emoji.get(tone, "✨")} {customer}</div>'
+                f'<div class="sac-task-meta">📍 {province} • 🏭 {industry}<br>📦 Gap {gap:,} kg • 📈 Achievement {ach:.1f}%</div>'
+                f'</div>'
+                f'<span class="sac-tag {tone}">{tag_text}</span>'
+                f'</div>'
+                f'<div class="sac-task-foot">'
+                f'<span class="sac-next">{tone_emoji.get(tone, "✨")} Next: {next_action}</span>'
+                f'<span class="sac-score">⭐ Score {score:.1f}</span>'
+                f'</div>'
+                f'</div>'
+            )
+        st.markdown('<div class="sac-task-list">' + ''.join(rows) + '</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sac-shell">', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="sac-hero">
+        <div class="sac-hero-inner">
+            <div>
+                <div class="sac-kicker">Sales Execution Workspace</div>
+                <div class="sac-title">{hero_title}</div>
+                <p class="sac-subtitle">{hero_subtitle}</p>
+            </div>
+            <div class="sac-badge">{hero_badge}</div>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    top1, top2, top3, top4 = st.columns(4)
+    with top1:
+        render_kpi_card("Actions Today", f"{today_actions:,}", "รวม Overdue + Today ที่ควรแตะก่อน", "🔥")
+    with top2:
+        render_kpi_card("Priority Accounts", f"{high_priority_count:,}", "ลูกค้าที่ score สูงสุดในพอร์ตนี้", "🎯")
+    with top3:
+        render_kpi_card("Risk Signals", f"{risk_count:,}", "ลูกค้าที่ achievement ต่ำหรือ YoY ติดลบ", "⚠️")
+    with top4:
+        render_kpi_card("Avg Achievement", f"{avg_ach:.1f}%", "ค่าเฉลี่ยผลงานของพอร์ตปัจจุบัน", "📈")
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="📊 My Performance Snapshot",
+        subtitle="ภาพรวมผลงานของพอร์ตที่คุณดูแล เพื่อดูยอดและช่องว่างก่อนลงมือทำในวันนี้",
+        icon="💎",
+        accent="#7c3aed",
+    )
+    perf1, perf2 = st.columns(2)
+    with perf1:
+        render_kpi_card("Portfolio Sales", f"฿{float(rep['Sales/Year'].sum())/1e6:,.1f}M", "ยอดขายรวมของพอร์ตปัจจุบัน", "💰")
+    with perf2:
+        render_kpi_card("Gap", f"{int(rep['gap_kg'].sum()):,}", "ช่องว่างที่ควรไล่เก็บเพิ่ม", "📉")
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="✨ Today Action Board",
+        subtitle="เรียงงานตามความเร่งด่วนเพื่อให้เปิดมาแล้วรู้ทันทีว่าควรเริ่มจากตรงไหนก่อน",
+        icon="🚀",
+        accent="#2563eb",
+    )
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">🚨 Overdue</div>
+                <div class="sac-card-pill red">🔴 {len(overdue_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(overdue_df):,}</div>
+            <div class="sac-mini-sub">งานที่ควรกู้กลับมาก่อนเพราะมีความเสี่ยงสูง</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(overdue_df, "red")
+    with col_b:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">📌 Today</div>
+                <div class="sac-card-pill orange">🟠 {len(today_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(today_df):,}</div>
+            <div class="sac-mini-sub">รายการที่ควร follow-up วันนี้เพื่อไม่ให้ momentum หลุด</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(today_df, "orange")
+    with col_c:
+        st.markdown(f'''
+        <div class="sac-action-card">
+            <div class="sac-card-top">
+                <div class="sac-card-title">🗓️ This Week</div>
+                <div class="sac-card-pill yellow">🟡 {len(week_df):,}</div>
+            </div>
+            <div class="sac-mini-kpi">{len(week_df):,}</div>
+            <div class="sac-mini-sub">งานวางแผนเข้าพบและลูกค้าที่ควรขยับในสัปดาห์นี้</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        _render_action_list(week_df, "yellow")
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="🌈 Priority Accounts & Quick Summary",
+        subtitle="ฝั่งซ้ายคือลูกค้าที่ควรโฟกัสก่อน ฝั่งขวาคือ action summary สำหรับเริ่มทำงานทันที",
+        icon="🌟",
+        accent="#0f766e",
+    )
+    p1, p2 = st.columns([1.1, 0.9])
+    with p1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>🌟 My Priority Accounts</h4><p>เฉพาะลูกค้าที่สำคัญที่สุดในมุมมองนี้ จัดจาก score, gap และโอกาสในการเร่งผลงาน</p>', unsafe_allow_html=True)
+        for _, row in priority_df.iterrows():
+            st.markdown(f'''
+            <div class="sac-priority-item">
+                <div>
+                    <div class="sac-priority-name">{str(row.get("Customer Name", "-") or "-")}</div>
+                    <div class="sac-priority-meta">{str(row.get("Province", "ไม่ระบุจังหวัด") or "ไม่ระบุจังหวัด")} • {str(row.get("Industry", "ไม่ระบุอุตสาหกรรม") or "ไม่ระบุอุตสาหกรรม")}<br>Gap {int(float(row.get("gap_kg", 0) or 0)):,} kg • Score {float(row.get("opportunity_score", 0) or 0):.1f}</div>
+                </div>
+                <div class="sac-priority-meta" style="text-align:right;white-space:nowrap;">
+                    {str(row.get("next_action", "Follow-up"))}<br><span style="font-weight:800;color:#0f172a;">{float(row.get("achievement_pct", 0) or 0):.1f}%</span>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    with p2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>✨ Quick Summary</h4><p>สรุปภาพรวมแบบสดใสและอ่านง่าย เพื่อช่วยตัดสินใจว่าควรเริ่มโฟกัสพอร์ตส่วนไหนก่อน</p>', unsafe_allow_html=True)
+        st.markdown(f'''
+        <div class="sac-side-stat">
+            <div class="sac-side-box"><div class="n">{total_customers:,}</div><div class="l">Customers in view</div></div>
+            <div class="sac-side-box"><div class="n">{today_actions:,}</div><div class="l">Actions today</div></div>
+            <div class="sac-side-box"><div class="n">{high_priority_count:,}</div><div class="l">High priority</div></div>
+            <div class="sac-side-box"><div class="n">{risk_count:,}</div><div class="l">Need recovery</div></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        quick_view = priority_df[["Customer Name", "Province", "priority_label", "next_action"]].rename(columns={
+            "Customer Name": "Customer",
+            "Province": "Province",
+            "priority_label": "Priority",
+            "next_action": "Next Action",
+        }).copy()
+        st.dataframe(style_rich_dataframe(quick_view), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="📊 Pipeline & Risk Signals",
+        subtitle="ดูภาพรวม stage ของพอร์ตคุณควบคู่กับลูกค้าที่ต้องกู้กลับมา เพื่อให้ execution ไหลลื่นและไม่พลาดดีลสำคัญ",
+        icon="💫",
+        accent="#f97316",
+    )
+    r1, r2 = st.columns([1, 1])
+    with r1:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>📊 My Pipeline</h4><p>เห็นสัดส่วนลูกค้าในแต่ละช่วง เพื่อบาลานซ์ระหว่างการสร้างโอกาสใหม่กับการเร่งปิดดีล</p>', unsafe_allow_html=True)
+        fig_pipe = px.bar(
+            pipeline_df,
+            x="stage_label",
+            y="customers",
+            text="customers",
+            color="stage_label",
+            color_discrete_map={"Lead": "#93c5fd", "Deal": "#60a5fa", "Closing": "#1d4ed8"},
+            labels={"stage_label": "Stage", "customers": "Customers"},
+        )
+        fig_pipe.update_traces(marker_line_width=0, textposition="outside")
+        fig_pipe.update_layout(height=310, showlegend=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_pipe, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with r2:
+        st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+        st.markdown('<h4>My Risk Signals</h4><p>ลูกค้าที่ achievement ต่ำ หรือแนวโน้มติดลบ ควรได้รับการ follow-up ก่อนจะเสีย momentum</p>', unsafe_allow_html=True)
+        risk_view = risk_df[["Customer Name", "Province", "achievement_pct", "yoy_pct", "risk_label", "next_action"]].rename(columns={
+            "Customer Name": "Customer",
+            "achievement_pct": "Achievement %",
+            "yoy_pct": "YoY %",
+            "risk_label": "Risk",
+            "next_action": "Next Action",
+        }).copy()
+        st.dataframe(style_rich_dataframe(risk_view, pct_cols=["Achievement %", "YoY %"]), use_container_width=True, hide_index=True, height=310)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sac-section-gap"></div>', unsafe_allow_html=True)
+    render_section_header(
+        title="📦 Download & Share",
+        subtitle="ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ",
+        icon="📦",
+        accent="#7c3aed",
+    )
+    st.markdown('<div class="sac-surface">', unsafe_allow_html=True)
+    st.markdown('<h4>Download & Share</h4><p>ส่งออกเฉพาะสิ่งที่ทีมภาคสนามต้องใช้ต่อจริง เช่น action list, priority map และไฟล์รายงานย่อ</p>', unsafe_allow_html=True)
+    export_sheets = {
+            "Sales Action Center": rep,
+            "Today Actions": pd.concat([overdue_df, today_df, week_df], ignore_index=True),
+            "Priority Accounts": priority_df,
+            "Risk Signals": risk_df,
+        }
+    report_xlsx = to_excel_bytes_multi(export_sheets)
+    ex1, ex2, ex3 = st.columns(3)
+    with ex1:
+        st.download_button(
+            "⬇️ Action Excel",
+            data=report_xlsx,
+            file_name=f"sales_action_center_{st.session_state.get('dept') or 'ALL'}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with ex2:
+        export_actions = pd.concat([overdue_df, today_df, week_df], ignore_index=True)
+        st.download_button(
+            "⬇️ Action CSV",
+            data=export_actions.to_csv(index=False, encoding="utf-8-sig"),
+            file_name=f"sales_action_queue_{st.session_state.get('dept') or 'ALL'}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with ex3:
+        if st.button("☁️ Upload SharePoint", use_container_width=True):
+            remote_path = f"Reports/{st.session_state.get('dept') or 'ALL'}/sales_action_center_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            ok = sp_upload_bytes(report_xlsx, remote_path, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            if ok:
+                append_audit_log("upload_sales_action_center", remote_path, st.session_state.get("dept") or "")
+                st.success("✅ ส่ง Sales Action Center ขึ้น SharePoint สำเร็จ")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MENU 3 – EDIT / ADD
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1863,6 +3540,14 @@ else:
     if df.empty or "Customer Name" not in df.columns:
         st.info("📂 กรุณาโหลดไฟล์จาก SharePoint ก่อน")
         st.stop()
+
+    edit_source_df = filter_df_for_current_user(df)
+    if edit_source_df.empty and str(st.session_state.get("user_role") or "").strip().lower() != "staff":
+        st.info("ไม่พบข้อมูลที่ตรงกับสิทธิ์ของผู้ใช้นี้")
+        st.stop()
+
+    can_delete_records = str(st.session_state.get("user_role") or "").strip().lower() in ["admin", "manager"]
+    is_staff_user = str(st.session_state.get("user_role") or "").strip().lower() == "staff"
 
     tab_edit, tab_add = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่"])
     GRADE_COLOR = {"A": "#16a34a", "A-": "#22c55e", "B": "#2563eb", "B-": "#60a5fa",
@@ -1879,6 +3564,8 @@ else:
                              st.session_state.dept,
                              st.session_state.sp_file)
             if ok:
+                sync_current_file_version(st.session_state.dept, st.session_state.sp_file)
+                st.session_state.remote_changed = False
                 append_audit_log("save_sharepoint", label, st.session_state.dept)
                 st.success(f"✅ {label} สำเร็จ! (บันทึกขึ้น SharePoint แล้ว)")
             else:
@@ -1888,21 +3575,28 @@ else:
             st.success(f"✅ {label} สำเร็จ! (บันทึกใน session — กรุณา Export เพื่อเก็บไฟล์)")
 
     with tab_edit:
-        sc1, sc2, sc3 = st.columns([4, 1.2, 1.2])
+        if can_delete_records:
+            sc1, sc2, sc3 = st.columns([4, 1.2, 1.2])
+        else:
+            sc1, sc2 = st.columns([4, 1.2])
         srch2 = sc1.text_input("", key="edit_srch", placeholder="🔎 ค้นหาชื่อบริษัท…",
                                label_visibility="collapsed")
         if sc2.button("✏️ แก้ไข",
                       type="primary" if st.session_state.edit_mode == "edit" else "secondary",
                       use_container_width=True):
             st.session_state.edit_mode = "edit"; st.session_state.confirm_delete = False; st.rerun()
-        if sc3.button("🗑️ ลบ",
-                      type="primary" if st.session_state.edit_mode == "delete" else "secondary",
-                      use_container_width=True):
-            st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        if can_delete_records:
+            if sc3.button("🗑️ ลบ",
+                          type="primary" if st.session_state.edit_mode == "delete" else "secondary",
+                          use_container_width=True):
+                st.session_state.edit_mode = "delete"; st.session_state.confirm_delete = False; st.rerun()
+        elif st.session_state.edit_mode == "delete":
+            st.session_state.edit_mode = "edit"
+            st.session_state.confirm_delete = False
 
-        mask   = (df["Customer Name"].str.contains(srch2, case=False, na=False).values
-                  if srch2 else [True] * len(df))
-        subset = df[mask].copy()
+        mask   = (edit_source_df["Customer Name"].str.contains(srch2, case=False, na=False).values
+                  if srch2 else [True] * len(edit_source_df))
+        subset = edit_source_df[mask].copy()
         subset["_orig_idx"] = subset.index
         subset = subset.reset_index(drop=True)
         orig_idx = subset["_orig_idx"].tolist()
@@ -1944,7 +3638,7 @@ else:
 
                 card_tpl = (
                     '<div style="border:{border};background:{bg};border-radius:12px;'
-                    'padding:12px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+                    'padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
                     '<div style="display:flex;justify-content:space-between;align-items:center">'
                     '<span style="font-weight:700;font-size:14px;color:#1e293b">{name}</span>'
                     '<span style="font-weight:600;color:#16a34a;font-size:13px">{sales}</span></div>'
@@ -1989,7 +3683,11 @@ else:
                             st.markdown("##### ✏️ แก้ไขข้อมูล")
                             ef1, ef2, ef3 = st.columns([3, 3, 1.5])
                             new_name  = ef1.text_input("🏢 Customer Name", value=name)
-                            new_sp    = ef2.text_input("👤 Salesperson",   value=sp)
+                            if is_staff_user:
+                                new_sp = sp
+                                ef2.text_input("👤 Salesperson", value=sp, disabled=True)
+                            else:
+                                new_sp = ef2.text_input("👤 Salesperson", value=sp)
                             gopts     = ["", "A", "A-", "B", "B-", "C", "C-", "F"]
                             new_grade = ef3.selectbox("⭐ Grade", gopts,
                                                       index=gopts.index(grade) if grade in gopts else 0)
@@ -2027,22 +3725,29 @@ else:
                             saved = st.form_submit_button("💾 บันทึก", type="primary",
                                                            use_container_width=True)
                             if saved:
+                                clean_pc = clean_plus_code(new_pc)
+                                merged_addr = merge_address_parts(new_addr, new_pc)
                                 st.session_state.df.at[orig_i, "Customer Name"] = new_name
                                 st.session_state.df.at[orig_i, "Salesperson"]   = new_sp
                                 st.session_state.df.at[orig_i, "Industry"]      = new_ind
                                 st.session_state.df.at[orig_i, "Grade"]         = new_grade
                                 st.session_state.df.at[orig_i, "Sales/Year"]    = new_sales
-                                st.session_state.df.at[orig_i, "Plus_Code"]     = new_pc.strip()
+                                st.session_state.df.at[orig_i, "Plus_Code"]     = clean_pc
                                 st.session_state.df.at[orig_i, "Budget_kg"]     = new_bkg
                                 st.session_state.df.at[orig_i, "Actual_kg"]     = new_act
                                 st.session_state.df.at[orig_i, "LastYear_kg"]   = new_ly
-                                st.session_state.df.at[orig_i, "Address"]       = new_addr
-                                if new_addr.strip():
-                                    _sub, _dis, _prov, _reg = parse_address(new_addr)
+                                st.session_state.df.at[orig_i, "Address"]       = merged_addr
+                                if merged_addr.strip():
+                                    _sub, _dis, _prov, _reg = parse_address(merged_addr)
                                     st.session_state.df.at[orig_i, "Sub-district"] = _sub
                                     st.session_state.df.at[orig_i, "District"]     = _dis
                                     st.session_state.df.at[orig_i, "Province"]     = _prov
                                     st.session_state.df.at[orig_i, "Region"]       = _reg
+                                else:
+                                    st.session_state.df.at[orig_i, "Sub-district"] = ""
+                                    st.session_state.df.at[orig_i, "District"]     = ""
+                                    st.session_state.df.at[orig_i, "Province"]     = ""
+                                    st.session_state.df.at[orig_i, "Region"]       = "Unknown"
                                 st.session_state.df["Region_TH"] = (
                                     st.session_state.df["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ"))
                                 st.session_state.editing_idx = None
@@ -2087,7 +3792,12 @@ else:
         with st.form("form_add", clear_on_submit=True):
             r1c1, r1c2 = st.columns(2)
             n_name = r1c1.text_input("Customer Name *")
-            n_sp   = r1c2.text_input("Salesperson")
+            if is_staff_user:
+                _staff_sp_default = str(st.session_state.get("user_name") or _get_user_name() or "").strip()
+                n_sp = _staff_sp_default
+                r1c2.text_input("Salesperson", value=_staff_sp_default, disabled=True)
+            else:
+                n_sp = r1c2.text_input("Salesperson")
             r2c1, r2c2, r2c3 = st.columns(3)
             n_ind   = r2c1.text_input("Industry")
             n_grade = r2c2.selectbox("Grade", ["", "A", "A-", "B", "B-", "C", "C-", "F"])
@@ -2107,11 +3817,13 @@ else:
             if not n_name.strip():
                 st.error("กรุณากรอก Customer Name")
             else:
-                auto_sub, auto_dis, auto_prov, auto_reg = parse_address(n_addr)
+                clean_pc = clean_plus_code(n_pc)
+                merged_addr = merge_address_parts(n_addr, n_pc)
+                auto_sub, auto_dis, auto_prov, auto_reg = parse_address(merged_addr)
                 new_row = {
                     "Customer Name": n_name.strip(), "Salesperson": n_sp,
                     "Industry": n_ind, "Grade": n_grade, "Sales/Year": n_sales,
-                    "Plus_Code": n_pc.strip(), "Address": n_addr,
+                    "Plus_Code": clean_pc, "Address": merged_addr,
                     "Sub-district": n_sub or auto_sub, "District": n_dis or auto_dis,
                     "Province": n_prov or auto_prov, "Region": n_reg or auto_reg,
                     "Budget_kg": 0, "Actual_kg": 0, "LastYear_kg": 0,
