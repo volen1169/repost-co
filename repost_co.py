@@ -1585,22 +1585,19 @@ def render_login_page(auth_ready: bool):
         </div>
         """), unsafe_allow_html=True)
 
-    with right:
-        
-
-
-
-
+   with right:
+    resolved_role = resolved_role if "resolved_role" in locals() else "staff"
 
     st.session_state.user_role = resolved_role
     st.session_state.is_admin = (resolved_role == "admin")
+
     _set_auth_cookies(
         email=st.session_state.get("user_email", ""),
         name=st.session_state.get("user_name", ""),
-        role=resolved_role,
-        dept=(resolved_dept or st.session_state.get("dept") or ""),
-        is_admin=(resolved_role == "admin"),
-        auth_mode="m365",
+        role=st.session_state.get("user_role", ""),
+        dept=st.session_state.get("dept", ""),
+        is_admin=st.session_state.get("is_admin", False),
+        auth_mode="m365"
     )
 
     target_dept = st.session_state.dept
