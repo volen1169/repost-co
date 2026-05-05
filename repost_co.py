@@ -10,7 +10,7 @@ pip install streamlit[auth] pandas plotly openpyxl msal requests
 
 MICROSOFT 365 / OIDC CONFIG (.streamlit/secrets.toml example)
 [auth]
-redirect_uri = "https://optimal-sales-territory.streamlit.app/~/+/oauth2callbackStreamlit"
+redirect_uri = "os.getenv("REDIRECT_URI", "https://optimal-sales-territory.streamlit.app/oauth2callback")"
 cookie_secret = "CHANGE_ME_TO_A_LONG_RANDOM_SECRET"
 client_id = "YOUR_ENTRA_APP_CLIENT_ID"
 client_secret = "YOUR_ENTRA_APP_CLIENT_SECRET"
@@ -518,20 +518,18 @@ def _complete_login_from_query():
     code = qp.get("code")
     if not code:
         return
-    state = qp.get("state")
-    expected_state = st.session_state.get("oauth_state")
-    if expected_state and state and state != expected_state:
-        st.error("Microsoft 365 login state mismatch")
-        st.stop()
+    
     app = _msal_app()
     result = app.acquire_token_by_authorization_code(
         code=code,
         scopes=OIDC_SCOPES,
         redirect_uri=REDIRECT_URI,
     )
+    
     if "access_token" not in result:
         st.error("Microsoft 365 login failed: " + str(result.get("error_description", result.get("error", "Unknown error"))))
         st.stop()
+        
     claims = result.get("id_token_claims", {}) or {}
     email = (
         claims.get("preferred_username")
@@ -546,6 +544,7 @@ def _complete_login_from_query():
         or email
         or "Microsoft 365 User"
     ).strip()
+    
     st.session_state["auth_access_token"] = result["access_token"]
     st.session_state["auth_id_token_claims"] = claims
     st.session_state["auth_user"] = {
@@ -553,11 +552,14 @@ def _complete_login_from_query():
         "name": name,
     }
     st.session_state["auth_mode"] = "m365"
+    
     _set_auth_cookies(email=email, name=name, auth_mode="m365")
+    
     try:
         st.query_params.clear()
     except Exception:
         pass
+        
     _set_persisted_login_state(email=email, name=name, auth_mode="m365")
 
 def _get_allowed_email_domains() -> list:
