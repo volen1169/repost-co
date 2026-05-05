@@ -1153,51 +1153,79 @@ if not _session_logged_in():
     st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
+        background: #f3f2f1;
     }
-    .login-container {
+    .ms-login-wrapper {
         display:flex;
         justify-content:center;
         align-items:center;
-        height:85vh;
+        height:90vh;
     }
-    .login-card {
-        width:420px;
-        padding:40px;
-        border-radius:20px;
-        background:rgba(255,255,255,0.12);
-        backdrop-filter:blur(20px);
-        text-align:center;
-        color:white;
-        box-shadow:0 20px 60px rgba(0,0,0,0.35);
+    .ms-card {
+        width:360px;
+        background:white;
+        padding:40px 30px;
+        border-radius:8px;
+        box-shadow:0 10px 25px rgba(0,0,0,0.1);
+        text-align:left;
+        font-family: "Segoe UI", sans-serif;
     }
-    .login-btn {
-        display:block;
-        margin-top:25px;
-        padding:14px;
-        border-radius:14px;
-        background:linear-gradient(135deg,#2563eb,#38bdf8);
-        color:white;
+    .ms-logo {
+        width:36px;
+        margin-bottom:20px;
+    }
+    .ms-title {
+        font-size:24px;
         font-weight:600;
-        text-decoration:none;
-        transition:all 0.25s ease;
+        margin-bottom:10px;
+        color:#1b1b1b;
     }
-    .login-btn:hover {
-        transform:translateY(-2px);
-        box-shadow:0 10px 20px rgba(37,99,235,0.3);
+    .ms-sub {
+        font-size:14px;
+        color:#605e5c;
+        margin-bottom:25px;
+    }
+    .ms-btn {
+        display:block;
+        width:100%;
+        background:#0078d4;
+        color:white;
+        padding:12px;
+        border-radius:4px;
+        text-align:center;
+        text-decoration:none;
+        font-weight:600;
+        transition:0.2s;
+    }
+    .ms-btn:hover {
+        background:#106ebe;
+    }
+    .ms-footer {
+        margin-top:20px;
+        font-size:12px;
+        color:#888;
+        text-align:center;
     }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class="login-container">
-        <div class="login-card">
-            <h2>🚀 Sales Platform</h2>
-            <p>Login with Microsoft 365</p>
+    <div class="ms-login-wrapper">
+        <div class="ms-card">
 
-            <a href="{login_url}" target="_self" class="login-btn">
-                🔐 Sign in with Microsoft
+            <img class="ms-logo" src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg"/>
+
+            <div class="ms-title">Sign in</div>
+            <div class="ms-sub">Use your Microsoft 365 account</div>
+
+            <a href="{login_url}" target="_self" class="ms-btn">
+                Sign in with Microsoft
             </a>
+
+            <div class="ms-footer">
+                Sales Platform © 2026
+            </div>
+
         </div>
     </div>
     """, unsafe_allow_html=True)
