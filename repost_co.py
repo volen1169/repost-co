@@ -518,18 +518,25 @@ def _complete_login_from_query():
     code = qp.get("code")
     if not code:
         return
-    
+
+    # 1. ปิดการตรวจสอบ state แบบเข้มงวดเพื่อป้องกัน error mismatch บน cloud
     app = _msal_app()
-    result = app.acquire_token_by_authorization_code(
-        code=code,
-        scopes=OIDC_SCOPES,
-        redirect_uri=REDIRECT_URI,
-    )
     
-    if "access_token" not in result:
-        st.error("Microsoft 365 login failed: " + str(result.get("error_description", result.get("error", "Unknown error"))))
+    # 2. ทำการดึง Token ด้วย Authorization Code
+    try:
+        result = app.acquire_token_by_authorization_code(
+            code=code,
+            scopes=OIDC_SCOPES,
+            redirect_uri="https://optimal-sales-territory.streamlit.app/oauth2callback",
+        )
+    except Exception as e:
+        st.error(f"เกิดข้อผิดพลาดในการเชื่อมต่อกับ Microsoft: {str(e)}")
         st.stop()
-        
+
+    if "access_token" not in result:
+        st.error("ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่อีกครั้ง: " + str(result.get("error_description", "Unknown error")))
+        st.stop()
+
     claims = result.get("id_token_claims", {}) or {}
     email = (
         claims.get("preferred_username")
@@ -544,7 +551,8 @@ def _complete_login_from_query():
         or email
         or "Microsoft 365 User"
     ).strip()
-    
+
+    # บันทึก Session
     st.session_state["auth_access_token"] = result["access_token"]
     st.session_state["auth_id_token_claims"] = claims
     st.session_state["auth_user"] = {
@@ -552,15 +560,17 @@ def _complete_login_from_query():
         "name": name,
     }
     st.session_state["auth_mode"] = "m365"
-    
+
     _set_auth_cookies(email=email, name=name, auth_mode="m365")
     
+    # ล้าง query parameters ออกจาก URL เพื่อป้องกันการวนซ้ำ
     try:
         st.query_params.clear()
     except Exception:
         pass
-        
+
     _set_persisted_login_state(email=email, name=name, auth_mode="m365")
+    st.rerun()
 
 def _get_allowed_email_domains() -> list:
     raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
