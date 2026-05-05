@@ -1184,7 +1184,7 @@ if not _session_logged_in():
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""
+    components.html(f"""
     <div class="login-container">
         <div class="login-card">
             <h2>🚀 Sales Platform</h2>
