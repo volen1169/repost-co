@@ -1587,6 +1587,51 @@ def render_login_page(auth_ready: bool):
 
     with right:
         
+
+
+
+
+
+        
+
+
+
+
+
+    st.session_state.user_role = resolved_role
+    st.session_state.is_admin = (resolved_role == "admin")
+    _set_auth_cookies(
+        email=st.session_state.get("user_email", ""),
+        name=st.session_state.get("user_name", ""),
+        role=resolved_role,
+        dept=(resolved_dept or st.session_state.get("dept") or ""),
+        is_admin=(resolved_role == "admin"),
+        auth_mode="m365",
+    )
+
+    target_dept = st.session_state.dept
+    if resolved_role == "admin":
+        if not target_dept:
+            target_dept = DEPARTMENTS[0]
+    else:
+        target_dept = resolved_dept
+
+    if st.session_state.dept != target_dept:
+        st.session_state.dept = target_dept
+        st.session_state.sp_file = None
+        st.session_state.df = EMPTY_DF
+        st.session_state.sp_file_last_modified = ""
+        st.session_state.sp_file_etag = ""
+        append_audit_log("login_role_resolved", f"m365 role={resolved_role} dept={target_dept}", target_dept or "")
+        st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════════════
+
+st.sidebar.image("https://img.icons8.com/fluency/96/combo-chart.png", width=80)
+st.sidebar.title("📂 เมนูหลัก")
+
 role_label = _role_label()
 if st.session_state.get("user_role") == "staff":
     allowed_menus = [
