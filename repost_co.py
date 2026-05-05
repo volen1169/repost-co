@@ -510,13 +510,7 @@ def _build_login_url():
     )
 
 
-if auth_ready and is_logged_in and not _user_email_allowed():
-    st.title("⛔ ไม่ได้รับสิทธิ์เข้าใช้งาน")
-    st.error("บัญชี Microsoft 365 นี้ไม่มีสิทธิ์เข้าใช้งานระบบ")
-    st.caption("อนุญาตเฉพาะโดเมน: " + ", ".join(_get_allowed_email_domains()))
-    if st.button("🚪 Log out"):
-        _auth_logout()
-    st.stop()
+
 
 if auth_ready and is_logged_in:
     st.session_state.user_email = _get_user_email()
