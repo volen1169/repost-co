@@ -73,6 +73,13 @@ DEPARTMENT_LABELS = {
 }
 
 DEPT_GROUPS = {
+    "CA": "OPT_CA",
+    "CO": "OPT_CO",
+    "PH": "OPT_PH",
+    "PL": "OPT_PL",
+    "PO": "OPT_PO",
+    "SF": "OPT_SF",
+}
 
 # 🔥 Enterprise Role Mapping
 ROLE_GROUP_MAP = {
