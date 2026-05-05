@@ -1148,6 +1148,8 @@ _complete_login_from_query()
 
 if not _session_logged_in():
 
+    login_url = _build_login_url()
+
     st.markdown("""
     <style>
     .stApp {
