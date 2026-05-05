@@ -1182,7 +1182,7 @@ if not _session_logged_in():
         cursor:pointer;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """)
 
     components.html(f"""
     <div class="login-container">
@@ -1197,7 +1197,7 @@ if not _session_logged_in():
             </a>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     st.stop()
     st.link_button("Login with Microsoft", _build_login_url())
@@ -1317,7 +1317,7 @@ def render_kpi_card(label: str, value: str, subtext: str = "", icon: str = "📊
         <div style="font-size:30px; line-height:1.1; color:#0f172a; font-weight:800; margin-bottom:6px;">{value}</div>
         <div style="font-size:12.5px; color:#64748b;">{subtext}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
 
 def render_section_header(title: str, subtitle: str = "", icon: str = "✨", accent: str = "#2563eb"):
@@ -1331,7 +1331,7 @@ def render_section_header(title: str, subtitle: str = "", icon: str = "✨", acc
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
 
 def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient: str = "linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%)"):
@@ -1349,7 +1349,7 @@ def render_info_banner(title: str, subtitle: str = "", badge: str = "", gradient
             <div>{badge_html}</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
 
 def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None = None, pct_cols: list[str] | None = None):
@@ -1604,7 +1604,7 @@ def render_login_page(auth_ready: bool):
         <div class="login-orb orb2"></div>
         <div class="login-orb orb3"></div>
     </div>
-    """), unsafe_allow_html=True)
+    """))
 
     left, right = st.columns([1.50, 0.88], gap="medium")
     with left:
@@ -1632,7 +1632,7 @@ def render_login_page(auth_ready: bool):
                 <div class="feature-item"><div class="feature-icon">🗺️</div><div class="feature-copy"><div class="feature-title">Route &amp; Coverage Ready</div><div class="feature-text">ต่อยอดสู่การวาง route การกระจายพื้นที่ และการวางแผนเข้าพบลูกค้าได้สะดวกขึ้น</div></div></div>
             </div>
         </div>
-        """), unsafe_allow_html=True)
+        """))
 
     with right:
     # ===== FIX BLOCK START =====
@@ -1810,7 +1810,6 @@ if menu == "📊 Team Dashboard":
                 <div class="saas-card-body">{body_html}</div>
             </div>
             """,
-            unsafe_allow_html=True,
         )
 
     st.markdown("""
@@ -1900,7 +1899,7 @@ if menu == "📊 Team Dashboard":
     @media (max-width: 1100px){.saas-grid-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}.saas-mini-grid{grid-template-columns:1fr;}}
     @media (max-width: 860px){.saas-shell{padding:16px;}.saas-title{font-size:28px;}.saas-grid-kpi{grid-template-columns:1fr;}.saas-list-row{align-items:flex-start;}.saas-pill{min-width:80px;}}
     </style>
-    """, unsafe_allow_html=True)
+    """)
 
     strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
     most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
@@ -1945,7 +1944,7 @@ if menu == "📊 Team Dashboard":
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     main_left, main_right = st.columns([1.55, 1.0], gap="large")
 
@@ -2054,7 +2053,7 @@ if menu == "📊 Team Dashboard":
     chart_left, chart_right = st.columns(2, gap="large")
 
     with chart_left:
-        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Sales by Region</div><div class='saas-chart-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Sales by Region</div><div class='saas-chart-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div>")
         fig_region = px.bar(
             by_region.head(6),
             x="total_sales",
@@ -2076,16 +2075,16 @@ if menu == "📊 Team Dashboard":
             yaxis=dict(categoryorder="total ascending"),
         )
         st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>")
 
     with chart_right:
-        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Team Trend</div><div class='saas-chart-sub'>Achievement และ Avg YoY ของคนในทีม</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='saas-chart-wrap'><div class='saas-chart-head'><div class='saas-chart-title'>Team Trend</div><div class='saas-chart-sub'>Achievement และ Avg YoY ของคนในทีม</div></div>")
         fig_trend = go.Figure()
         fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#3b82f6"), fill="tozeroy", fillcolor="rgba(59,130,246,.12)"))
         fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
         fig_trend.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
         st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>")
 
     manager_report = to_excel_bytes_multi({
         "Team Dashboard": team_df,
@@ -2697,7 +2696,7 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
 
     components.html(html_table, height=800, scrolling=False)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>")
     VIEW = ["Customer Name", "Salesperson", "Industry", "Grade", "Sales/Year",
             "Budget_kg", "Actual_kg", "Plus_Code", "Sub-district", "District", "Province", "Region_TH"]
     export_df = flt[[c for c in VIEW if c in flt.columns]].rename(columns={"Region_TH": "Region"})
@@ -3131,7 +3130,7 @@ else:
                                                label_visibility="collapsed")
                     if new_val != checked:
                         st.session_state.del_checks[i] = new_val; st.rerun()
-                    col_card.markdown(card, unsafe_allow_html=True)
+                    col_card.markdown(card)
 
                 else:
                     is_open = (st.session_state.editing_idx == orig_i)
@@ -3141,7 +3140,7 @@ else:
                         name=name, sales=sales_fmt, gc=g_color,
                         grade=grade or "—", sp=sp, ind=ind, loc=loc_txt)
                     col_card, col_btn = st.columns([10, 1.2])
-                    col_card.markdown(card, unsafe_allow_html=True)
+                    col_card.markdown(card)
                     lbl = "✕ ปิด" if is_open else "✏️ แก้ไข"
                     if col_btn.button(lbl, key=f"ebtn_{i}_{orig_i}", use_container_width=True):
                         st.session_state.editing_idx = None if is_open else orig_i; st.rerun()
