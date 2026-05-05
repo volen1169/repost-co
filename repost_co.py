@@ -509,7 +509,6 @@ def _build_login_url():
         prompt="select_account",
     )
 
-def 
 
 if auth_ready and is_logged_in and not _user_email_allowed():
     st.title("⛔ ไม่ได้รับสิทธิ์เข้าใช้งาน")
