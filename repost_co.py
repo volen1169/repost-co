@@ -509,7 +509,11 @@ def _build_login_url():
         prompt="select_account",
     )
 
-def 
+def _complete_login_from_query():
+    params = st.query_params
+    code = params.get("code")
+    if not code:
+        return
     app = _msal_app()
     result = app.acquire_token_by_authorization_code(
         code=code,
@@ -517,35 +521,19 @@ def
         redirect_uri=REDIRECT_URI,
     )
     if "access_token" not in result:
-        st.error("Microsoft 365 login failed: " + str(result.get("error_description", result.get("error", "Unknown error"))))
+        st.error("Microsoft 365 login failed")
         st.stop()
     claims = result.get("id_token_claims", {}) or {}
-    email = (
-        claims.get("preferred_username")
-        or claims.get("email")
-        or claims.get("upn")
-        or claims.get("unique_name")
-        or ""
-    ).strip().lower()
-    name = (
-        claims.get("name")
-        or claims.get("given_name")
-        or email
-        or "Microsoft 365 User"
-    ).strip()
+    email = (claims.get("preferred_username") or claims.get("email") or claims.get("upn") or "").lower()
+    name = claims.get("name", email)
+    st.session_state["auth_user"] = {"email": email, "name": name}
     st.session_state["auth_access_token"] = result["access_token"]
-    st.session_state["auth_id_token_claims"] = claims
-    st.session_state["auth_user"] = {
-        "email": email,
-        "name": name,
-    }
-    st.session_state["auth_mode"] = "m365"
     _set_auth_cookies(email=email, name=name, auth_mode="m365")
     try:
         st.query_params.clear()
     except Exception:
         pass
-    _set_persisted_login_state(email=email, name=name, auth_mode="m365")
+    st.rerun()
 
 def _get_allowed_email_domains() -> list:
     raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
@@ -1154,9 +1142,9 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
 # =========================
 # AUTH FLOW FINAL
 # =========================
-_complete_login_from_query()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
+_complete_login_from_query()
 
 if not _session_logged_in():
     st.markdown("## 🔐 Login Required")
