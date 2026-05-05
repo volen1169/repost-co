@@ -1146,7 +1146,6 @@ _restore_session_from_query_params()
 _restore_session_from_cookies()
 _complete_login_from_query()
 
-
 if not _session_logged_in():
 
     login_url = _build_login_url()
@@ -1159,28 +1158,12 @@ if not _session_logged_in():
         st.title("🚀 Sales Platform")
         st.caption("Sign in with Microsoft 365")
 
-        st.markdown(f"""
-        <a href="{login_url}" target="_self">
-            <button style="
-                width:100%;
-                padding:12px;
-                background:#0078D4;
-                color:white;
-                border:none;
-                border-radius:8px;
-                font-weight:600;
-                cursor:pointer;
-            ">
-                🔐 Sign in with Microsoft
-            </button>
-        </a>
-        """, unsafe_allow_html=True)
+        st.link_button("🔐 Sign in with Microsoft", login_url, use_container_width=True)
 
         st.markdown("---")
         st.caption("© 2026 Sales Platform")
 
     st.stop()
-
     st.link_button("Login with Microsoft", _build_login_url())
     st.stop()
 
