@@ -73,6 +73,13 @@ DEPARTMENT_LABELS = {
 }
 
 DEPT_GROUPS = {
+    "CA": "OPT Care Solutions",
+    "CO": "OPT Colourant Solutions",
+    "PH": "OPT Personalcare & Homecare",
+    "PL": "OPT Petroleum&Lubricant Solutions",
+    "PO": "OPT Polymer Solutions",
+    "SF": "OPT Surface Solutions",
+}
 
 # 🔥 Enterprise Role Mapping
 ROLE_GROUP_MAP = {
@@ -87,13 +94,7 @@ ROLE_GROUP_MAP = {
     ]
 }
 
-    "CA": "OPT Care Solutions",
-    "CO": "OPT Colourant Solutions",
-    "PH": "OPT Personalcare & Homecare",
-    "PL": "OPT Petroleum&Lubricant Solutions",
-    "PO": "OPT Polymer Solutions",
-    "SF": "OPT Surface Solutions",
-}
+   
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
