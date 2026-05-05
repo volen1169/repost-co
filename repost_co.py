@@ -609,6 +609,7 @@ def _get_user_groups() -> list[str]:
             r = requests.get(url, headers=headers, timeout=20)
             if r.status_code == 403:
                 st.warning("ไม่สามารถอ่าน Microsoft 365 group ได้ กรุณาเพิ่มสิทธิ์ GroupMember.Read.All และกด Grant admin consent")
+                st.session_state["_groups_403"] = True   # ← เพิ่มบรรทัดนี้
                 return []
             r.raise_for_status()
             data = r.json()
@@ -620,6 +621,7 @@ def _get_user_groups() -> list[str]:
     except Exception as exc:
         st.warning("อ่าน group จาก Microsoft 365 ไม่สำเร็จ: " + str(exc))
         return []
+    st.session_state["_groups_403"] = False  # ← เพิ่มบรรทัดนี้
     return groups
 
 def _resolve_role_and_dept(email: str | None = None, user_groups: list | None = None):
@@ -1717,15 +1719,29 @@ if auth_ready and is_logged_in:
         resolved_role = st.session_state.get("user_role")
         resolved_dept = st.session_state.get("dept")
 
-    if not resolved_role:
-        st.title("⛔ ไม่มีสิทธิ์เข้าใช้งาน")
-        st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
-        st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
-        with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
-            st.write({"email": st.session_state.user_email, "groups": user_groups})
-        if st.button("🚪 Log out"):
-            _auth_logout()
-        st.stop()
+   if not resolved_role:
+        # ถ้า 403 (permission ขาด) ให้ fallback เป็น staff เลือกแผนกเอง
+        if st.session_state.get("_groups_403"):
+            st.warning("⚠️ ระบบยังไม่ได้รับสิทธิ์อ่าน Group จาก Microsoft 365 (GroupMember.Read.All)")
+            st.info("กรุณาเลือกแผนกของคุณชั่วคราว จนกว่า IT Admin จะ Grant consent")
+            fallback_dept = st.selectbox("เลือกแผนกของคุณ", DEPARTMENTS,
+                                         format_func=lambda x: DEPARTMENT_LABELS.get(x, x))
+            if st.button("✅ เข้าสู่ระบบ (สิทธิ์ Staff ชั่วคราว)", type="primary"):
+                resolved_role = "staff"
+                resolved_dept = fallback_dept
+                st.session_state["_groups_403"] = False
+                # ไป assign ด้านล่างได้เลย
+            else:
+                st.stop()
+        else:
+            st.title("⛔ ไม่มีสิทธิ์เข้าใช้งาน")
+            st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
+            st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
+            with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
+                st.write({"email": st.session_state.user_email, "groups": user_groups})
+            if st.button("🚪 Log out"):
+                _auth_logout()
+            st.stop()
 
     st.session_state.user_role = resolved_role
     st.session_state.is_admin = (resolved_role == "admin")
