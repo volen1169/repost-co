@@ -270,6 +270,7 @@ def resolve_reference_latlng(province: str = "", region: str = "", address: str 
 # ═══════════════════════════════════════════════════════════════════════════════
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
 REDIRECT_URI = "https://optimal-sales-territory.streamlit.app/oauth2callback"
+st.write("DEBUG REDIRECT_URI:", REDIRECT_URI)
 TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
