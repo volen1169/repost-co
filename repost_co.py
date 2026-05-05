@@ -41,6 +41,23 @@ ADMIN_PASSWORD = os.getenv("SALES_DASHBOARD_ADMIN_PASSWORD", "1234")
 # ── Page config (ต้องเป็น command แรก) ───────────────────────────────────────
 st.set_page_config(page_title="Sales Territory Dashboard", page_icon="📊", layout="wide")
 
+# =========================
+# AUTH FLOW PATCH
+# =========================
+_complete_login_from_query()
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+
+if not _session_logged_in():
+    st.markdown("## 🔐 กรุณา Login เพื่อเข้าใช้งานระบบ")
+    if not _auth_configured():
+        st.error("❌ OAuth not configured")
+        st.stop()
+    login_url = _build_login_url()
+    st.link_button("🔐 Login with Microsoft", login_url)
+    st.stop()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SharePoint Config — อ่านจาก st.secrets (ไม่ hardcode ใน code)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -269,7 +286,7 @@ def resolve_reference_latlng(province: str = "", region: str = "", address: str 
 # Microsoft 365 Custom Auth Helpers (NO secrets.toml required)
 # ═══════════════════════════════════════════════════════════════════════════════
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8501").rstrip("/")
-REDIRECT_URI   = os.getenv("REDIRECT_URI", f"{APP_BASE_URL}/oauth2callback")
+REDIRECT_URI = "https://optimal-sales-territory.streamlit.app/~/+/oauth2callback"
 TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
