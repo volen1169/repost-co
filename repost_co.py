@@ -1996,7 +1996,7 @@ st.markdown(f"""
 
 main_left, main_right = st.columns([1.55, 1.0], gap="large")
 
-    with main_left:
+with main_left:
         _saas_card(
             "Manager Snapshot",
             "ดูคนเด่น คนเสี่ยง และสถานะทีมในมุมหัวหน้า",
