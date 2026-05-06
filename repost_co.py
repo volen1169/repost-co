@@ -291,7 +291,7 @@ TENANT_ID      = os.getenv("TENANT_ID", "").strip()
 CLIENT_ID      = os.getenv("CLIENT_ID", "").strip()
 CLIENT_SECRET  = os.getenv("CLIENT_SECRET", "").strip()
 AUTHORITY      = f"https://login.microsoftonline.com/{TENANT_ID}" if TENANT_ID else ""
-OIDC_SCOPES = ["User.Read", "GroupMember.Read.All"]
+OIDC_SCOPES = ["openid", "profile", "email", "User.Read", "GroupMember.Read.All"]
 AUTH_READY     = bool(TENANT_ID and CLIENT_ID and CLIENT_SECRET and REDIRECT_URI)
 AUTH_COOKIE_DAYS = 7
 AUTH_COOKIE_PREFIX = "salesdash_"
@@ -528,31 +528,40 @@ def _build_login_url():
 
 def _complete_login_from_query():
 
-    params = dict(st.query_params)
+    try:
+        qp = dict(st.query_params)
+    except Exception:
+        qp = {}
 
-    auth_code = params.get("code")
-
-    if not auth_code:
-        return
+    auth_code = qp.get("code", "")
 
     if isinstance(auth_code, list):
         auth_code = auth_code[0]
 
-    st.write("🚀 CALLBACK DETECTED")
+    auth_code = str(auth_code).strip()
+
+    if not auth_code:
+        return
+
+    st.info("🚀 Processing Microsoft Login...")
 
     app = _msal_app()
 
-    result = app.acquire_token_by_authorization_code(
-        code=auth_code,
-        scopes=["openid", "profile", "email", "User.Read", "GroupMember.Read.All"],
-        redirect_uri=REDIRECT_URI,
-    )
+    try:
+        result = app.acquire_token_by_authorization_code(
+            code=auth_code,
+            scopes=OIDC_SCOPES,
+            redirect_uri=REDIRECT_URI,
+        )
+    except Exception as e:
+        st.error(f"OAuth Error: {e}")
+        return
 
     st.write("DEBUG RESULT")
     st.json(result)
 
     if "id_token_claims" not in result:
-        st.error("❌ LOGIN FAILED")
+        st.error("❌ No id_token_claims returned")
         return
 
     claims = result["id_token_claims"]
@@ -571,36 +580,21 @@ def _complete_login_from_query():
         "name": name,
     }
 
+    st.session_state["authenticated"] = True
     st.session_state["auth_access_token"] = result.get("access_token", "")
     st.session_state["auth_id_token_claims"] = claims
-
-    role, dept = _resolve_role_and_dept_enterprise()
-
-    if not role:
-        role = "admin"
-        dept = "CO"
-
     st.session_state["user_email"] = email
     st.session_state["user_name"] = name
-    st.session_state["user_role"] = role
-    st.session_state["dept"] = dept
-    st.session_state["is_admin"] = (role == "admin")
-
-    _set_auth_cookies(
-        email=email,
-        name=name,
-        role=role,
-        dept=dept or "",
-        is_admin=(role == "admin"),
-        auth_mode="m365"
-    )
-
-    st.success("✅ LOGIN SUCCESS")
+    st.session_state["user_role"] = "admin"
+    st.session_state["dept"] = "CO"
+    st.session_state["is_admin"] = True
 
     try:
         st.query_params.clear()
     except Exception:
         pass
+
+    st.success("✅ LOGIN SUCCESS")
 
     st.rerun()
 
