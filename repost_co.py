@@ -503,17 +503,18 @@ def _auth_configured() -> bool:
     return AUTH_READY
 
 def _session_logged_in() -> bool:
-    return bool(st.session_state.get("auth_user"))
+    return bool(
+        st.session_state.get("auth_user")
+        or st.session_state.get("authenticated")
+        or st.session_state.get("user_email")
+    )
 
 def _auth_logout():
     for k in ["auth_user", "auth_access_token", "auth_id_token_claims", "oauth_state"]:
         if k in st.session_state:
             del st.session_state[k]
     _clear_auth_cookies()
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
+    # KEEP QUERY PARAMS FOR STABLE STREAMLIT SESSION
 
 def _build_login_url():
     app = _msal_app()
@@ -580,6 +581,10 @@ def _complete_login_from_query():
         "name": name,
     }
 
+    # HARD PERSIST SESSION
+    st.session_state["authenticated"] = True
+    st.session_state["login_success"] = True
+
     st.session_state["authenticated"] = True
     st.session_state["auth_access_token"] = result.get("access_token", "")
     st.session_state["auth_id_token_claims"] = claims
@@ -589,10 +594,7 @@ def _complete_login_from_query():
     st.session_state["dept"] = "CO"
     st.session_state["is_admin"] = True
 
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
+    # KEEP QUERY PARAMS FOR STABLE STREAMLIT SESSION
 
     st.success("✅ LOGIN SUCCESS")
 
@@ -1228,7 +1230,22 @@ if not _session_logged_in():
         st.title("🚀 Sales Platform")
         st.caption("Sign in with Microsoft 365")
 
-        st.link_button("🔐 Sign in with Microsoft", login_url, use_container_width=True)
+        st.markdown(f"""
+<a href="{login_url}" target="_self">
+    <button style="
+        width:100%;
+        padding:14px;
+        border:none;
+        border-radius:12px;
+        background:#2563eb;
+        color:white;
+        font-size:16px;
+        font-weight:600;
+        cursor:pointer;">
+        🔐 Sign in with Microsoft
+    </button>
+</a>
+""", unsafe_allow_html=True)
 
         st.markdown("---")
         st.caption("© 2026 Sales Platform")
