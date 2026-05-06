@@ -1860,7 +1860,7 @@ if menu == "📊 Team Dashboard":
             unsafe_allow_html=True,
         )
 
-    st.markdown("""
+st.markdown("""
     <style>
     [data-testid="stHeader"] {display:none !important; height:0 !important;}
     [data-testid="stToolbar"] {display:none !important;}
@@ -1952,7 +1952,7 @@ if menu == "📊 Team Dashboard":
     strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
     most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
 
-    st.markdown(f"""
+st.markdown(f"""
     <div class="saas-shell">
         <div class="saas-topbar">
             <div class="saas-title-wrap">
@@ -2265,7 +2265,7 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
             if ok:
                 append_audit_log("upload_customer_export", remote_path, st.session_state.get("dept") or "")
                 st.success("✅ ส่ง Customer Export ขึ้น SharePoint สำเร็จ")
-    st.markdown("---")
+st.markdown("---")
 
     import urllib.parse
 
@@ -2744,7 +2744,7 @@ async function showMap(destQuery, destName, e, drawRouteLine, prefetchedCoords) 
 
     components.html(html_table, height=800, scrolling=False)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
     VIEW = ["Customer Name", "Salesperson", "Industry", "Grade", "Sales/Year",
             "Budget_kg", "Actual_kg", "Plus_Code", "Sub-district", "District", "Province", "Region_TH"]
     export_df = flt[[c for c in VIEW if c in flt.columns]].rename(columns={"Region_TH": "Region"})
