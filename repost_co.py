@@ -525,11 +525,7 @@ def _build_login_url():
         redirect_uri=REDIRECT_URI,
         prompt="select_account",
     )
-        scopes=OIDC_SCOPES,
-        redirect_uri=REDIRECT_URI,
-        state=state,
-        prompt="select_account",
-    )
+
 
 def _complete_login_from_query():
 
