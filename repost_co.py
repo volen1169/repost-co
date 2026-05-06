@@ -1994,7 +1994,7 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-    main_left, main_right = st.columns([1.55, 1.0], gap="large")
+main_left, main_right = st.columns([1.55, 1.0], gap="large")
 
     with main_left:
         _saas_card(
