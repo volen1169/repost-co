@@ -1949,8 +1949,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-  strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
-    most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
+strongest_rep_html = f"{_safe_html(strongest_rep['Salesperson'])} • {float(strongest_rep['total_sales'])/1e6:,.1f}M" if strongest_rep is not None else "-"
+most_risky_rep_html = f"{_safe_html(most_risky_rep['Salesperson'])} • {int(most_risky_rep['risk_accounts'])} risky accounts" if most_risky_rep is not None else "-"
 
 st.markdown(f"""
     <div class="saas-shell">
