@@ -527,39 +527,58 @@ def _build_login_url():
     )
 
 def _complete_login_from_query():
-    params = st.query_params
-    code = params.get("code")
-    if not code:
+
+    params = dict(st.query_params)
+
+    auth_code = params.get("code")
+
+    if not auth_code:
         return
-    app = _msal_app()
-    result = app.acquire_token_by_authorization_code(
-        code=code,
-        scopes=OIDC_SCOPES,
+
+    if isinstance(auth_code, list):
+        auth_code = auth_code[0]
+
+    st.write("🚀 CALLBACK DETECTED")
+
+    result = _msal_app().acquire_token_by_authorization_code(
+        code=auth_code,
+        scopes=SCOPE,
         redirect_uri=REDIRECT_URI,
     )
-    if "access_token" not in result:
-        st.error("Microsoft 365 login failed")
-        st.stop()
-    claims = result.get("id_token_claims", {}) or {}
-    email = (claims.get("preferred_username") or claims.get("email") or claims.get("upn") or "").lower()
+
+    st.write("DEBUG RESULT")
+    st.json(result)
+
+    if "id_token_claims" not in result:
+        st.error("❌ LOGIN FAILED")
+        return
+
+    claims = result["id_token_claims"]
+
+    email = (
+        claims.get("preferred_username")
+        or claims.get("email")
+        or claims.get("upn")
+        or ""
+    ).lower()
+
     name = claims.get("name", email)
-    st.session_state["auth_user"] = {"email": email, "name": name}
-    st.session_state["auth_access_token"] = result["access_token"]
 
-    role, dept = _resolve_role_and_dept_enterprise()
-    if not role:
-        st.error("⛔ Unauthorized")
-        st.stop()
+    st.session_state["auth_user"] = {
+        "email": email,
+        "name": name,
+    }
 
-    st.session_state["user_role"] = role
-    st.session_state["dept"] = dept
-    st.session_state["is_admin"] = (role == "admin")
+    st.session_state["auth_access_token"] = result.get(
+        "access_token", ""
+    )
 
-    _set_auth_cookies(email=email, name=name, auth_mode="m365")
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
+    st.session_state["authenticated"] = True
+
+    st.success("✅ LOGIN SUCCESS")
+
+    st.query_params.clear()
+
     st.rerun()
 
 def _get_allowed_email_domains() -> list:
