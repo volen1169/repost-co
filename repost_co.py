@@ -517,10 +517,14 @@ def _auth_logout():
     # KEEP QUERY PARAMS FOR STABLE STREAMLIT SESSION
 
 def _build_login_url():
+
     app = _msal_app()
-    state = os.urandom(16).hex()
-    st.session_state["oauth_state"] = state
+
     return app.get_authorization_request_url(
+        scopes=["User.Read"],
+        redirect_uri=REDIRECT_URI,
+        prompt="select_account",
+    )
         scopes=OIDC_SCOPES,
         redirect_uri=REDIRECT_URI,
         state=state,
@@ -1222,29 +1226,26 @@ if not _session_logged_in():
 
     login_url = _build_login_url()
 
-    st.set_page_config(layout="centered")
+st.write(login_url)
 
-    col1, col2, col3 = st.columns([1,2,1])
-
-    with col2:
-        st.title("🚀 Sales Platform")
-        st.caption("Sign in with Microsoft 365")
-
-        st.markdown(f"""
-<a href="{login_url}" target="_self">
-    <button style="
-        width:100%;
-        padding:14px;
-        border:none;
-        border-radius:12px;
-        background:#2563eb;
-        color:white;
-        font-size:16px;
-        font-weight:600;
-        cursor:pointer;">
-        🔐 Sign in with Microsoft
-    </button>
-</a>
+st.markdown(f"""
+<div style="display:flex;justify-content:center;">
+    <a href="{login_url}" target="_self"
+       style="text-decoration:none;width:320px;">
+        <div style="
+            background:#2563eb;
+            color:white;
+            padding:14px 20px;
+            border-radius:12px;
+            text-align:center;
+            font-size:16px;
+            font-weight:600;
+            box-shadow:0 4px 12px rgba(0,0,0,0.15);
+        ">
+            🔐 Sign in with Microsoft
+        </div>
+    </a>
+</div>
 """, unsafe_allow_html=True)
 
         st.markdown("---")
