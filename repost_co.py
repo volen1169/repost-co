@@ -1244,8 +1244,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
-        st.caption("© 2026 Sales Platform")
+    st.markdown("---")
+    st.caption("© 2026 Sales Platform")
 
     st.stop()
     
