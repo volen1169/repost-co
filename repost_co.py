@@ -540,9 +540,11 @@ def _complete_login_from_query():
 
     st.write("🚀 CALLBACK DETECTED")
 
-    result = _msal_app().acquire_token_by_authorization_code(
+    app = _msal_app()
+
+    result = app.acquire_token_by_authorization_code(
         code=auth_code,
-        scopes=SCOPE,
+        scopes=["openid", "profile", "email", "User.Read", "GroupMember.Read.All"],
         redirect_uri=REDIRECT_URI,
     )
 
@@ -569,15 +571,36 @@ def _complete_login_from_query():
         "name": name,
     }
 
-    st.session_state["auth_access_token"] = result.get(
-        "access_token", ""
-    )
+    st.session_state["auth_access_token"] = result.get("access_token", "")
+    st.session_state["auth_id_token_claims"] = claims
 
-    st.session_state["authenticated"] = True
+    role, dept = _resolve_role_and_dept_enterprise()
+
+    if not role:
+        role = "admin"
+        dept = "CO"
+
+    st.session_state["user_email"] = email
+    st.session_state["user_name"] = name
+    st.session_state["user_role"] = role
+    st.session_state["dept"] = dept
+    st.session_state["is_admin"] = (role == "admin")
+
+    _set_auth_cookies(
+        email=email,
+        name=name,
+        role=role,
+        dept=dept or "",
+        is_admin=(role == "admin"),
+        auth_mode="m365"
+    )
 
     st.success("✅ LOGIN SUCCESS")
 
-    st.query_params.clear()
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
 
     st.rerun()
 
