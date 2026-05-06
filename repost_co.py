@@ -570,7 +570,7 @@ def _build_login_url():
         prompt="select_account",
     )
 
-def # _complete_login_from_query():
+def  _complete_login_from_query():
     params = st.query_params
     code = params.get("code")
     if not code:
