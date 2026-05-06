@@ -2056,7 +2056,7 @@ with main_left:
             """,
         )
 
-    with main_right:
+with main_right:
         command_rows = []
         if strongest_rep is not None:
             command_rows.append(f"<div class='saas-list-row'><div><div class='saas-name'>Top performer</div><div class='saas-meta'>{_safe_html(strongest_rep['Salesperson'])} • Achievement {float(strongest_rep['achievement_pct']):,.1f}%</div></div><div class='saas-pill good'>Lead</div></div>")
