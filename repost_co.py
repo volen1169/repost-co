@@ -568,32 +568,6 @@ def _get_user_email() -> str:
 def _get_user_name() -> str:
     return str((st.session_state.get("auth_user") or {}).get("name", "")).strip() or "Microsoft 365 User"
 
-
-def check_user_in_tenant(email: str):
-    try:
-        token = _get_token()
-        headers = {"Authorization": f"Bearer {token}"}
-        url = f"{GRAPH_BASE}/users/{email}"
-        r = requests.get(url, headers=headers, timeout=15)
-
-        if r.status_code == 200:
-            data = r.json()
-            return {
-                "exists": True,
-                "name": data.get("displayName", ""),
-                "email": (
-                    data.get("mail")
-                    or data.get("userPrincipalName")
-                    or email
-                ).lower(),
-            }
-
-        return {"exists": False}
-
-    except Exception as e:
-        st.error(f"Tenant check error: {str(e)}")
-        return {"exists": False}
-
 def _user_email_allowed() -> bool:
     email = _get_user_email()
     if not email:
@@ -1361,6 +1335,75 @@ def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None =
     return styler
 
 
+
+
+def check_user_in_tenant(email: str):
+    try:
+        token = _get_token()
+
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+
+        email = str(email).strip().lower()
+
+        url = (
+            f"{GRAPH_BASE}/users"
+            f"?$filter=userPrincipalName eq '{email}'"
+        )
+
+        r = requests.get(
+            url,
+            headers=headers,
+            timeout=15
+        )
+
+        if r.status_code != 200:
+            return {"exists": False, "error": r.text}
+
+        data = r.json().get("value", [])
+
+        if not data:
+
+            url2 = (
+                f"{GRAPH_BASE}/users"
+                f"?$filter=mail eq '{email}'"
+            )
+
+            r2 = requests.get(
+                url2,
+                headers=headers,
+                timeout=15
+            )
+
+            if r2.status_code != 200:
+                return {"exists": False, "error": r2.text}
+
+            data = r2.json().get("value", [])
+
+        if not data:
+            return {"exists": False}
+
+        user = data[0]
+
+        return {
+            "exists": True,
+            "name": user.get("displayName", ""),
+            "email": (
+                user.get("mail")
+                or user.get("userPrincipalName")
+                or email
+            ).lower(),
+        }
+
+    except Exception as e:
+
+        return {
+            "exists": False,
+            "error": str(e)
+        }
+
+
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
@@ -1650,37 +1693,24 @@ def render_login_page(auth_ready: bool):
             }
             </style>
             """, unsafe_allow_html=True)
-            email = st.text_input(
-                "Company Email",
-                placeholder="name@optimal.co.th"
-            )
-
-            password = st.text_input(
-                "Password",
-                type="password"
-            )
+            email = st.text_input("Company Email", placeholder="name@optimal.co.th")
+            password = st.text_input("Password", type="password")
 
             if st.button("🔐 Login",
-                         use_container_width=True,
-                         type="primary"):
+                         use_container_width=True, type="primary"):
 
                 email = str(email).strip().lower()
 
                 if not email:
-                    st.warning("กรุณากรอก Email")
+                    st.error("กรุณากรอก Email")
                     st.stop()
 
-                allowed_domains = _get_allowed_email_domains()
+                user = check_user_in_tenant(email)
 
-                if not any(email.endswith("@" + d) for d in allowed_domains):
-                    st.error("Email domain ไม่ได้รับอนุญาต")
-                    st.stop()
-
-                with st.spinner("Checking Microsoft 365 Tenant..."):
-                    user = check_user_in_tenant(email)
-
-                if not user["exists"]:
+                if not user.get("exists"):
                     st.error("ไม่พบ Email นี้ใน Microsoft 365 Tenant")
+                    if user.get("error"):
+                        st.caption(user.get("error"))
                     st.stop()
 
                 role, dept = _resolve_role_and_dept(email, [])
@@ -1748,6 +1778,20 @@ _restore_session_from_cookies()
 _complete_login_from_query()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
+
+# ── รับ user จาก st.login() (streamlit[auth] built-in) ────────────────────────
+try:
+    _su = st.experimental_user
+    if _su and _su.get("is_logged_in") and not st.session_state.get("auth_user"):
+        _su_email = str(_su.get("email") or "").strip().lower()
+        _su_name  = str(_su.get("name") or _su.get("given_name") or
+                        _su_email.split("@")[0]).strip()
+        if _su_email:
+            st.session_state["auth_user"]  = {"email": _su_email, "name": _su_name}
+            st.session_state["auth_mode"]  = "m365"
+            _set_auth_cookies(email=_su_email, name=_su_name, auth_mode="m365")
+except Exception:
+    pass
 
 is_logged_in = _session_logged_in()
 
