@@ -1582,6 +1582,10 @@ def render_login_page(auth_ready: bool):
                             </div>
                         </div>
                     </div>
+                    <a href="{login_url}" target="_top" onclick="showLoginLoading()" class="ms-login-link">
+                        <span class="ms-logo-grid"><span></span><span></span><span></span><span></span></span>
+                        <span>Sign in with Microsoft 365</span>
+                    </a>
                     <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
                     <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
                     <div class="login-footer">
@@ -1590,12 +1594,6 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             """), unsafe_allow_html=True)
-            st.link_button(
-                "⊞  Sign in with Microsoft 365",
-                url=login_url,
-                use_container_width=True,
-                type="primary"
-            )
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
