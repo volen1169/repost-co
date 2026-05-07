@@ -1644,39 +1644,39 @@ def render_login_page(auth_ready: bool):
             div[data-testid="stTextInput"] > div {
                 border-radius: 14px !important;
                 border: 1.5px solid rgba(99,179,237,.45) !important;
-                background: linear-gradient(135deg,
-                    rgba(30,64,175,.40) 0%,
-                    rgba(14,116,144,.25) 100%) !important;
+                background: rgba(255,255,255,.92) !important;
                 box-shadow:
-                    inset 0 1px 0 rgba(255,255,255,.08),
+                    inset 0 1px 0 rgba(255,255,255,.80),
                     0 0 20px rgba(59,130,246,.08) !important;
                 transition: border-color .2s, box-shadow .2s !important;
                 overflow: hidden !important;
             }
             div[data-testid="stTextInput"] > div:focus-within {
-                border-color: rgba(96,165,250,.85) !important;
+                border-color: rgba(37,99,235,.80) !important;
                 box-shadow:
-                    inset 0 1px 0 rgba(255,255,255,.10),
+                    inset 0 1px 0 rgba(255,255,255,.90),
                     0 0 0 4px rgba(59,130,246,.20),
-                    0 0 24px rgba(59,130,246,.15) !important;
+                    0 0 24px rgba(59,130,246,.12) !important;
             }
             div[data-testid="stTextInput"] input {
                 background: transparent !important;
                 border: none !important;
-                color: #ffffff !important;
-                -webkit-text-fill-color: #ffffff !important;
+                color: #1e3a5f !important;
+                -webkit-text-fill-color: #1e3a5f !important;
                 font-size: 14px !important;
+                font-weight: 600 !important;
                 padding: 11px 14px !important;
                 box-shadow: none !important;
-                caret-color: #60a5fa !important;
+                caret-color: #2563eb !important;
             }
             div[data-testid="stTextInput"] input::placeholder {
-                color: rgba(147,197,253,.50) !important;
-                -webkit-text-fill-color: rgba(147,197,253,.50) !important;
+                color: rgba(100,140,180,.65) !important;
+                -webkit-text-fill-color: rgba(100,140,180,.65) !important;
+                font-weight: 400 !important;
             }
             div[data-testid="stTextInput"] button svg {
-                color: rgba(147,197,253,.70) !important;
-                fill: rgba(147,197,253,.70) !important;
+                color: #4b7ab5 !important;
+                fill: #4b7ab5 !important;
             }
             /* Button */
             div[data-testid="stButton"] > button[kind="primary"] {
