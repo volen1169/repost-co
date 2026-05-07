@@ -1629,6 +1629,22 @@ def render_login_page(auth_ready: bool):
                 url=login_url,
                 use_container_width=True,
             )
+            # ── แก้ให้ปุ่มเปิดใน tab เดิม (ไม่ใช่ tab ใหม่) ──────────────────
+            components.html("""
+            <script>
+            function fixTarget() {
+                var btns = window.parent.document.querySelectorAll(
+                    '[data-testid="stLinkButton"] a');
+                btns.forEach(function(a) {
+                    a.removeAttribute('target');
+                    a.setAttribute('target', '_self');
+                });
+            }
+            fixTarget();
+            setTimeout(fixTarget, 300);
+            setTimeout(fixTarget, 800);
+            </script>
+            """, height=0)
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
