@@ -1585,7 +1585,7 @@ def render_login_page(auth_ready: bool):
                 border: 1px solid rgba(255,255,255,.18);
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
-                padding: 28px 28px 24px 28px;
+                padding: 26px 26px 20px 26px;
                 background: linear-gradient(160deg,
                     rgba(15,40,100,.75) 0%,
                     rgba(20,55,130,.65) 50%,
@@ -1593,52 +1593,68 @@ def render_login_page(auth_ready: bool):
                 box-shadow:
                     0 32px 64px rgba(2,6,23,.30),
                     inset 0 1px 0 rgba(255,255,255,.14);
+                margin-bottom: 10px;
             }
             .lrc-kicker {
                 color: #93c5fd; font-size: 11px; font-weight: 800;
-                letter-spacing: .18em; text-transform: uppercase; margin-bottom: 10px;
+                letter-spacing: .18em; text-transform: uppercase; margin-bottom: 8px;
             }
             .lrc-title {
-                color: #fff; font-size: 38px; font-weight: 900;
-                line-height: 1.05; letter-spacing: -.03em; margin-bottom: 8px;
+                color: #fff; font-size: 36px; font-weight: 900;
+                line-height: 1.05; letter-spacing: -.03em; margin-bottom: 6px;
             }
             .lrc-sub {
-                color: #bfdbfe; font-size: 13px; line-height: 1.65; margin-bottom: 18px;
+                color: #bfdbfe; font-size: 12.5px; line-height: 1.6; margin-bottom: 14px;
             }
             .lrc-role-card {
                 background: linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,246,255,.94));
-                border-radius: 20px; padding: 14px 16px;
-                display: flex; align-items: center; gap: 14px;
-                box-shadow: 0 8px 24px rgba(15,23,42,.10);
-                margin-bottom: 14px;
+                border-radius: 18px; padding: 12px 14px;
+                display: flex; align-items: center; gap: 12px;
+                box-shadow: 0 6px 18px rgba(15,23,42,.10);
+                margin-bottom: 12px;
             }
             .lrc-role-icon {
-                width: 40px; height: 40px; border-radius: 13px; flex: 0 0 40px;
+                width: 38px; height: 38px; border-radius: 12px; flex: 0 0 38px;
                 background: linear-gradient(135deg,#2563eb,#38bdf8);
                 display: flex; align-items: center; justify-content: center;
-                font-size: 18px;
-                box-shadow: 0 8px 16px rgba(37,99,235,.22);
+                font-size: 17px;
+                box-shadow: 0 6px 14px rgba(37,99,235,.22);
             }
-            .lrc-role-title { color: #0f172a; font-size: 14px; font-weight: 800; }
-            .lrc-role-text  { color: #5f6f86; font-size: 12px; line-height: 1.55; }
+            .lrc-role-title { color: #0f172a; font-size: 13.5px; font-weight: 800; margin-bottom: 2px; }
+            .lrc-role-text  { color: #5f6f86; font-size: 11.5px; line-height: 1.5; }
             .lrc-trust {
                 display: flex; align-items: center; gap: 8px;
-                color: #93c5fd; font-size: 12px; margin-bottom: 18px;
+                color: #93c5fd; font-size: 11.5px;
             }
             .lrc-divider {
-                height: 1px; margin-bottom: 18px;
-                background: linear-gradient(90deg,transparent,rgba(96,165,250,.35),transparent);
+                display: none;
             }
             /* Inputs */
             div[data-testid="stTextInput"] {
-                margin-bottom: 4px !important;
+                margin-bottom: 2px !important;
             }
             div[data-testid="stTextInput"] label p {
                 color: #93c5fd !important;
-                font-size: 12.5px !important;
+                font-size: 11.5px !important;
                 font-weight: 700 !important;
-                letter-spacing: .06em !important;
+                letter-spacing: .10em !important;
                 text-transform: uppercase !important;
+                margin-bottom: 5px !important;
+                margin-top: 0 !important;
+            }
+            /* collapse Streamlit's default widget spacing */
+            div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"],
+            div[data-testid="stVerticalBlock"] > div {
+                gap: 0 !important;
+            }
+            /* Remove top gap between card HTML and Streamlit inputs */
+            .login-right-card + div,
+            .login-right-card ~ div[data-testid="stVerticalBlock"] {
+                margin-top: -6px !important;
+            }
+            /* tighten Streamlit element spacing inside right column */
+            section[data-testid="stSidebar"] ~ div div[data-testid="column"]:last-child
+            div[data-testid="stVerticalBlock"] > * {
                 margin-bottom: 6px !important;
             }
             div[data-testid="stTextInput"] > div {
@@ -1714,7 +1730,7 @@ def render_login_page(auth_ready: bool):
                 flex-shrink: 0;
             }
             .lrc-footer {
-                color: #93c5fd; font-size: 11.5px; margin-top: 14px; text-align: center;
+                color: #93c5fd; font-size: 11.5px; margin-top: 10px; text-align: center;
             }
             .lrc-footer a { color: #fff; font-weight: 800; text-decoration: none; }
             </style>
