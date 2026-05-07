@@ -1578,6 +1578,55 @@ def render_login_page(auth_ready: bool):
     with right:
         if auth_ready:
             st.markdown(textwrap.dedent(f"""
+            <style>
+            /* ── Input fields styling ── */
+            div[data-testid="stTextInput"] label {{
+                color: #dce8ff !important;
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                letter-spacing: .04em !important;
+            }}
+            div[data-testid="stTextInput"] input {{
+                background: rgba(255,255,255,.10) !important;
+                border: 1.5px solid rgba(255,255,255,.18) !important;
+                border-radius: 14px !important;
+                color: #ffffff !important;
+                font-size: 14px !important;
+                padding: 12px 16px !important;
+                box-shadow: inset 0 2px 8px rgba(0,0,0,.10) !important;
+                transition: border-color .2s, box-shadow .2s !important;
+            }}
+            div[data-testid="stTextInput"] input::placeholder {{
+                color: rgba(255,255,255,.38) !important;
+            }}
+            div[data-testid="stTextInput"] input:focus {{
+                border-color: rgba(96,165,250,.70) !important;
+                box-shadow: 0 0 0 3px rgba(96,165,250,.18), inset 0 2px 8px rgba(0,0,0,.10) !important;
+                outline: none !important;
+            }}
+            /* eye icon in password field */
+            div[data-testid="stTextInput"] button {{
+                color: rgba(255,255,255,.55) !important;
+            }}
+            /* ── Login button ── */
+            div[data-testid="stButton"] > button[kind="primary"] {{
+                background: linear-gradient(135deg, #0f60c4 0%, #1a7fe8 100%) !important;
+                border: 1.5px solid rgba(255,255,255,.18) !important;
+                border-radius: 16px !important;
+                color: #fff !important;
+                font-size: 15px !important;
+                font-weight: 800 !important;
+                padding: 14px 24px !important;
+                box-shadow: 0 8px 24px rgba(15,96,196,.40), inset 0 1px 0 rgba(255,255,255,.18) !important;
+                transition: transform .16s ease, box-shadow .16s ease !important;
+                letter-spacing: .01em !important;
+                margin-top: 4px !important;
+            }}
+            div[data-testid="stButton"] > button[kind="primary"]:hover {{
+                transform: translateY(-2px) !important;
+                box-shadow: 0 14px 32px rgba(15,96,196,.50) !important;
+            }}
+            </style>
             <div class="login-auth-card">
                 <div class="auth-top">
                     <div class="auth-kicker">Secure sign in</div>
@@ -1602,7 +1651,7 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             """), unsafe_allow_html=True)
-            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
             email_input    = st.text_input("📧 Microsoft 365 Email",
                                            placeholder="yourname@optimal.co.th",
                                            key="login_email")
@@ -1610,7 +1659,16 @@ def render_login_page(auth_ready: bool):
                                            type="password",
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
-            if st.button("⊞  Sign in with Microsoft 365",
+            # MS Logo SVG inline in button label
+            ms_logo = (
+                '<span style="display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;'
+                'width:18px;height:18px;vertical-align:middle;margin-right:8px;border-radius:2px;overflow:hidden">'
+                '<span style="background:#f25022;display:block"></span>'
+                '<span style="background:#7fba00;display:block"></span>'
+                '<span style="background:#00a4ef;display:block"></span>'
+                '<span style="background:#ffb900;display:block"></span></span>'
+            )
+            if st.button("Sign in with Microsoft 365",
                          use_container_width=True, type="primary",
                          key="login_btn"):
                 if not email_input or not password_input:
