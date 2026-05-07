@@ -1619,7 +1619,14 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             """), unsafe_allow_html=True)
-            st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
+            components.html(f"""
+                <button onclick="window.top.location.href='{login_url}'"
+                    style="width:100%;padding:14px 20px;background:#0078d4;color:white;
+                           border:none;border-radius:12px;font-size:15px;font-weight:700;
+                           cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+                    ⊞ Sign in with Microsoft 365
+                </button>
+                """, height=60)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LOGIN PAGE GATE
