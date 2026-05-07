@@ -1663,14 +1663,16 @@ def render_login_page(auth_ready: bool):
             div[data-testid="stTextInput"] input {
                 background: transparent !important;
                 border: none !important;
-                color: #fff !important;
+                color: #ffffff !important;
+                -webkit-text-fill-color: #ffffff !important;
                 font-size: 14px !important;
                 padding: 11px 14px !important;
                 box-shadow: none !important;
                 caret-color: #60a5fa !important;
             }
             div[data-testid="stTextInput"] input::placeholder {
-                color: rgba(147,197,253,.40) !important;
+                color: rgba(147,197,253,.50) !important;
+                -webkit-text-fill-color: rgba(147,197,253,.50) !important;
             }
             div[data-testid="stTextInput"] button svg {
                 color: rgba(147,197,253,.70) !important;
@@ -1691,6 +1693,7 @@ def render_login_page(auth_ready: bool):
                     0 8px 20px rgba(29,78,216,.45),
                     inset 0 1px 0 rgba(255,255,255,.20) !important;
                 transition: transform .15s, box-shadow .15s !important;
+                position: relative !important;
             }
             div[data-testid="stButton"] > button[kind="primary"]:hover {
                 transform: translateY(-2px) scale(1.01) !important;
@@ -1698,8 +1701,17 @@ def render_login_page(auth_ready: bool):
                     0 14px 28px rgba(29,78,216,.55),
                     inset 0 1px 0 rgba(255,255,255,.22) !important;
             }
-            div[data-testid="stButton"] > button[kind="primary"]:active {
-                transform: translateY(0) !important;
+            div[data-testid="stButton"] > button[kind="primary"] p::before {
+                content: '';
+                display: inline-block;
+                width: 18px;
+                height: 18px;
+                margin-right: 10px;
+                vertical-align: middle;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect x='1' y='1' width='9' height='9' fill='%23f25022'/%3E%3Crect x='11' y='1' width='9' height='9' fill='%237fba00'/%3E%3Crect x='1' y='11' width='9' height='9' fill='%2300a4ef'/%3E%3Crect x='11' y='11' width='9' height='9' fill='%23ffb900'/%3E%3C/svg%3E");
+                background-size: contain;
+                background-repeat: no-repeat;
+                flex-shrink: 0;
             }
             .lrc-footer {
                 color: #93c5fd; font-size: 11.5px; margin-top: 14px; text-align: center;
@@ -1732,7 +1744,7 @@ def render_login_page(auth_ready: bool):
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
             if st.button(
-                "⊞   Sign in with Microsoft 365",
+                "Sign in with Microsoft 365",
                 use_container_width=True, type="primary", key="login_btn"
             ):
                 if not email_input or not password_input:
