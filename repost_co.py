@@ -1587,25 +1587,26 @@ def render_login_page(auth_ready: bool):
                 letter-spacing: .04em !important;
             }}
             div[data-testid="stTextInput"] input {{
-                background: rgba(255,255,255,.10) !important;
-                border: 1.5px solid rgba(255,255,255,.22) !important;
+                background: linear-gradient(135deg, rgba(37,99,235,.25) 0%, rgba(56,189,248,.15) 100%) !important;
+                border: 1.5px solid rgba(96,165,250,.55) !important;
                 border-radius: 14px !important;
                 color: #ffffff !important;
                 font-size: 14px !important;
                 padding: 12px 16px !important;
-                box-shadow: inset 0 2px 8px rgba(0,0,0,.10) !important;
-                transition: border-color .2s, box-shadow .2s !important;
+                box-shadow: inset 0 2px 10px rgba(37,99,235,.15), 0 0 0 0 rgba(96,165,250,0) !important;
+                transition: border-color .2s, box-shadow .2s, background .2s !important;
             }}
             div[data-testid="stTextInput"] input::placeholder {{
-                color: rgba(255,255,255,.38) !important;
+                color: rgba(186,219,255,.50) !important;
             }}
             div[data-testid="stTextInput"] input:focus {{
-                border-color: rgba(96,165,250,.70) !important;
-                box-shadow: 0 0 0 3px rgba(96,165,250,.18), inset 0 2px 8px rgba(0,0,0,.10) !important;
+                background: linear-gradient(135deg, rgba(37,99,235,.35) 0%, rgba(56,189,248,.22) 100%) !important;
+                border-color: rgba(96,165,250,.90) !important;
+                box-shadow: 0 0 0 4px rgba(96,165,250,.22), inset 0 2px 10px rgba(37,99,235,.18) !important;
                 outline: none !important;
             }}
             div[data-testid="stTextInput"] button {{
-                color: rgba(255,255,255,.55) !important;
+                color: rgba(186,219,255,.75) !important;
             }}
             /* ── Login button ── */
             div[data-testid="stButton"] > button[kind="primary"] {{
