@@ -509,6 +509,19 @@ def _build_login_url():
         prompt="select_account",
     )
 
+def _login_with_password(email: str, password: str) -> dict:
+    """Authenticate via MSAL ROPC flow (username + password)."""
+    try:
+        app = _msal_app()
+        result = app.acquire_token_by_username_password(
+            username=email.strip().lower(),
+            password=password,
+            scopes=OIDC_SCOPES,
+        )
+        return result
+    except Exception as e:
+        return {"error": "exception", "error_description": str(e)}
+
 def _complete_login_from_query():
     if not AUTH_READY:
         return
@@ -1335,75 +1348,6 @@ def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None =
     return styler
 
 
-
-
-def check_user_in_tenant(email: str):
-    try:
-        token = _get_token()
-
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
-
-        email = str(email).strip().lower()
-
-        url = (
-            f"{GRAPH_BASE}/users"
-            f"?$filter=userPrincipalName eq '{email}'"
-        )
-
-        r = requests.get(
-            url,
-            headers=headers,
-            timeout=15
-        )
-
-        if r.status_code != 200:
-            return {"exists": False, "error": r.text}
-
-        data = r.json().get("value", [])
-
-        if not data:
-
-            url2 = (
-                f"{GRAPH_BASE}/users"
-                f"?$filter=mail eq '{email}'"
-            )
-
-            r2 = requests.get(
-                url2,
-                headers=headers,
-                timeout=15
-            )
-
-            if r2.status_code != 200:
-                return {"exists": False, "error": r2.text}
-
-            data = r2.json().get("value", [])
-
-        if not data:
-            return {"exists": False}
-
-        user = data[0]
-
-        return {
-            "exists": True,
-            "name": user.get("displayName", ""),
-            "email": (
-                user.get("mail")
-                or user.get("userPrincipalName")
-                or email
-            ).lower(),
-        }
-
-    except Exception as e:
-
-        return {
-            "exists": False,
-            "error": str(e)
-        }
-
-
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
@@ -1633,7 +1577,6 @@ def render_login_page(auth_ready: bool):
 
     with right:
         if auth_ready:
-            login_url = _build_login_url()
             st.markdown(textwrap.dedent(f"""
             <div class="login-auth-card">
                 <div class="auth-top">
@@ -1651,7 +1594,6 @@ def render_login_page(auth_ready: bool):
                             </div>
                         </div>
                     </div>
-                    <div style="height:8px;"></div>
                     <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
                     <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
                     <div class="login-footer">
@@ -1660,88 +1602,51 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             """), unsafe_allow_html=True)
-            # ─── CSS ทำให้ st.link_button ดูเหมือนปุ่ม Microsoft เดิม ───────────
-            st.markdown("""
-            <style>
-            div[data-testid="stLinkButton"] a {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 12px !important;
-                background: linear-gradient(135deg,#0f60c4 0%,#1a7fe8 100%) !important;
-                border: 1.5px solid rgba(255,255,255,.18) !important;
-                border-radius: 18px !important;
-                color: #fff !important;
-                font-size: 15px !important;
-                font-weight: 700 !important;
-                padding: 15px 24px !important;
-                text-decoration: none !important;
-                box-shadow: 0 8px 24px rgba(15,96,196,.35), inset 0 1px 0 rgba(255,255,255,.18) !important;
-                transition: transform .16s ease, box-shadow .16s ease !important;
-                letter-spacing: .01em !important;
-                margin-top: 8px !important;
-            }
-            div[data-testid="stLinkButton"] a:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 14px 32px rgba(15,96,196,.45) !important;
-            }
-            div[data-testid="stLinkButton"] p {
-                color: #fff !important;
-                font-size: 15px !important;
-                font-weight: 700 !important;
-                margin: 0 !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            email = st.text_input("Company Email", placeholder="name@optimal.co.th")
-            password = st.text_input("Password", type="password")
-
-            if st.button("🔐 Login",
-                         use_container_width=True, type="primary"):
-
-                email = str(email).strip().lower()
-
-                if not email:
-                    st.error("กรุณากรอก Email")
-                    st.stop()
-
-                user = check_user_in_tenant(email)
-
-                if not user.get("exists"):
-                    st.error("ไม่พบ Email นี้ใน Microsoft 365 Tenant")
-                    if user.get("error"):
-                        st.caption(user.get("error"))
-                    st.stop()
-
-                role, dept = _resolve_role_and_dept(email, [])
-
-                st.session_state["auth_user"] = {
-                    "email": user["email"],
-                    "name": user["name"],
-                }
-
-                st.session_state["user_email"] = user["email"]
-                st.session_state["user_name"] = user["name"]
-                st.session_state["user_role"] = role or "staff"
-                st.session_state["dept"] = dept
-                st.session_state["auth_mode"] = "tenant_email"
-
-                st.session_state["is_admin"] = (
-                    user["email"].lower()
-                    in {e.lower() for e in ADMIN_EMAILS}
-                )
-
-                _set_auth_cookies(
-                    email=user["email"],
-                    name=user["name"],
-                    role=st.session_state["user_role"],
-                    dept=dept or "",
-                    is_admin=st.session_state["is_admin"],
-                    auth_mode="tenant_email"
-                )
-
-                st.success("Login successful")
-                st.rerun()
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+            email_input    = st.text_input("📧 Microsoft 365 Email",
+                                           placeholder="yourname@optimal.co.th",
+                                           key="login_email")
+            password_input = st.text_input("🔑 Password",
+                                           type="password",
+                                           placeholder="รหัสผ่าน Microsoft 365",
+                                           key="login_password")
+            if st.button("⊞  Sign in with Microsoft 365",
+                         use_container_width=True, type="primary",
+                         key="login_btn"):
+                if not email_input or not password_input:
+                    st.error("กรุณากรอก Email และ Password")
+                else:
+                    with st.spinner("กำลังตรวจสอบสิทธิ์..."):
+                        result = _login_with_password(email_input, password_input)
+                    if "access_token" in result:
+                        claims = result.get("id_token_claims", {}) or {}
+                        email  = (
+                            claims.get("preferred_username") or
+                            claims.get("email") or
+                            claims.get("upn") or
+                            email_input
+                        ).strip().lower()
+                        name = (
+                            claims.get("name") or
+                            claims.get("given_name") or
+                            email
+                        ).strip()
+                        st.session_state["auth_access_token"]    = result["access_token"]
+                        st.session_state["auth_id_token_claims"] = claims
+                        st.session_state["auth_user"]            = {"email": email, "name": name}
+                        st.session_state["auth_mode"]            = "m365"
+                        _set_auth_cookies(email=email, name=name, auth_mode="m365")
+                        st.rerun()
+                    else:
+                        err = result.get("error_description") or result.get("error") or "Unknown error"
+                        if "AADSTS50126" in str(err):
+                            st.error("❌ Email หรือ Password ไม่ถูกต้อง")
+                        elif "AADSTS50034" in str(err):
+                            st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
+                        elif "AADSTS65001" in str(err):
+                            st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
+                        else:
+                            st.error(f"❌ Login ไม่สำเร็จ: {err}")
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
@@ -1778,21 +1683,6 @@ _restore_session_from_cookies()
 _complete_login_from_query()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
-
-# ── รับ user จาก st.login() (streamlit[auth] built-in) ────────────────────────
-try:
-    _su = st.experimental_user
-    if _su and _su.get("is_logged_in") and not st.session_state.get("auth_user"):
-        _su_email = str(_su.get("email") or "").strip().lower()
-        _su_name  = str(_su.get("name") or _su.get("given_name") or
-                        _su_email.split("@")[0]).strip()
-        if _su_email:
-            st.session_state["auth_user"]  = {"email": _su_email, "name": _su_name}
-            st.session_state["auth_mode"]  = "m365"
-            _set_auth_cookies(email=_su_email, name=_su_name, auth_mode="m365")
-except Exception:
-    pass
-
 is_logged_in = _session_logged_in()
 
 if not st.session_state.dept and not (auth_ready and is_logged_in):
