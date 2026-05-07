@@ -568,6 +568,32 @@ def _get_user_email() -> str:
 def _get_user_name() -> str:
     return str((st.session_state.get("auth_user") or {}).get("name", "")).strip() or "Microsoft 365 User"
 
+
+def check_user_in_tenant(email: str):
+    try:
+        token = _get_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        url = f"{GRAPH_BASE}/users/{email}"
+        r = requests.get(url, headers=headers, timeout=15)
+
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "exists": True,
+                "name": data.get("displayName", ""),
+                "email": (
+                    data.get("mail")
+                    or data.get("userPrincipalName")
+                    or email
+                ).lower(),
+            }
+
+        return {"exists": False}
+
+    except Exception as e:
+        st.error(f"Tenant check error: {str(e)}")
+        return {"exists": False}
+
 def _user_email_allowed() -> bool:
     email = _get_user_email()
     if not email:
@@ -1624,9 +1650,68 @@ def render_login_page(auth_ready: bool):
             }
             </style>
             """, unsafe_allow_html=True)
-            if st.button("⊞  Sign in with Microsoft 365",
-                         use_container_width=True, type="primary"):
-                st.login()
+            email = st.text_input(
+                "Company Email",
+                placeholder="name@optimal.co.th"
+            )
+
+            password = st.text_input(
+                "Password",
+                type="password"
+            )
+
+            if st.button("🔐 Login",
+                         use_container_width=True,
+                         type="primary"):
+
+                email = str(email).strip().lower()
+
+                if not email:
+                    st.warning("กรุณากรอก Email")
+                    st.stop()
+
+                allowed_domains = _get_allowed_email_domains()
+
+                if not any(email.endswith("@" + d) for d in allowed_domains):
+                    st.error("Email domain ไม่ได้รับอนุญาต")
+                    st.stop()
+
+                with st.spinner("Checking Microsoft 365 Tenant..."):
+                    user = check_user_in_tenant(email)
+
+                if not user["exists"]:
+                    st.error("ไม่พบ Email นี้ใน Microsoft 365 Tenant")
+                    st.stop()
+
+                role, dept = _resolve_role_and_dept(email, [])
+
+                st.session_state["auth_user"] = {
+                    "email": user["email"],
+                    "name": user["name"],
+                }
+
+                st.session_state["user_email"] = user["email"]
+                st.session_state["user_name"] = user["name"]
+                st.session_state["user_role"] = role or "staff"
+                st.session_state["dept"] = dept
+                st.session_state["auth_mode"] = "tenant_email"
+
+                st.session_state["is_admin"] = (
+                    user["email"].lower()
+                    in {e.lower() for e in ADMIN_EMAILS}
+                )
+
+                _set_auth_cookies(
+                    email=user["email"],
+                    name=user["name"],
+                    role=st.session_state["user_role"],
+                    dept=dept or "",
+                    is_admin=st.session_state["is_admin"],
+                    auth_mode="tenant_email"
+                )
+
+                st.success("Login successful")
+                st.rerun()
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
@@ -1663,20 +1748,6 @@ _restore_session_from_cookies()
 _complete_login_from_query()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
-
-# ── รับ user จาก st.login() (streamlit[auth] built-in) ────────────────────────
-try:
-    _su = st.experimental_user
-    if _su and _su.get("is_logged_in") and not st.session_state.get("auth_user"):
-        _su_email = str(_su.get("email") or "").strip().lower()
-        _su_name  = str(_su.get("name") or _su.get("given_name") or
-                        _su_email.split("@")[0]).strip()
-        if _su_email:
-            st.session_state["auth_user"]  = {"email": _su_email, "name": _su_name}
-            st.session_state["auth_mode"]  = "m365"
-            _set_auth_cookies(email=_su_email, name=_su_name, auth_mode="m365")
-except Exception:
-    pass
 
 is_logged_in = _session_logged_in()
 
