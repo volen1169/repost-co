@@ -1563,7 +1563,15 @@ def render_login_page(auth_ready: bool):
                 </div>
             </div>
             <div class="hero-chip-row">
-                <div class="hero-chip"><span class="chip-dot secure"></span>Microsoft 365</div>
+                <div class="hero-chip">
+                    <svg width="16" height="16" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" style="flex:0 0 16px">
+                        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                    </svg>
+                    Microsoft 365
+                </div>
                 <div class="hero-chip"><span class="chip-dot map"></span>Smart Mapping</div>
                 <div class="hero-chip"><span class="chip-dot insight"></span>Performance Insight</div>
             </div>
