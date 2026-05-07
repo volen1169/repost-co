@@ -1588,7 +1588,7 @@ def render_login_page(auth_ready: bool):
             }}
             div[data-testid="stTextInput"] input {{
                 background: rgba(255,255,255,.10) !important;
-                border: 1.5px solid rgba(255,255,255,.18) !important;
+                border: 1.5px solid rgba(255,255,255,.22) !important;
                 border-radius: 14px !important;
                 color: #ffffff !important;
                 font-size: 14px !important;
@@ -1604,7 +1604,6 @@ def render_login_page(auth_ready: bool):
                 box-shadow: 0 0 0 3px rgba(96,165,250,.18), inset 0 2px 8px rgba(0,0,0,.10) !important;
                 outline: none !important;
             }}
-            /* eye icon in password field */
             div[data-testid="stTextInput"] button {{
                 color: rgba(255,255,255,.55) !important;
             }}
@@ -1612,28 +1611,49 @@ def render_login_page(auth_ready: bool):
             div[data-testid="stButton"] > button[kind="primary"] {{
                 background: linear-gradient(135deg, #0f60c4 0%, #1a7fe8 100%) !important;
                 border: 1.5px solid rgba(255,255,255,.18) !important;
-                border-radius: 16px !important;
+                border-radius: 14px !important;
                 color: #fff !important;
                 font-size: 15px !important;
                 font-weight: 800 !important;
                 padding: 14px 24px !important;
                 box-shadow: 0 8px 24px rgba(15,96,196,.40), inset 0 1px 0 rgba(255,255,255,.18) !important;
                 transition: transform .16s ease, box-shadow .16s ease !important;
-                letter-spacing: .01em !important;
-                margin-top: 4px !important;
             }}
             div[data-testid="stButton"] > button[kind="primary"]:hover {{
                 transform: translateY(-2px) !important;
                 box-shadow: 0 14px 32px rgba(15,96,196,.50) !important;
             }}
+            /* ── Card top (no bottom radius) ── */
+            .login-card-top {{
+                position: relative; z-index: 1;
+                border-radius: 34px 34px 0 0;
+                border: 1px solid rgba(255,255,255,.14);
+                border-bottom: none;
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                padding: 24px 24px 20px 24px;
+                background: linear-gradient(180deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.10) 100%);
+                box-shadow: 0 -4px 30px rgba(2,6,23,.10);
+            }}
+            /* ── Card bottom (no top radius) ── */
+            .login-card-bottom {{
+                position: relative; z-index: 1;
+                border-radius: 0 0 34px 34px;
+                border: 1px solid rgba(255,255,255,.14);
+                border-top: 1px solid rgba(255,255,255,.08);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                padding: 18px 24px 22px 24px;
+                background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.08) 100%);
+                box-shadow: 0 24px 60px rgba(2,6,23,.18);
+            }}
             </style>
-            <div class="login-auth-card">
-                <div class="auth-top">
-                    <div class="auth-kicker">Secure sign in</div>
-                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
-                </div>
-                <div class="auth-bottom">
+            <!-- TOP of card -->
+            <div class="login-card-top">
+                <div class="auth-kicker">Secure sign in</div>
+                <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                <div style="margin-top:14px">
                     <div class="login-mini-card">
                         <div class="login-mini-head">
                             <div class="login-mini-icon">🛡️</div>
@@ -1643,15 +1663,13 @@ def render_login_page(auth_ready: bool):
                             </div>
                         </div>
                     </div>
-                    <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
-                    <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
-                    <div class="login-footer">
-                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
-                    </div>
                 </div>
+                <div class="trust-line" style="margin-top:14px"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
             </div>
             """), unsafe_allow_html=True)
-            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+            # ── inputs + button inside bottom half of card ─────────────────────
+            st.markdown('<div class="login-card-bottom">', unsafe_allow_html=True)
             email_input    = st.text_input("📧 Microsoft 365 Email",
                                            placeholder="yourname@optimal.co.th",
                                            key="login_email")
@@ -1659,15 +1677,6 @@ def render_login_page(auth_ready: bool):
                                            type="password",
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
-            # MS Logo SVG inline in button label
-            ms_logo = (
-                '<span style="display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;'
-                'width:18px;height:18px;vertical-align:middle;margin-right:8px;border-radius:2px;overflow:hidden">'
-                '<span style="background:#f25022;display:block"></span>'
-                '<span style="background:#7fba00;display:block"></span>'
-                '<span style="background:#00a4ef;display:block"></span>'
-                '<span style="background:#ffb900;display:block"></span></span>'
-            )
             if st.button("Sign in with Microsoft 365",
                          use_container_width=True, type="primary",
                          key="login_btn"):
@@ -1705,6 +1714,11 @@ def render_login_page(auth_ready: bool):
                             st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
                         else:
                             st.error(f"❌ Login ไม่สำเร็จ: {err}")
+            st.markdown("""
+                <div class="login-footer" style="margin-top:10px">
+                    Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                </div>
+            </div>""", unsafe_allow_html=True)
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
