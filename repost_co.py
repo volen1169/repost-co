@@ -1582,7 +1582,7 @@ def render_login_page(auth_ready: bool):
                             </div>
                         </div>
                     </div>
-                    <div style="height:52px;"></div>
+                    <div style="height:8px;"></div>
                     <div class="trust-line"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
                     <div class="login-note">ระบบจะตรวจสอบกลุ่มและสิทธิ์ของคุณจาก Microsoft 365 ก่อนเข้าสู่หน้าใช้งาน</div>
                     <div class="login-footer">
@@ -1610,7 +1610,7 @@ def render_login_page(auth_ready: bool):
                 box-shadow: 0 8px 24px rgba(15,96,196,.35), inset 0 1px 0 rgba(255,255,255,.18) !important;
                 transition: transform .16s ease, box-shadow .16s ease !important;
                 letter-spacing: .01em !important;
-                margin-top: -52px !important;
+                margin-top: 8px !important;
             }
             div[data-testid="stLinkButton"] a:hover {
                 transform: translateY(-2px) !important;
