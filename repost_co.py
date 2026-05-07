@@ -1624,27 +1624,9 @@ def render_login_page(auth_ready: bool):
             }
             </style>
             """, unsafe_allow_html=True)
-            st.link_button(
-                "⊞  Sign in with Microsoft 365",
-                url=login_url,
-                use_container_width=True,
-            )
-            # ── แก้ให้ปุ่มเปิดใน tab เดิม (ไม่ใช่ tab ใหม่) ──────────────────
-            components.html("""
-            <script>
-            function fixTarget() {
-                var btns = window.parent.document.querySelectorAll(
-                    '[data-testid="stLinkButton"] a');
-                btns.forEach(function(a) {
-                    a.removeAttribute('target');
-                    a.setAttribute('target', '_self');
-                });
-            }
-            fixTarget();
-            setTimeout(fixTarget, 300);
-            setTimeout(fixTarget, 800);
-            </script>
-            """, height=0)
+            if st.button("⊞  Sign in with Microsoft 365",
+                         use_container_width=True, type="primary"):
+                st.login()
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
@@ -1681,6 +1663,21 @@ _restore_session_from_cookies()
 _complete_login_from_query()
 _restore_session_from_query_params()
 _restore_session_from_cookies()
+
+# ── รับ user จาก st.login() (streamlit[auth] built-in) ────────────────────────
+try:
+    _su = st.experimental_user
+    if _su and _su.get("is_logged_in") and not st.session_state.get("auth_user"):
+        _su_email = str(_su.get("email") or "").strip().lower()
+        _su_name  = str(_su.get("name") or _su.get("given_name") or
+                        _su_email.split("@")[0]).strip()
+        if _su_email:
+            st.session_state["auth_user"]  = {"email": _su_email, "name": _su_name}
+            st.session_state["auth_mode"]  = "m365"
+            _set_auth_cookies(email=_su_email, name=_su_name, auth_mode="m365")
+except Exception:
+    pass
+
 is_logged_in = _session_logged_in()
 
 if not st.session_state.dept and not (auth_ready and is_logged_in):
