@@ -1577,110 +1577,164 @@ def render_login_page(auth_ready: bool):
 
     with right:
         if auth_ready:
-            st.markdown(textwrap.dedent(f"""
+            st.markdown(textwrap.dedent("""
             <style>
-            /* ── Input fields styling ── */
-            div[data-testid="stTextInput"] label {{
-                color: #dce8ff !important;
-                font-size: 13px !important;
+            .login-right-card {
+                position: relative; z-index: 1;
+                border-radius: 32px;
+                border: 1px solid rgba(255,255,255,.18);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                padding: 28px 28px 24px 28px;
+                background: linear-gradient(160deg,
+                    rgba(15,40,100,.75) 0%,
+                    rgba(20,55,130,.65) 50%,
+                    rgba(10,30,80,.70) 100%);
+                box-shadow:
+                    0 32px 64px rgba(2,6,23,.30),
+                    inset 0 1px 0 rgba(255,255,255,.14);
+            }
+            .lrc-kicker {
+                color: #93c5fd; font-size: 11px; font-weight: 800;
+                letter-spacing: .18em; text-transform: uppercase; margin-bottom: 10px;
+            }
+            .lrc-title {
+                color: #fff; font-size: 38px; font-weight: 900;
+                line-height: 1.05; letter-spacing: -.03em; margin-bottom: 8px;
+            }
+            .lrc-sub {
+                color: #bfdbfe; font-size: 13px; line-height: 1.65; margin-bottom: 18px;
+            }
+            .lrc-role-card {
+                background: linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,246,255,.94));
+                border-radius: 20px; padding: 14px 16px;
+                display: flex; align-items: center; gap: 14px;
+                box-shadow: 0 8px 24px rgba(15,23,42,.10);
+                margin-bottom: 14px;
+            }
+            .lrc-role-icon {
+                width: 40px; height: 40px; border-radius: 13px; flex: 0 0 40px;
+                background: linear-gradient(135deg,#2563eb,#38bdf8);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 8px 16px rgba(37,99,235,.22);
+            }
+            .lrc-role-title { color: #0f172a; font-size: 14px; font-weight: 800; }
+            .lrc-role-text  { color: #5f6f86; font-size: 12px; line-height: 1.55; }
+            .lrc-trust {
+                display: flex; align-items: center; gap: 8px;
+                color: #93c5fd; font-size: 12px; margin-bottom: 18px;
+            }
+            .lrc-divider {
+                height: 1px; margin-bottom: 18px;
+                background: linear-gradient(90deg,transparent,rgba(96,165,250,.35),transparent);
+            }
+            /* Inputs */
+            div[data-testid="stTextInput"] {
+                margin-bottom: 4px !important;
+            }
+            div[data-testid="stTextInput"] label p {
+                color: #93c5fd !important;
+                font-size: 12.5px !important;
                 font-weight: 700 !important;
-                letter-spacing: .04em !important;
-            }}
-            div[data-testid="stTextInput"] input {{
-                background: linear-gradient(135deg, rgba(37,99,235,.25) 0%, rgba(56,189,248,.15) 100%) !important;
-                border: 1.5px solid rgba(96,165,250,.55) !important;
+                letter-spacing: .06em !important;
+                text-transform: uppercase !important;
+                margin-bottom: 6px !important;
+            }
+            div[data-testid="stTextInput"] > div {
                 border-radius: 14px !important;
-                color: #ffffff !important;
+                border: 1.5px solid rgba(99,179,237,.45) !important;
+                background: linear-gradient(135deg,
+                    rgba(30,64,175,.40) 0%,
+                    rgba(14,116,144,.25) 100%) !important;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.08),
+                    0 0 20px rgba(59,130,246,.08) !important;
+                transition: border-color .2s, box-shadow .2s !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stTextInput"] > div:focus-within {
+                border-color: rgba(96,165,250,.85) !important;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.10),
+                    0 0 0 4px rgba(59,130,246,.20),
+                    0 0 24px rgba(59,130,246,.15) !important;
+            }
+            div[data-testid="stTextInput"] input {
+                background: transparent !important;
+                border: none !important;
+                color: #fff !important;
                 font-size: 14px !important;
-                padding: 12px 16px !important;
-                box-shadow: inset 0 2px 10px rgba(37,99,235,.15), 0 0 0 0 rgba(96,165,250,0) !important;
-                transition: border-color .2s, box-shadow .2s, background .2s !important;
-            }}
-            div[data-testid="stTextInput"] input::placeholder {{
-                color: rgba(186,219,255,.50) !important;
-            }}
-            div[data-testid="stTextInput"] input:focus {{
-                background: linear-gradient(135deg, rgba(37,99,235,.35) 0%, rgba(56,189,248,.22) 100%) !important;
-                border-color: rgba(96,165,250,.90) !important;
-                box-shadow: 0 0 0 4px rgba(96,165,250,.22), inset 0 2px 10px rgba(37,99,235,.18) !important;
-                outline: none !important;
-            }}
-            div[data-testid="stTextInput"] button {{
-                color: rgba(186,219,255,.75) !important;
-            }}
-            /* ── Login button ── */
-            div[data-testid="stButton"] > button[kind="primary"] {{
-                background: linear-gradient(135deg, #0f60c4 0%, #1a7fe8 100%) !important;
-                border: 1.5px solid rgba(255,255,255,.18) !important;
+                padding: 11px 14px !important;
+                box-shadow: none !important;
+                caret-color: #60a5fa !important;
+            }
+            div[data-testid="stTextInput"] input::placeholder {
+                color: rgba(147,197,253,.40) !important;
+            }
+            div[data-testid="stTextInput"] button svg {
+                color: rgba(147,197,253,.70) !important;
+                fill: rgba(147,197,253,.70) !important;
+            }
+            /* Button */
+            div[data-testid="stButton"] > button[kind="primary"] {
+                background: linear-gradient(135deg,#1d4ed8 0%,#2563eb 50%,#0ea5e9 100%) !important;
+                border: 1px solid rgba(255,255,255,.20) !important;
                 border-radius: 14px !important;
                 color: #fff !important;
                 font-size: 15px !important;
                 font-weight: 800 !important;
-                padding: 14px 24px !important;
-                box-shadow: 0 8px 24px rgba(15,96,196,.40), inset 0 1px 0 rgba(255,255,255,.18) !important;
-                transition: transform .16s ease, box-shadow .16s ease !important;
-            }}
-            div[data-testid="stButton"] > button[kind="primary"]:hover {{
-                transform: translateY(-2px) !important;
-                box-shadow: 0 14px 32px rgba(15,96,196,.50) !important;
-            }}
-            /* ── Card top (no bottom radius) ── */
-            .login-card-top {{
-                position: relative; z-index: 1;
-                border-radius: 34px 34px 0 0;
-                border: 1px solid rgba(255,255,255,.14);
-                border-bottom: none;
-                backdrop-filter: blur(18px);
-                -webkit-backdrop-filter: blur(18px);
-                padding: 24px 24px 20px 24px;
-                background: linear-gradient(180deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.10) 100%);
-                box-shadow: 0 -4px 30px rgba(2,6,23,.10);
-            }}
-            /* ── Card bottom (no top radius) ── */
-            .login-card-bottom {{
-                position: relative; z-index: 1;
-                border-radius: 0 0 34px 34px;
-                border: 1px solid rgba(255,255,255,.14);
-                border-top: 1px solid rgba(255,255,255,.08);
-                backdrop-filter: blur(18px);
-                -webkit-backdrop-filter: blur(18px);
-                padding: 18px 24px 22px 24px;
-                background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.08) 100%);
-                box-shadow: 0 24px 60px rgba(2,6,23,.18);
-            }}
+                letter-spacing: .02em !important;
+                padding: 13px 24px !important;
+                margin-top: 8px !important;
+                box-shadow:
+                    0 8px 20px rgba(29,78,216,.45),
+                    inset 0 1px 0 rgba(255,255,255,.20) !important;
+                transition: transform .15s, box-shadow .15s !important;
+            }
+            div[data-testid="stButton"] > button[kind="primary"]:hover {
+                transform: translateY(-2px) scale(1.01) !important;
+                box-shadow:
+                    0 14px 28px rgba(29,78,216,.55),
+                    inset 0 1px 0 rgba(255,255,255,.22) !important;
+            }
+            div[data-testid="stButton"] > button[kind="primary"]:active {
+                transform: translateY(0) !important;
+            }
+            .lrc-footer {
+                color: #93c5fd; font-size: 11.5px; margin-top: 14px; text-align: center;
+            }
+            .lrc-footer a { color: #fff; font-weight: 800; text-decoration: none; }
             </style>
-            <!-- TOP of card -->
-            <div class="login-card-top">
-                <div class="auth-kicker">Secure sign in</div>
-                <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
-                <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
-                <div style="margin-top:14px">
-                    <div class="login-mini-card">
-                        <div class="login-mini-head">
-                            <div class="login-mini-icon">🛡️</div>
-                            <div>
-                                <div class="login-mini-title">Role-based access</div>
-                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
-                            </div>
-                        </div>
+            <div class="login-right-card">
+                <div class="lrc-kicker">🔐 Secure sign in</div>
+                <div class="lrc-title">ยินดีต้อนรับกลับ</div>
+                <div class="lrc-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                <div class="lrc-role-card">
+                    <div class="lrc-role-icon">🛡️</div>
+                    <div>
+                        <div class="lrc-role-title">Role-based access</div>
+                        <div class="lrc-role-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
                     </div>
                 </div>
-                <div class="trust-line" style="margin-top:14px"><span class="trust-badge">🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span></div>
+                <div class="lrc-trust">
+                    <span>🔒</span><span>Enterprise authentication ผ่าน Microsoft 365</span>
+                </div>
+                <div class="lrc-divider"></div>
             </div>
             """), unsafe_allow_html=True)
 
-            # ── inputs + button inside bottom half of card ─────────────────────
-            st.markdown('<div class="login-card-bottom">', unsafe_allow_html=True)
-            email_input    = st.text_input("📧 Microsoft 365 Email",
+            email_input    = st.text_input("📧  Microsoft 365 Email",
                                            placeholder="yourname@optimal.co.th",
                                            key="login_email")
-            password_input = st.text_input("🔑 Password",
+            password_input = st.text_input("🔑  Password",
                                            type="password",
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
-            if st.button("Sign in with Microsoft 365",
-                         use_container_width=True, type="primary",
-                         key="login_btn"):
+            if st.button(
+                "⊞   Sign in with Microsoft 365",
+                use_container_width=True, type="primary", key="login_btn"
+            ):
                 if not email_input or not password_input:
                     st.error("กรุณากรอก Email และ Password")
                 else:
@@ -1715,11 +1769,11 @@ def render_login_page(auth_ready: bool):
                             st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
                         else:
                             st.error(f"❌ Login ไม่สำเร็จ: {err}")
-            st.markdown("""
-                <div class="login-footer" style="margin-top:10px">
-                    Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
-                </div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                '<div class="lrc-footer">Version 2026.04 &nbsp;•&nbsp; Support: '
+                '<a href="mailto:it@optimal.co.th">it@optimal.co.th</a></div>',
+                unsafe_allow_html=True,
+            )
         else:
             st.markdown(textwrap.dedent("""
             <div class="login-auth-card">
