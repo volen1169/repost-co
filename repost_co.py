@@ -62,7 +62,7 @@ footer                             { display: none !important; }
 }
 
 /* ── gap ระหว่าง elements ── */
-[data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
+[data-testid="stVerticalBlock"] { gap: 1rem !important; }
 
 /* ── ลด margin ของ stMarkdown ── */
 [data-testid="stMarkdownContainer"] > div { margin-bottom: 0 !important; }
@@ -73,6 +73,12 @@ div[data-testid="column"] {
 }
 div[data-testid="column"]:first-child { padding-left: 0 !important; }
 div[data-testid="column"]:last-child  { padding-right: 0 !important; }
+
+/* ── spacing between plotly charts and dataframes ── */
+[data-testid="stPlotlyChart"]  { margin-bottom: 0 !important; }
+[data-testid="stDataFrame"]    { margin-bottom: 0 !important; }
+[data-testid="stDivider"]      { margin: 0.5rem 0 !important; }
+[data-testid="stMetric"] + [data-testid="stMetric"] { margin-top: 0 !important; }
 
 /* ── Sidebar polish ── */
 [data-testid="stSidebar"] {
@@ -2514,8 +2520,8 @@ if menu == "📊 Team Dashboard":
     .saas-kpi.good .saas-kpi-value{color:#86efac;}
     .saas-kpi.bad .saas-kpi-value{color:#fda4af;}
     .saas-main{position:relative; z-index:2; display:grid; grid-template-columns:1.55fr .95fr; gap:16px; margin-top:16px;}
-    .saas-stack{display:flex; flex-direction:column; gap:16px;}
-    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(241,245,249,.84)); border:1px solid rgba(255,255,255,.75); border-radius:24px; box-shadow:0 18px 34px rgba(15,23,42,.12); overflow:hidden;}
+    .saas-stack{display:flex; flex-direction:column; gap:14px;}
+    .saas-card{background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(241,245,249,.84)); border:1px solid rgba(255,255,255,.75); border-radius:24px; box-shadow:0 18px 34px rgba(15,23,42,.12); overflow:hidden; margin-bottom:0;}
     .saas-card.dark{background:linear-gradient(180deg, rgba(14,25,69,.74), rgba(19,39,101,.60)); border:1px solid rgba(255,255,255,.14); color:#fff;}
     .saas-card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 12px 18px;}
     .saas-card-title{font-size:17px; font-weight:900; color:#10224d;}
