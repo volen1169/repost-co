@@ -2676,9 +2676,7 @@ if menu == "📊 Team Dashboard":
             "risk_accounts":"Risk Accts",
         })
         st.dataframe(
-            top10[["Branch/Channel","Actual (kg)","Target (kg)","Gap%","Risk Accts"]].style
-            .format({"Actual (kg)":"{:,.0f}","Target (kg)":"{:,.0f}","Gap%":"{:+.1f}%","Risk Accts":"{:.0f}"})
-            .background_gradient(subset=["Gap%"], cmap="RdYlGn", vmin=-30, vmax=10),
+            top10[["Branch/Channel","Actual (kg)","Target (kg)","Gap%","Risk Accts"]],
             use_container_width=True, height=320,
         )
 
@@ -2695,8 +2693,7 @@ if menu == "📊 Team Dashboard":
                 "Customer Name":"Customer","Salesperson":"Owner",
                 "achievement_pct":"Ach%","gap_kg":"Gap kg","yoy_pct":"YoY%"})
             st.dataframe(
-                action_rows[["Customer","Owner","Ach%","Gap kg","Priority","Action"]].style
-                .format({"Ach%":"{:.1f}%","Gap kg":"{:,.0f}","YoY%":"{:+.1f}%"}),
+                action_rows[["Customer","Owner","Ach%","Gap kg","Priority","Action"]],
                 use_container_width=True, height=320,
             )
         else:
