@@ -2794,7 +2794,7 @@ if menu == "📊 Team Dashboard":
     st.markdown("<div class='saas-main'><div class='saas-stack'>", unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class="saas-card dark">
+    <div class="saas-card dark" style="margin-bottom:16px">
         <div class="saas-card-head">
             <div>
                 <div class="saas-card-title">Manager Snapshot</div>
@@ -2810,7 +2810,7 @@ if menu == "📊 Team Dashboard":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Performance Ranking</div><div class='saas-card-sub'>เรียงตาม Achievement และยอดขายรวม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Team Performance Ranking</div><div class='saas-card-sub'>เรียงตาม Achievement และยอดขายรวม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     rank_html = []
     for idx, (_, row) in enumerate(top_sales.iterrows(), start=1):
         tone = "good" if float(row["achievement_pct"]) >= 85 else ("warn" if float(row["achievement_pct"]) >= 65 else "bad")
@@ -2818,9 +2818,9 @@ if menu == "📊 Team Dashboard":
             f"<div class='saas-list-row'><div style='display:flex;align-items:center;gap:12px;'><div class='saas-rank'>{idx}</div><div><div class='saas-name'>{row['Salesperson']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • ฿{float(row['total_sales'])/1e6:,.1f}M</div></div></div><div class='saas-pill {tone}'>{float(row['achievement_pct']):,.1f}%</div></div>"
         )
     st.markdown("".join(rank_html) if rank_html else "<div class='saas-meta'>ยังไม่มีข้อมูลเพียงพอ</div>", unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Priority Accounts</div><div class='saas-card-sub'>ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Priority Accounts</div><div class='saas-card-sub'>ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     rows = []
     for _, row in top_opp.iterrows():
         score_tone = "good" if float(row["opportunity_score"]) >= 75 else ("warn" if float(row["opportunity_score"]) >= 50 else "info")
@@ -2828,9 +2828,9 @@ if menu == "📊 Team Dashboard":
             f"<tr><td><div class='saas-name'>{row['Customer Name']}</div><div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div></td><td><span class='saas-pill {score_tone}'>{float(row['opportunity_score']):.0f}</span></td><td>฿{float(row['Sales/Year'])/1e6:,.1f}M</td><td>{float(row['achievement_pct']):,.1f}%</td><td style='font-weight:900;color:#dc2626;'>+{float(row['gap_kg'])/1e6:,.1f}M</td></tr>"
         )
     st.markdown(f"<table class='saas-priority-table'><thead><tr><th>Customer</th><th>Score</th><th>Sales</th><th>Achv.</th><th>Gap</th></tr></thead><tbody>{''.join(rows)}</tbody></table>", unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Coverage Focus Map</div><div class='saas-card-sub'>แผนที่จริงแบบ SaaS สำหรับจุดลูกค้าที่ควรเข้า follow-up</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     map_no_coords = []
     try:
         map_no_coords = json.loads(map_points_no_coords_json)
@@ -2906,11 +2906,11 @@ if menu == "📊 Team Dashboard":
     </html>
     """
     components.html(map_html, height=420)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
     st.markdown("</div><div class='saas-stack'>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Risk Signals</div><div class='saas-card-sub'>บัญชีและพื้นที่ที่ต้องระวัง</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Risk Signals</div><div class='saas-card-sub'>บัญชีและพื้นที่ที่ต้องระวัง</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     risk_html = []
     if not at_risk.empty:
         for _, row in at_risk.iterrows():
@@ -2918,9 +2918,9 @@ if menu == "📊 Team Dashboard":
                 f"<div class='saas-list-row'><div><div class='saas-name'>{row['Customer Name']}</div><div class='saas-meta'>{row['Salesperson']} • {row['Province']}</div></div><div style='text-align:right;'><div class='saas-pill bad'>{float(row['achievement_pct']):,.1f}%</div><div class='saas-meta' style='margin-top:6px;'>YoY {float(row['yoy_pct']):+,.1f}%</div></div></div>"
             )
     st.markdown("".join(risk_html) if risk_html else "<div class='saas-meta'>ไม่พบบัญชีเสี่ยงในเกณฑ์ที่ตั้งไว้</div>", unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>High Potential Provinces</div><div class='saas-card-sub'>จังหวัดที่ gap สูงและมีโอกาสขยาย</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>High Potential Provinces</div><div class='saas-card-sub'>จังหวัดที่ gap สูงและมีโอกาสขยาย</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     hp_html = []
     for _, row in high_potential.iterrows():
         tone = "warn" if float(row["avg_achievement"]) >= 65 else "bad"
@@ -2928,9 +2928,9 @@ if menu == "📊 Team Dashboard":
             f"<div class='saas-list-row'><div><div class='saas-name'>{row['Province']}</div><div class='saas-meta'>{int(row['customers']):,} accounts • Sales ฿{float(row['total_sales'])/1e6:,.1f}M</div></div><div class='saas-pill {tone}'>+{float(row['gap_kg'])/1e6:,.1f}M</div></div>"
         )
     st.markdown("".join(hp_html) if hp_html else "<div class='saas-meta'>ยังไม่มีข้อมูลจังหวัดเป้าหมาย</div>", unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Sales by Region</div><div class='saas-card-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Sales by Region</div><div class='saas-card-sub'>สัดส่วนยอดขายรายภูมิภาค</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     fig_region = px.bar(
         by_region.head(6),
         x="total_sales",
@@ -2952,15 +2952,15 @@ if menu == "📊 Team Dashboard":
         yaxis=dict(categoryorder="total ascending"),
     )
     st.plotly_chart(fig_region, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='saas-card'><div class='saas-card-head'><div><div class='saas-card-title'>Team Trend</div><div class='saas-card-sub'>Achievement และ Avg YoY ของคนในทีม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Team Trend</div><div class='saas-card-sub'>Achievement และ Avg YoY ของคนในทีม</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     fig_trend = go.Figure()
     fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["achievement_pct"], mode="lines+markers", name="Achievement %", line=dict(width=3, color="#2563eb"), fill="tozeroy", fillcolor="rgba(37,99,235,.12)"))
     fig_trend.add_trace(go.Scatter(x=trend["Salesperson"], y=trend["avg_yoy"].fillna(0), mode="lines+markers", name="Avg YoY %", line=dict(width=3, color="#8b5cf6")))
     fig_trend.update_layout(height=280, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title=None, yaxis_title=None, legend=dict(orientation="h", y=1.08, x=0))
     st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='saas-actions'>", unsafe_allow_html=True)
     manager_report = to_excel_bytes_multi({
