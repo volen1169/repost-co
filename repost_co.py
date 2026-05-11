@@ -54,27 +54,22 @@ footer                             { display: none !important; }
 
 /* ── ลด padding บน block container ── */
 .main .block-container {
-    padding-top: 0rem !important;
+    padding-top: 0.3rem !important;
     padding-bottom: 1rem !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
     max-width: 100% !important;
 }
 
-/* ── ลด gap ระหว่าง elements ── */
-[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stVerticalBlock"] > div {
-    gap: 0 !important;
-}
-section.main > div { gap: 0 !important; }
-[data-testid="stVerticalBlock"] { gap: 0.6rem !important; }
+/* ── gap ระหว่าง elements ── */
+[data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
 
 /* ── ลด margin ของ stMarkdown ── */
 [data-testid="stMarkdownContainer"] > div { margin-bottom: 0 !important; }
 
-/* ── ลด padding column ── */
+/* ── column padding ── */
 div[data-testid="column"] {
-    padding: 0 0.3rem !important;
+    padding: 0 0.4rem !important;
 }
 div[data-testid="column"]:first-child { padding-left: 0 !important; }
 div[data-testid="column"]:last-child  { padding-right: 0 !important; }
