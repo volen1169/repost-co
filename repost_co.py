@@ -3668,7 +3668,49 @@ elif menu == "🎯 Sales Action Center":
         accent="#2563eb",
     )
 
-    opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12).copy()
+    # ── Quick Filter buttons ──────────────────────────────────────
+    st.markdown("""
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <span style="font-size:12px;font-weight:700;color:#64748b;align-self:center">⚡ Quick Filter:</span>
+    </div>""", unsafe_allow_html=True)
+
+    qf_col1, qf_col2, qf_col3, qf_col4, qf_spacer = st.columns([1.4, 1.4, 1.6, 1.4, 3])
+    with qf_col1:
+        btn_gap = st.button("📉 Gap สูงสุด", use_container_width=True,
+                            type="primary" if st.session_state.get("sac_filter")=="gap" else "secondary",
+                            key="qf_gap")
+    with qf_col2:
+        btn_risk = st.button("⚠️ At-Risk", use_container_width=True,
+                             type="primary" if st.session_state.get("sac_filter")=="risk" else "secondary",
+                             key="qf_risk")
+    with qf_col3:
+        btn_grade_a = st.button("🥇 Grade A ยอดตก", use_container_width=True,
+                                type="primary" if st.session_state.get("sac_filter")=="grade_a" else "secondary",
+                                key="qf_grade_a")
+    with qf_col4:
+        btn_all = st.button("📋 ทั้งหมด", use_container_width=True,
+                            type="primary" if not st.session_state.get("sac_filter") else "secondary",
+                            key="qf_all")
+
+    if btn_gap:   st.session_state["sac_filter"] = "gap";    st.rerun()
+    if btn_risk:  st.session_state["sac_filter"] = "risk";   st.rerun()
+    if btn_grade_a: st.session_state["sac_filter"] = "grade_a"; st.rerun()
+    if btn_all:   st.session_state.pop("sac_filter", None);  st.rerun()
+
+    # Apply filter
+    sac_f = st.session_state.get("sac_filter", "")
+    if sac_f == "gap":
+        opp = rep.sort_values("gap_kg", ascending=False).head(12).copy()
+    elif sac_f == "risk":
+        opp = rep[(rep["achievement_pct"] < 50) | (rep["yoy_pct"] < 0)].sort_values("opportunity_score", ascending=False).head(12).copy()
+    elif sac_f == "grade_a":
+        grade_col = next((c for c in rep.columns if "grade" in c.lower()), None)
+        if grade_col:
+            opp = rep[(rep[grade_col].isin(["A","A-"])) & (rep["yoy_pct"] < 0)].sort_values("gap_kg", ascending=False).head(12).copy()
+        else:
+            opp = rep[rep["achievement_pct"] >= 80].sort_values("yoy_pct").head(12).copy()
+    else:
+        opp = rep.sort_values(["opportunity_score", "gap_kg", "Sales/Year"], ascending=False).head(12).copy()
     pc1, pc2 = st.columns([1.15, 0.85])
     with pc1:
         opp_view = opp[[
@@ -3705,6 +3747,51 @@ elif menu == "🎯 Sales Action Center":
         fig_opp.update_traces(textposition="outside", marker_line_width=0)
         fig_opp.update_layout(height=388, coloraxis_showscale=False, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=18, b=10))
         st.plotly_chart(fig_opp, use_container_width=True)
+
+    # ── Activity Logging / Next Step ─────────────────────────────
+    render_section_header(
+        title="บันทึก Activity & Next Step",
+        subtitle="บันทึกสถานะล่าสุดและแผนการถัดไปของแต่ละลูกค้า เพื่อให้ทีมเห็นภาพรวมการทำงาน",
+        icon="📝",
+        accent="#7c3aed",
+    )
+
+    if "activity_log" not in st.session_state:
+        st.session_state["activity_log"] = []
+
+    # Customer selector from priority list
+    cust_names = ["— เลือกลูกค้า —"] + list(opp["Customer Name"].unique())
+    al_c1, al_c2, al_c3, al_c4 = st.columns([2, 1.5, 1.5, 1])
+    with al_c1:
+        sel_cust = st.selectbox("ลูกค้า", cust_names, key="act_cust", label_visibility="collapsed")
+    with al_c2:
+        act_status = st.selectbox("สถานะ", [
+            "รอเสนอราคา", "ติดตามตัวอย่าง", "รอการอนุมัติ",
+            "นัด Visit แล้ว", "ปิดการขาย", "ติดตาม Payment", "อื่นๆ"
+        ], key="act_status", label_visibility="collapsed")
+    with al_c3:
+        act_note = st.text_input("หมายเหตุ / Next Step", placeholder="เช่น ส่งใบเสนอราคาวันศุกร์", key="act_note", label_visibility="collapsed")
+    with al_c4:
+        if st.button("💾 บันทึก", use_container_width=True, type="primary", key="act_save"):
+            if sel_cust and sel_cust != "— เลือกลูกค้า —":
+                log_entry = {
+                    "วันที่": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "ลูกค้า": sel_cust,
+                    "สถานะ": act_status,
+                    "Next Step": act_note,
+                    "โดย": str(st.session_state.get("auth_user", {}).get("name", "—")),
+                }
+                st.session_state["activity_log"].insert(0, log_entry)
+                st.success(f"✅ บันทึก activity ของ {sel_cust} แล้ว")
+                st.rerun()
+            else:
+                st.warning("กรุณาเลือกลูกค้าก่อนบันทึก")
+
+    if st.session_state["activity_log"]:
+        log_df = pd.DataFrame(st.session_state["activity_log"])
+        st.dataframe(log_df, use_container_width=True, hide_index=True, height=200)
+    else:
+        st.caption("ยังไม่มีรายการ — เริ่มบันทึก activity แรกได้เลย")
 
     render_section_header(
         title="Visit & Area Focus",
@@ -3900,7 +3987,7 @@ else:
     can_delete_records = str(st.session_state.get("user_role") or "").strip().lower() in ["admin", "manager"]
     is_staff_user = str(st.session_state.get("user_role") or "").strip().lower() == "staff"
 
-    tab_edit, tab_add = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่"])
+    tab_edit, tab_add, tab_log = st.tabs(["📝 แก้ไขข้อมูล", "➕ เพิ่มลูกค้าใหม่", "📋 Upload Log"])
     GRADE_COLOR = {"A": "#16a34a", "A-": "#22c55e", "B": "#2563eb", "B-": "#60a5fa",
                    "C": "#d97706", "C-": "#f59e0b", "F": "#dc2626"}
 
@@ -3909,6 +3996,15 @@ else:
         return x if x and x != "nan" else ""
 
     def _commit_save(label: str = "บันทึก"):
+        if "upload_log" not in st.session_state:
+            st.session_state["upload_log"] = []
+        st.session_state["upload_log"].insert(0, {
+            "เวลา": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "ผู้ใช้": str(st.session_state.get("auth_user", {}).get("name", "—")),
+            "การกระทำ": "บันทึกข้อมูล",
+            "รายละเอียด": label,
+            "แผนก": str(st.session_state.get("dept", "—")),
+        })
         if st.session_state.sp_file and st.session_state.dept:
             with st.spinner("💾 กำลังบันทึกขึ้น SharePoint…"):
                 ok = sp_save(st.session_state.df,
@@ -4165,8 +4261,19 @@ else:
             ok = st.form_submit_button("➕ เพิ่มลูกค้า", type="primary", use_container_width=True)
 
         if ok:
+            errors = []
             if not n_name.strip():
-                st.error("กรุณากรอก Customer Name")
+                errors.append("กรุณากรอก Customer Name")
+            if n_sales < 0:
+                errors.append("Sales/Year ต้องไม่ติดลบ")
+            if n_pc.strip():
+                pc_clean = n_pc.strip().upper()
+                import re as _re
+                if not _re.match(r'^[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,}', pc_clean.replace(" ","").split(" ")[0]):
+                    errors.append("⚠️ Plus Code รูปแบบอาจไม่ถูกต้อง (ปกติ: XXXX+XX)")
+            if errors:
+                for e in errors:
+                    st.error(e)
             else:
                 clean_pc = clean_plus_code(n_pc)
                 merged_addr = merge_address_parts(n_addr, n_pc)
@@ -4182,8 +4289,51 @@ else:
                 new_row["Region_TH"] = REGION_EN_TO_TH.get(new_row["Region"], "ไม่ระบุ")
                 st.session_state.df = pd.concat(
                     [st.session_state.df, pd.DataFrame([new_row])], ignore_index=True)
+                # ── บันทึก upload log ──
+                if "upload_log" not in st.session_state:
+                    st.session_state["upload_log"] = []
+                st.session_state["upload_log"].insert(0, {
+                    "เวลา": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                    "ผู้ใช้": str(st.session_state.get("auth_user", {}).get("name", "—")),
+                    "การกระทำ": "เพิ่มลูกค้า",
+                    "รายละเอียด": n_name.strip(),
+                    "แผนก": str(st.session_state.get("dept", "—")),
+                })
                 _commit_save(f"เพิ่ม '{n_name}'")
                 st.rerun()
+
+    with tab_log:
+        st.markdown("### 📋 Bulk Upload & Edit History")
+        st.caption("บันทึกว่าใครทำอะไรกับข้อมูล เมื่อไหร่ — เก็บใน session (รีเซ็ตเมื่อปิด browser)")
+
+        # ── Merge audit log from session ──────────────────────────
+        if "upload_log" not in st.session_state:
+            st.session_state["upload_log"] = []
+        audit_raw = list(st.session_state.get("audit_log", []))
+        upload_raw = list(st.session_state.get("upload_log", []))
+
+        combined = upload_raw + [
+            {
+                "เวลา": e.get("ts", "—"),
+                "ผู้ใช้": str(st.session_state.get("auth_user", {}).get("name", "—")),
+                "การกระทำ": e.get("action", "—"),
+                "รายละเอียด": e.get("label", "—"),
+                "แผนก": e.get("dept", "—"),
+            }
+            for e in audit_raw
+        ]
+
+        if combined:
+            log_df = pd.DataFrame(combined)
+            st.dataframe(log_df, use_container_width=True, hide_index=True, height=400)
+            st.download_button(
+                "📥 Export Log",
+                data=log_df.to_csv(index=False, encoding="utf-8-sig"),
+                file_name="upload_log.csv",
+                mime="text/csv",
+            )
+        else:
+            st.info("ยังไม่มีรายการในประวัติ — จะเริ่มบันทึกเมื่อมีการแก้ไขหรือเพิ่มข้อมูล")
 
     st.divider()
     st.subheader("⬇️ Export ข้อมูลทั้งหมด")
