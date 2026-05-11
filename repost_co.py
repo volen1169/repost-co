@@ -2609,6 +2609,8 @@ if menu == "📊 Team Dashboard":
         </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
     # ═══════════════════════════════════════════════════════════════
     # EXECUTIVE SUMMARY DASHBOARD
     # ═══════════════════════════════════════════════════════════════
@@ -2657,6 +2659,8 @@ if menu == "📊 Team Dashboard":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
     # ── KPI Row ───────────────────────────────────────────────────
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
@@ -2679,6 +2683,8 @@ if menu == "📊 Team Dashboard":
                 {'Q4 miss likely' if forecast_risk=='HIGH' else ('Monitor closely' if forecast_risk=='MED' else 'On track')}
             </div>
         </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
     # ── Mid Row: Trend + Waterfall ────────────────────────────────
     col_trend, col_wf = st.columns([1.4, 1])
@@ -2737,6 +2743,8 @@ if menu == "📊 Team Dashboard":
             showlegend=False,
         )
         st.plotly_chart(fig_wf, use_container_width=True, config={"displayModeBar": False})
+
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
     # ── Bottom Row: Ranking + Action Table ───────────────────────
     col_rank, col_act = st.columns(2)
