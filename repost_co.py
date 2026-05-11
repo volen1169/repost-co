@@ -151,7 +151,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
+    "itsupport1@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
@@ -290,7 +290,14 @@ POSTCODE_MAP = {
 GRADE_BASE = {"A": 5_000_000, "A-": 4_000_000, "B": 3_000_000, "B-": 2_500_000,
               "C": 2_000_000, "C-": 1_500_000, "F": 800_000}
 TEMPLATE_COLS = ["Customer Name", "Salesperson", "Industry", "Grade",
-                 "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "Plus_Code", "Address"]
+                 "Sales/Year", "Budget_kg", "Actual_kg", "LastYear_kg", "Plus_Code", "Address",
+                 # Contact Persons
+                 "Contact_Name", "Contact_Phone", "Contact_Position",
+                 # Competitor
+                 "Competitor",
+                 # Monthly Actual (M01–M12)
+                 "M01_kg", "M02_kg", "M03_kg", "M04_kg", "M05_kg", "M06_kg",
+                 "M07_kg", "M08_kg", "M09_kg", "M10_kg", "M11_kg", "M12_kg"]
 
 PROVINCE_CENTERS = {
     "กรุงเทพมหานคร": (13.7563, 100.5018), "นนทบุรี": (13.8621, 100.5144),
@@ -1030,6 +1037,12 @@ def build_df_from_original(xl):
     if "Budget_kg"   not in df.columns: df["Budget_kg"]   = 0
     if "Actual_kg"   not in df.columns: df["Actual_kg"]   = 0
     if "LastYear_kg" not in df.columns: df["LastYear_kg"] = 0
+    # ── New columns — Contact Person, Competitor, Monthly ────────
+    for _col in ["Contact_Name","Contact_Phone","Contact_Position","Competitor"]:
+        if _col not in df.columns: df[_col] = ""
+    for _m in range(1, 13):
+        _mc = f"M{_m:02d}_kg"
+        if _mc not in df.columns: df[_mc] = 0
     return df
 
 
@@ -2828,6 +2841,54 @@ if menu == "📊 Team Dashboard":
     st.markdown("".join(rank_html) if rank_html else "<div class='saas-meta'>ยังไม่มีข้อมูลเพียงพอ</div>", unsafe_allow_html=True)
     st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
 
+    # ── Monthly Trend Chart ───────────────────────────────────────
+    month_cols = [f"M{m:02d}_kg" for m in range(1, 13)]
+    month_labels = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.",
+                    "ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."]
+    team_monthly_cols = [c for c in month_cols if c in team_df.columns]
+    has_monthly = len(team_monthly_cols) > 0 and team_df[team_monthly_cols].sum().sum() > 0
+
+    st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>📈 Monthly Sales Trend — Actual vs Budget</div><div class='saas-card-sub'>แนวโน้มยอดขายรายเดือนเทียบกับเป้า เพื่อดูว่าช่วงไหนยอดตกหรือพุ่งสูง</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
+
+    if has_monthly:
+        monthly_actual = [float(team_df[c].sum()) if c in team_df.columns else 0 for c in month_cols]
+        # Distribute budget evenly across months
+        monthly_budget = [float(team_df["Budget_kg"].sum()) / 12] * 12
+
+        fig_monthly = go.Figure()
+        fig_monthly.add_trace(go.Bar(
+            x=month_labels, y=monthly_actual,
+            name="Actual (kg)", marker_color="#3b82f6",
+            text=[f"{v/1000:.1f}K" if v > 0 else "" for v in monthly_actual],
+            textposition="outside", textfont=dict(size=10),
+        ))
+        fig_monthly.add_trace(go.Scatter(
+            x=month_labels, y=monthly_budget,
+            name="Budget (kg)", mode="lines+markers",
+            line=dict(color="#ef4444", dash="dash", width=2),
+            marker=dict(size=5),
+        ))
+        fig_monthly.update_layout(
+            height=260, margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11)),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.05)", title="kg"),
+            xaxis=dict(gridcolor="rgba(0,0,0,0)"),
+            barmode="overlay",
+        )
+        st.plotly_chart(fig_monthly, use_container_width=True, config={"displayModeBar": False})
+    else:
+        st.markdown("""
+        <div style="text-align:center;padding:28px 0;color:#94a3b8">
+            <div style="font-size:28px;margin-bottom:8px">📊</div>
+            <div style="font-size:13px;font-weight:600">ยังไม่มีข้อมูลรายเดือน</div>
+            <div style="font-size:12px;margin-top:4px">
+                กรอกยอด M01_kg–M12_kg ในไฟล์ Excel แล้วอัปโหลดใหม่
+                หรือแก้ไขตรงหน้า "แก้ไข / เพิ่มข้อมูล"
+            </div>
+        </div>""", unsafe_allow_html=True)
+    st.markdown("</div></div><div style=\"height:16px\"></div>", unsafe_allow_html=True)
+
     st.markdown("<div class='saas-card' style='margin-bottom:16px'><div class='saas-card-head'><div><div class='saas-card-title'>Priority Accounts</div><div class='saas-card-sub'>ลูกค้าที่ควรเข้า follow-up ก่อน เพื่อปิด gap หรือดัน growth</div></div></div><div class='saas-card-body'>", unsafe_allow_html=True)
     rows = []
     for _, row in top_opp.iterrows():
@@ -3235,7 +3296,15 @@ elif menu == "🏢 ข้อมูลบริษัทลูกค้า":
 
         rows_html += (
             f"<tr {tr_attr}>"
-            f"<td>{co_html}<div class='sp'>👤 {sp}</div></td>"
+            f"<td>{co_html}<div class='sp'>👤 {sp}</div>"
+            + (f"<div style='margin-top:4px;font-size:11px;color:#2563eb'>"
+               f"📞 {safe(row.get('Contact_Name',''))} "
+               f"{'• '+safe(row.get('Contact_Position','')) if safe(row.get('Contact_Position',''))!='—' else ''}"
+               f"{'<br>📱 '+safe(row.get('Contact_Phone','')) if safe(row.get('Contact_Phone',''))!='—' else ''}"
+               f"</div>" if safe(row.get('Contact_Name','')) != '—' else '') +
+            (f"<div style='margin-top:3px;font-size:10.5px;color:#dc2626'>🏴 คู่แข่ง: {safe(row.get('Competitor',''))}</div>"
+             if safe(row.get('Competitor','')) != '—' else '') +
+            f"</td>"
             f"<td class='ind'>{ind}</td>"
             f"<td style='text-align:center'>{grade}</td>"
             f"<td class='sal'>{sales}<br>{bkg_html} {act_html}</td>"
@@ -3793,6 +3862,65 @@ elif menu == "🎯 Sales Action Center":
     else:
         st.caption("ยังไม่มีรายการ — เริ่มบันทึก activity แรกได้เลย")
 
+    # ── Route Grouping ────────────────────────────────────────────
+    render_section_header(
+        title="จัดกลุ่มลูกค้าตามพื้นที่ (Route Planning)",
+        subtitle="เลือกจังหวัดเพื่อดูลูกค้าในระแวกเดียวกัน วางแผนเดินทางเยี่ยมหลายเจ้าใน 1 วัน",
+        icon="🗺️",
+        accent="#0f766e",
+    )
+
+    _provinces = sorted(rep["Province"].dropna().unique().tolist())
+    rg_c1, rg_c2, rg_c3 = st.columns([2, 1, 1])
+    with rg_c1:
+        sel_provinces = st.multiselect(
+            "เลือกจังหวัด (เลือกได้หลายจังหวัด)",
+            options=_provinces,
+            placeholder="เลือกจังหวัดที่ต้องการวางแผน route...",
+            key="route_provinces",
+            label_visibility="collapsed",
+        )
+    with rg_c2:
+        sort_by = st.selectbox("เรียงตาม", ["Score (สูง→ต่ำ)", "Gap (สูง→ต่ำ)", "Sales (สูง→ต่ำ)"],
+                               label_visibility="collapsed", key="route_sort")
+    with rg_c3:
+        max_per_day = st.number_input("สูงสุด/วัน", min_value=2, max_value=10, value=5,
+                                      label_visibility="collapsed", key="route_max")
+
+    if sel_provinces:
+        route_df = rep[rep["Province"].isin(sel_provinces)].copy()
+        if sort_by.startswith("Score"):
+            route_df = route_df.sort_values("opportunity_score", ascending=False)
+        elif sort_by.startswith("Gap"):
+            route_df = route_df.sort_values("gap_kg", ascending=False)
+        else:
+            route_df = route_df.sort_values("Sales/Year", ascending=False)
+
+        total_cust = len(route_df)
+        days_needed = max(1, -(-total_cust // max_per_day))  # ceiling division
+
+        st.markdown(f"""
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;
+                    padding:12px 16px;margin-bottom:12px;font-size:13px">
+            🗓️ พบ <b>{total_cust} ลูกค้า</b> ใน {len(sel_provinces)} จังหวัดที่เลือก
+            — แนะนำ <b>{days_needed} วัน</b> (วันละไม่เกิน {max_per_day} เจ้า)
+        </div>""", unsafe_allow_html=True)
+
+        for day_idx in range(days_needed):
+            day_slice = route_df.iloc[day_idx * max_per_day:(day_idx + 1) * max_per_day]
+            if day_slice.empty:
+                break
+            with st.expander(f"📅 วันที่ {day_idx+1} — {len(day_slice)} ลูกค้า ({', '.join(day_slice['Province'].unique())})", expanded=(day_idx == 0)):
+                day_show = day_slice[["Customer Name", "Province", "Salesperson",
+                                      "achievement_pct", "opportunity_score", "gap_kg", "Sales/Year"]].copy()
+                day_show = day_show.rename(columns={
+                    "Customer Name": "ลูกค้า", "Province": "จังหวัด",
+                    "Salesperson": "Sales", "achievement_pct": "Ach%",
+                    "opportunity_score": "Score", "gap_kg": "Gap kg", "Sales/Year": "Sales ฿"})
+                st.dataframe(day_show, use_container_width=True, hide_index=True)
+    else:
+        st.caption("เลือกจังหวัดด้านบนเพื่อดูลูกค้าในพื้นที่และวางแผน route")
+
     render_section_header(
         title="Visit & Area Focus",
         subtitle="ดูว่าควรลงพื้นที่จังหวัดไหนก่อน และลูกค้ากลุ่มไหนรวมกันได้สำหรับการวางแผน route",
@@ -4249,6 +4377,15 @@ else:
             n_ind   = r2c1.text_input("Industry")
             n_grade = r2c2.selectbox("Grade", ["", "A", "A-", "B", "B-", "C", "C-", "F"])
             n_sales = r2c3.number_input("Sales/Year (฿)", min_value=0.0, step=100_000.0)
+
+            st.markdown("**👤 ผู้ติดต่อ (Contact Person)**")
+            cp1, cp2, cp3 = st.columns(3)
+            n_contact_name = cp1.text_input("ชื่อผู้ติดต่อ", placeholder="เช่น คุณสมชาย ใจดี")
+            n_contact_phone = cp2.text_input("เบอร์โทร", placeholder="เช่น 081-234-5678")
+            n_contact_pos = cp3.selectbox("ตำแหน่ง", ["", "Purchasing", "Engineer", "Owner", "Manager", "Director", "อื่นๆ"])
+
+            n_competitor = st.text_input("🏴 คู่แข่งที่ใช้อยู่", placeholder="เช่น Brand A, Brand B")
+
             n_pc   = st.text_input("📌 Plus Code", placeholder="เช่น MJHG+2F กรุงเทพมหานคร")
             n_addr = st.text_area("Address (ระบุเพื่อ Auto-parse)")
             st.markdown("**หรือระบุที่อยู่เองด้านล่าง** (ว่าง = Auto-parse)")
@@ -4285,6 +4422,10 @@ else:
                     "Sub-district": n_sub or auto_sub, "District": n_dis or auto_dis,
                     "Province": n_prov or auto_prov, "Region": n_reg or auto_reg,
                     "Budget_kg": 0, "Actual_kg": 0, "LastYear_kg": 0,
+                    "Contact_Name": n_contact_name.strip(),
+                    "Contact_Phone": n_contact_phone.strip(),
+                    "Contact_Position": n_contact_pos,
+                    "Competitor": n_competitor.strip(),
                 }
                 new_row["Region_TH"] = REGION_EN_TO_TH.get(new_row["Region"], "ไม่ระบุ")
                 st.session_state.df = pd.concat(
