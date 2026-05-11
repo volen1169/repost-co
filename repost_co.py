@@ -41,6 +41,53 @@ ADMIN_PASSWORD = os.getenv("SALES_DASHBOARD_ADMIN_PASSWORD", "1234")
 # ── Page config (ต้องเป็น command แรก) ───────────────────────────────────────
 st.set_page_config(page_title="Sales Territory Dashboard", page_icon="📊", layout="wide")
 
+# ── Global UI polish — ซ่อน toolbar และปรับ layout ─────────────────────────
+st.markdown("""
+<style>
+/* ── ซ่อน Streamlit toolbar, header, footer ── */
+[data-testid="stToolbar"]          { display: none !important; }
+[data-testid="stDecoration"]       { display: none !important; }
+[data-testid="stHeader"]           { display: none !important; }
+footer                             { display: none !important; }
+#MainMenu                          { display: none !important; }
+[data-testid="manage-app-button"]  { display: none !important; }
+
+/* ── ลด padding บน block container ── */
+.main .block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    max-width: 100% !important;
+}
+
+/* ── Sidebar polish ── */
+[data-testid="stSidebar"] {
+    border-right: 1px solid var(--color-border-tertiary) !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1.2rem !important;
+}
+
+/* ── Metric card spacing ── */
+[data-testid="stMetric"] {
+    background: var(--color-background-secondary);
+    border-radius: 10px;
+    padding: 12px 14px !important;
+    border: 0.5px solid var(--color-border-tertiary);
+}
+[data-testid="stMetricLabel"] {
+    font-size: 12px !important;
+    color: var(--color-text-secondary) !important;
+}
+[data-testid="stMetricValue"] {
+    font-size: 22px !important;
+    font-weight: 500 !important;
+}
+
+/* ── Divider ── */
+hr { border-color: var(--color-border-tertiary) !important; margin: 0.75rem 0 !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SharePoint Config — อ่านจาก st.secrets (ไม่ hardcode ใน code)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2549,26 +2596,41 @@ if menu == "📊 Team Dashboard":
     forecast_risk = "HIGH" if gap_pct < -10 else ("MED" if gap_pct < 0 else "LOW")
 
     # ── Executive Summary Banner ──────────────────────────────────
+    banner_bg   = "#fff8f8" if gap_pct < 0 else "#f8fff8"
+    banner_bdr  = "#f09595" if gap_pct < 0 else "#97c459"
+    banner_txt  = "#a32d2d" if gap_pct < 0 else "#3b6d11"
+    badge_bg    = "#a32d2d" if gap_pct < 0 else "#3b6d11"
+    icon        = "⚠️" if gap_pct < 0 else "✅"
+    direction   = "ต่ำกว่า" if gap_pct < 0 else "สูงกว่า"
+
     st.markdown(f"""
-    <div style="background:{'#fcebeb' if gap_pct<0 else '#eaf3de'};
-                border:1px solid {'#f09595' if gap_pct<0 else '#97c459'};
-                border-radius:14px;padding:14px 20px;display:flex;
-                align-items:center;gap:14px;margin-bottom:14px">
-        <div style="font-size:28px">{'⚠️' if gap_pct<0 else '✅'}</div>
-        <div>
-            <div style="font-size:14px;font-weight:700;
-                        color:{'#a32d2d' if gap_pct<0 else '#3b6d11'}">
-                Executive Summary — Revenue {'ต่ำกว่า' if gap_pct<0 else 'สูงกว่า'}เป้า {abs(gap_pct):.1f}%
+    <div style="
+        background:{banner_bg};
+        border:1.5px solid {banner_bdr};
+        border-radius:16px;
+        padding:16px 22px;
+        display:flex;
+        align-items:center;
+        gap:16px;
+        margin-bottom:16px;
+        box-shadow:0 2px 12px rgba(0,0,0,.04)">
+        <div style="font-size:30px;line-height:1">{icon}</div>
+        <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:{banner_txt}">
+                Executive Summary — Revenue {direction}เป้า {abs(gap_pct):.1f}%
             </div>
-            <div style="font-size:12px;color:{'#791f1f' if gap_pct<0 else '#27500a'};margin-top:3px">
-                Actual {total_actual:,.0f} kg &nbsp;|&nbsp; Target {total_budget:,.0f} kg
-                &nbsp;|&nbsp; Gap {total_actual-total_budget:+,.0f} kg
-                &nbsp;|&nbsp; YoY {yoy_total_pct:+.1f}%
+            <div style="font-size:12px;color:{banner_txt};opacity:.85;margin-top:4px">
+                Actual <b>{total_actual:,.0f} kg</b> &nbsp;|&nbsp;
+                Target <b>{total_budget:,.0f} kg</b> &nbsp;|&nbsp;
+                Gap <b>{total_actual-total_budget:+,.0f} kg</b> &nbsp;|&nbsp;
+                YoY <b>{yoy_total_pct:+.1f}%</b>
             </div>
         </div>
-        <div style="margin-left:auto;background:{'#a32d2d' if gap_pct<0 else '#3b6d11'};
-                    color:#fff;font-size:12px;font-weight:700;
-                    padding:6px 14px;border-radius:20px;white-space:nowrap">
+        <div style="
+            background:{badge_bg};color:#fff;
+            font-size:13px;font-weight:700;
+            padding:8px 18px;border-radius:999px;
+            white-space:nowrap;letter-spacing:.02em">
             {gap_pct:+.1f}% vs Target
         </div>
     </div>
@@ -2659,7 +2721,11 @@ if menu == "📊 Team Dashboard":
     col_rank, col_act = st.columns(2)
 
     with col_rank:
-        st.markdown("**🏆 Top 10 Branch/Channel — Gap สูงสุด**")
+        st.markdown("""
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;
+                    display:flex;align-items:center;gap:6px">
+            🏆 Top 10 Branch/Channel — Gap สูงสุด
+        </div>""", unsafe_allow_html=True)
         top10 = by_sp.sort_values("actual_kg").head(10)[
             ["Salesperson","actual_kg","budget_kg","achievement_pct","risk_accounts"]
         ].copy()
@@ -2681,7 +2747,11 @@ if menu == "📊 Team Dashboard":
         )
 
     with col_act:
-        st.markdown("**📋 Action Table — Follow-up**")
+        st.markdown("""
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;
+                    display:flex;align-items:center;gap:6px">
+            📋 Action Table — Follow-up
+        </div>""", unsafe_allow_html=True)
         # Build action table from at_risk accounts
         if not at_risk.empty:
             action_rows = at_risk[["Customer Name","Salesperson","achievement_pct","gap_kg","yoy_pct"]].copy()
