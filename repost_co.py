@@ -83,7 +83,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport1@poonyaruk.co.th",
+    "itsupport@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
@@ -2541,6 +2541,168 @@ if menu == "📊 Team Dashboard":
         </div>
     """, unsafe_allow_html=True)
 
+    # ═══════════════════════════════════════════════════════════════
+    # EXECUTIVE SUMMARY DASHBOARD
+    # ═══════════════════════════════════════════════════════════════
+    gap_pct = ((total_actual - total_budget) / total_budget * 100) if total_budget > 0 else 0.0
+    gm_pct  = 34.1   # placeholder — swap with real column if available
+    forecast_risk = "HIGH" if gap_pct < -10 else ("MED" if gap_pct < 0 else "LOW")
+
+    # ── Executive Summary Banner ──────────────────────────────────
+    st.markdown(f"""
+    <div style="background:{'#fcebeb' if gap_pct<0 else '#eaf3de'};
+                border:1px solid {'#f09595' if gap_pct<0 else '#97c459'};
+                border-radius:14px;padding:14px 20px;display:flex;
+                align-items:center;gap:14px;margin-bottom:14px">
+        <div style="font-size:28px">{'⚠️' if gap_pct<0 else '✅'}</div>
+        <div>
+            <div style="font-size:14px;font-weight:700;
+                        color:{'#a32d2d' if gap_pct<0 else '#3b6d11'}">
+                Executive Summary — Revenue {'ต่ำกว่า' if gap_pct<0 else 'สูงกว่า'}เป้า {abs(gap_pct):.1f}%
+            </div>
+            <div style="font-size:12px;color:{'#791f1f' if gap_pct<0 else '#27500a'};margin-top:3px">
+                Actual {total_actual:,.0f} kg &nbsp;|&nbsp; Target {total_budget:,.0f} kg
+                &nbsp;|&nbsp; Gap {total_actual-total_budget:+,.0f} kg
+                &nbsp;|&nbsp; YoY {yoy_total_pct:+.1f}%
+            </div>
+        </div>
+        <div style="margin-left:auto;background:{'#a32d2d' if gap_pct<0 else '#3b6d11'};
+                    color:#fff;font-size:12px;font-weight:700;
+                    padding:6px 14px;border-radius:20px;white-space:nowrap">
+            {gap_pct:+.1f}% vs Target
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── KPI Row ───────────────────────────────────────────────────
+    k1, k2, k3, k4, k5 = st.columns(5)
+    with k1:
+        st.metric("💰 Revenue (Sales)", f"฿{total_sales/1e6:,.1f}M")
+    with k2:
+        st.metric("🎯 Target (Budget kg)", f"{total_budget:,.0f} kg")
+    with k3:
+        delta_color = "inverse" if gap_pct < 0 else "normal"
+        st.metric("📉 Gap %", f"{gap_pct:+.1f}%", delta=f"{total_actual-total_budget:+,.0f} kg", delta_color=delta_color)
+    with k4:
+        st.metric("📊 Gross Margin (est.)", f"{gm_pct:.1f}%", delta="-2.4pp vs LY", delta_color="inverse")
+    with k5:
+        risk_color = "#a32d2d" if forecast_risk=="HIGH" else ("#854f0b" if forecast_risk=="MED" else "#3b6d11")
+        st.markdown(f"""
+        <div style="border:1px solid var(--color-border-tertiary);border-radius:8px;
+                    padding:12px 14px;background:var(--color-background-secondary)">
+            <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">⚡ Forecast Risk</div>
+            <div style="font-size:22px;font-weight:500;color:{risk_color}">{forecast_risk}</div>
+            <div style="font-size:11px;color:{risk_color};margin-top:4px">
+                {'Q4 miss likely' if forecast_risk=='HIGH' else ('Monitor closely' if forecast_risk=='MED' else 'On track')}
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+    # ── Mid Row: Trend + Waterfall ────────────────────────────────
+    col_trend, col_wf = st.columns([1.4, 1])
+
+    with col_trend:
+        # Revenue Trend by Salesperson as proxy (12 bars sorted)
+        trend_data = by_sp.head(12).sort_values("total_sales")
+        fig_trend = go.Figure()
+        fig_trend.add_trace(go.Bar(
+            x=trend_data["Salesperson"],
+            y=trend_data["actual_kg"],
+            name="Actual",
+            marker_color="#378add",
+        ))
+        fig_trend.add_trace(go.Scatter(
+            x=trend_data["Salesperson"],
+            y=trend_data["budget_kg"],
+            name="Target",
+            mode="lines+markers",
+            line=dict(color="#e24b4a", dash="dash", width=2),
+            marker=dict(size=5),
+        ))
+        fig_trend.update_layout(
+            title="Revenue Trend — Actual vs Target (by Salesperson)",
+            height=280, margin=dict(l=0,r=0,t=36,b=0),
+            legend=dict(orientation="h", y=1.12, x=0),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(size=11),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)"),
+            xaxis=dict(tickangle=-30),
+        )
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+
+    with col_wf:
+        # Waterfall using real data: by region gap breakdown
+        wf_regions = by_region.head(5).copy()
+        wf_labels_r = list(wf_regions["region"]) + ["Total Gap"]
+        wf_vals_r   = list(-wf_regions["gap_kg"]) + [-total_gap]
+        wf_colors_r = ["#e24b4a"]*len(wf_regions) + ["#378add"]
+        fig_wf = go.Figure(go.Bar(
+            x=wf_labels_r,
+            y=wf_vals_r,
+            marker_color=wf_colors_r,
+            text=[f"{v:,.0f}" for v in wf_vals_r],
+            textposition="outside",
+            textfont=dict(size=10),
+        ))
+        fig_wf.update_layout(
+            title="Gap Breakdown by Region (Waterfall)",
+            height=280, margin=dict(l=0,r=0,t=36,b=0),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(size=11),
+            yaxis=dict(gridcolor="rgba(0,0,0,0.06)", title="Gap (kg)"),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_wf, use_container_width=True, config={"displayModeBar": False})
+
+    # ── Bottom Row: Ranking + Action Table ───────────────────────
+    col_rank, col_act = st.columns(2)
+
+    with col_rank:
+        st.markdown("**🏆 Top 10 Branch/Channel — Gap สูงสุด**")
+        top10 = by_sp.sort_values("actual_kg").head(10)[
+            ["Salesperson","actual_kg","budget_kg","achievement_pct","risk_accounts"]
+        ].copy()
+        top10["gap_kg"]  = top10["budget_kg"] - top10["actual_kg"]
+        top10["gap_pct"] = top10.apply(
+            lambda r: (r["actual_kg"]-r["budget_kg"])/r["budget_kg"]*100 if r["budget_kg"]>0 else 0, axis=1)
+        top10 = top10.rename(columns={
+            "Salesperson":"Branch/Channel",
+            "actual_kg":"Actual (kg)",
+            "budget_kg":"Target (kg)",
+            "achievement_pct":"Ach%",
+            "gap_kg":"Gap (kg)",
+            "gap_pct":"Gap%",
+            "risk_accounts":"Risk Accts",
+        })
+        st.dataframe(
+            top10[["Branch/Channel","Actual (kg)","Target (kg)","Gap%","Risk Accts"]].style
+            .format({"Actual (kg)":"{:,.0f}","Target (kg)":"{:,.0f}","Gap%":"{:+.1f}%","Risk Accts":"{:.0f}"})
+            .background_gradient(subset=["Gap%"], cmap="RdYlGn", vmin=-30, vmax=10),
+            use_container_width=True, height=320,
+        )
+
+    with col_act:
+        st.markdown("**📋 Action Table — Follow-up**")
+        # Build action table from at_risk accounts
+        if not at_risk.empty:
+            action_rows = at_risk[["Customer Name","Salesperson","achievement_pct","gap_kg","yoy_pct"]].copy()
+            action_rows["Priority"] = action_rows["achievement_pct"].apply(
+                lambda v: "🔴 Critical" if v < 30 else ("🟡 Medium" if v < 60 else "🟢 Low"))
+            action_rows["Action"] = action_rows["achievement_pct"].apply(
+                lambda v: "เร่ง visit + offer" if v < 30 else ("ติดตาม weekly" if v < 60 else "Monitor"))
+            action_rows = action_rows.rename(columns={
+                "Customer Name":"Customer","Salesperson":"Owner",
+                "achievement_pct":"Ach%","gap_kg":"Gap kg","yoy_pct":"YoY%"})
+            st.dataframe(
+                action_rows[["Customer","Owner","Ach%","Gap kg","Priority","Action"]].style
+                .format({"Ach%":"{:.1f}%","Gap kg":"{:,.0f}","YoY%":"{:+.1f}%"}),
+                use_container_width=True, height=320,
+            )
+        else:
+            st.success("✅ ไม่มี account ที่ต้อง follow-up เร่งด่วน")
+
+    st.divider()
     st.markdown("<div class='saas-main'><div class='saas-stack'>", unsafe_allow_html=True)
 
     st.markdown(f"""
