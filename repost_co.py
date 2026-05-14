@@ -151,7 +151,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
+    "itsupport1@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
@@ -1741,8 +1741,73 @@ def render_login_page(auth_ready: bool):
             .lrc-divider {
                 display: none;
             }
-            /* Link button (OAuth2 Sign in) */
-            div[data-testid="stLinkButton"] > a {
+            /* Inputs */
+            div[data-testid="stTextInput"] {
+                margin-bottom: 2px !important;
+            }
+            div[data-testid="stTextInput"] label p {
+                color: #93c5fd !important;
+                font-size: 11.5px !important;
+                font-weight: 700 !important;
+                letter-spacing: .10em !important;
+                text-transform: uppercase !important;
+                margin-bottom: 5px !important;
+                margin-top: 0 !important;
+            }
+            /* collapse Streamlit's default widget spacing */
+            div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"],
+            div[data-testid="stVerticalBlock"] > div {
+                gap: 0 !important;
+            }
+            /* Remove top gap between card HTML and Streamlit inputs */
+            .login-right-card + div,
+            .login-right-card ~ div[data-testid="stVerticalBlock"] {
+                margin-top: -6px !important;
+            }
+            /* tighten Streamlit element spacing inside right column */
+            section[data-testid="stSidebar"] ~ div div[data-testid="column"]:last-child
+            div[data-testid="stVerticalBlock"] > * {
+                margin-bottom: 6px !important;
+            }
+            div[data-testid="stTextInput"] > div {
+                border-radius: 14px !important;
+                border: 1.5px solid rgba(99,179,237,.45) !important;
+                background: rgba(255,255,255,.92) !important;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.80),
+                    0 0 20px rgba(59,130,246,.08) !important;
+                transition: border-color .2s, box-shadow .2s !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stTextInput"] > div:focus-within {
+                border-color: rgba(37,99,235,.80) !important;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.90),
+                    0 0 0 4px rgba(59,130,246,.20),
+                    0 0 24px rgba(59,130,246,.12) !important;
+            }
+            div[data-testid="stTextInput"] input {
+                background: transparent !important;
+                border: none !important;
+                color: #1e3a5f !important;
+                -webkit-text-fill-color: #1e3a5f !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                padding: 11px 14px !important;
+                box-shadow: none !important;
+                caret-color: #2563eb !important;
+            }
+            div[data-testid="stTextInput"] input::placeholder {
+                color: rgba(100,140,180,.65) !important;
+                -webkit-text-fill-color: rgba(100,140,180,.65) !important;
+                font-weight: 400 !important;
+            }
+            div[data-testid="stTextInput"] button svg {
+                color: #4b7ab5 !important;
+                fill: #4b7ab5 !important;
+            }
+            /* Button */
+            div[data-testid="stButton"] > button[kind="primary"] {
                 background: linear-gradient(135deg,#1d4ed8 0%,#2563eb 50%,#0ea5e9 100%) !important;
                 border: 1px solid rgba(255,255,255,.20) !important;
                 border-radius: 14px !important;
@@ -1751,26 +1816,30 @@ def render_login_page(auth_ready: bool):
                 font-weight: 800 !important;
                 letter-spacing: .02em !important;
                 padding: 13px 24px !important;
-                margin-top: 12px !important;
-                box-shadow: 0 8px 20px rgba(29,78,216,.45), inset 0 1px 0 rgba(255,255,255,.20) !important;
+                margin-top: 8px !important;
+                box-shadow:
+                    0 8px 20px rgba(29,78,216,.45),
+                    inset 0 1px 0 rgba(255,255,255,.20) !important;
                 transition: transform .15s, box-shadow .15s !important;
-                text-decoration: none !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 10px !important;
+                position: relative !important;
             }
-            div[data-testid="stLinkButton"] > a:hover {
+            div[data-testid="stButton"] > button[kind="primary"]:hover {
                 transform: translateY(-2px) scale(1.01) !important;
-                box-shadow: 0 14px 28px rgba(29,78,216,.55), inset 0 1px 0 rgba(255,255,255,.22) !important;
+                box-shadow:
+                    0 14px 28px rgba(29,78,216,.55),
+                    inset 0 1px 0 rgba(255,255,255,.22) !important;
             }
-            div[data-testid="stLinkButton"] > a p::before {
+            div[data-testid="stButton"] > button[kind="primary"] p::before {
                 content: '';
                 display: inline-block;
-                width: 18px; height: 18px;
-                margin-right: 10px; vertical-align: middle;
+                width: 18px;
+                height: 18px;
+                margin-right: 10px;
+                vertical-align: middle;
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect x='1' y='1' width='9' height='9' fill='%23f25022'/%3E%3Crect x='11' y='1' width='9' height='9' fill='%237fba00'/%3E%3Crect x='1' y='11' width='9' height='9' fill='%2300a4ef'/%3E%3Crect x='11' y='11' width='9' height='9' fill='%23ffb900'/%3E%3C/svg%3E");
-                background-size: contain; background-repeat: no-repeat; flex-shrink: 0;
+                background-size: contain;
+                background-repeat: no-repeat;
+                flex-shrink: 0;
             }
             .lrc-footer {
                 color: #93c5fd; font-size: 11.5px; margin-top: 10px; text-align: center;
@@ -1795,25 +1864,143 @@ def render_login_page(auth_ready: bool):
             </div>
             """), unsafe_allow_html=True)
 
-            # ── OAuth2 Authorization Code Flow ──────────────────────────────────
-            # สร้าง URL สำหรับ redirect ไปหน้า Microsoft login
-            # (บันทึก oauth_state ลงใน session_state เพื่อป้องกัน CSRF)
-            # ไม่ใช้ ROPC (username+password) อีกต่อไป เพราะ ROPC ไม่รองรับ MFA
-            try:
-                _login_url = _build_login_url()
-                _url_ok = True
-            except Exception as _e:
-                _login_url = ""
-                _url_ok = False
-                st.error(f"❌ สร้าง login URL ไม่สำเร็จ: {_e}")
+            email_input    = st.text_input("📧  Microsoft 365 Email",
+                                           placeholder="yourname@optimal.co.th",
+                                           key="login_email")
+            password_input = st.text_input("🔑  Password",
+                                           type="password",
+                                           placeholder="รหัสผ่าน Microsoft 365",
+                                           key="login_password")
 
-            if _url_ok:
-                st.link_button(
+            # ── Step 2: แสดง MFA device code ถ้ามีอยู่ใน session ────────────────
+            if st.session_state.get("_mfa_flow"):
+                flow     = st.session_state["_mfa_flow"]
+                msg      = flow.get("message", "")
+                code     = flow.get("user_code", "")
+                url      = flow.get("verification_uri", "https://microsoft.com/devicelogin")
+                expires  = flow.get("expires_in", 900)
+                st.markdown(f"""
+                <div style="
+                    background:linear-gradient(135deg,rgba(234,179,8,.15),rgba(251,146,60,.10));
+                    border:1.5px solid rgba(234,179,8,.45);
+                    border-radius:16px; padding:18px 20px; margin:8px 0 4px 0;
+                    text-align:center;">
+                    <div style="color:#fbbf24;font-size:11px;font-weight:800;
+                                letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">
+                        🔐 MFA Required — กรุณาทำตามขั้นตอน
+                    </div>
+                    <div style="color:#fff;font-size:13px;margin-bottom:12px;line-height:1.6">
+                        เปิด Tab ใหม่ไปที่ลิงก์ด้านล่าง แล้วกรอก Code นี้
+                    </div>
+                    <a href="{url}" target="_blank" style="
+                        display:inline-block;
+                        color:#60a5fa;font-size:13px;font-weight:700;
+                        text-decoration:underline;margin-bottom:14px">
+                        🌐 {url}
+                    </a>
+                    <div style="
+                        background:rgba(255,255,255,.12);
+                        border:1px solid rgba(255,255,255,.25);
+                        border-radius:12px; padding:12px 20px; margin:0 auto;
+                        display:inline-block;">
+                        <div style="color:#93c5fd;font-size:11px;
+                                    font-weight:700;letter-spacing:.08em;margin-bottom:4px">
+                            CODE
+                        </div>
+                        <div style="color:#fff;font-size:28px;font-weight:900;
+                                    letter-spacing:.25em;font-family:monospace">
+                            {code}
+                        </div>
+                    </div>
+                    <div style="color:#94a3b8;font-size:11px;margin-top:10px">
+                        ⏱ Code หมดอายุใน {expires//60} นาที
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                col_poll, col_cancel = st.columns([3, 1])
+                with col_poll:
+                    if st.button("✅  ยืนยัน MFA แล้ว — เข้าสู่ระบบ",
+                                 use_container_width=True, type="primary",
+                                 key="mfa_poll_btn"):
+                        with st.spinner("กำลังตรวจสอบ..."):
+                            result = _poll_device_code(flow)
+                        if "access_token" in result:
+                            claims = result.get("id_token_claims", {}) or {}
+                            _email = (claims.get("preferred_username") or
+                                      claims.get("email") or
+                                      claims.get("upn") or
+                                      st.session_state.get("_mfa_email","")).strip().lower()
+                            _name  = (claims.get("name") or
+                                      claims.get("given_name") or _email).strip()
+                            st.session_state["auth_access_token"]    = result["access_token"]
+                            st.session_state["auth_id_token_claims"] = claims
+                            st.session_state["auth_user"]            = {"email": _email, "name": _name}
+                            st.session_state["auth_mode"]            = "m365"
+                            st.session_state.pop("_mfa_flow", None)
+                            st.session_state.pop("_mfa_email", None)
+                            _set_auth_cookies(email=_email, name=_name, auth_mode="m365")
+                            st.rerun()
+                        else:
+                            err = result.get("error_description") or result.get("error","")
+                            if "authorization_pending" in str(err):
+                                st.warning("⏳ ยังไม่ได้ยืนยัน MFA กรุณาทำที่ browser อีก tab ก่อน")
+                            else:
+                                st.error(f"❌ {err}")
+                with col_cancel:
+                    if st.button("ยกเลิก", use_container_width=True, key="mfa_cancel_btn"):
+                        st.session_state.pop("_mfa_flow", None)
+                        st.session_state.pop("_mfa_email", None)
+                        st.rerun()
+            else:
+                # ── Step 1: ปุ่ม Sign in ────────────────────────────────────────
+                if st.button(
                     "Sign in with Microsoft 365",
-                    url=_login_url,
-                    use_container_width=True,
-                    type="primary",
-                )
+                    use_container_width=True, type="primary", key="login_btn"
+                ):
+                    if not email_input or not password_input:
+                        st.error("กรุณากรอก Email และ Password")
+                    else:
+                        with st.spinner("กำลังตรวจสอบสิทธิ์..."):
+                            result = _login_with_password(email_input, password_input)
+                        if "access_token" in result:
+                            claims = result.get("id_token_claims", {}) or {}
+                            email  = (
+                                claims.get("preferred_username") or
+                                claims.get("email") or
+                                claims.get("upn") or
+                                email_input
+                            ).strip().lower()
+                            name = (
+                                claims.get("name") or
+                                claims.get("given_name") or
+                                email
+                            ).strip()
+                            st.session_state["auth_access_token"]    = result["access_token"]
+                            st.session_state["auth_id_token_claims"] = claims
+                            st.session_state["auth_user"]            = {"email": email, "name": name}
+                            st.session_state["auth_mode"]            = "m365"
+                            _set_auth_cookies(email=email, name=name, auth_mode="m365")
+                            st.rerun()
+                        elif "AADSTS50076" in str(result.get("error_description", "")):
+                            # MFA Required → เปิด Device Code Flow
+                            with st.spinner("กำลังสร้าง MFA code..."):
+                                flow = _login_device_code()
+                            if "user_code" in flow:
+                                st.session_state["_mfa_flow"]  = flow
+                                st.session_state["_mfa_email"] = email_input
+                                st.rerun()
+                            else:
+                                st.error("❌ ไม่สามารถสร้าง MFA session ได้")
+                        else:
+                            err = result.get("error_description") or result.get("error") or "Unknown error"
+                            if "AADSTS50126" in str(err):
+                                st.error("❌ Email หรือ Password ไม่ถูกต้อง")
+                            elif "AADSTS50034" in str(err):
+                                st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
+                            elif "AADSTS65001" in str(err):
+                                st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
+                            else:
+                                st.error(f"❌ Login ไม่สำเร็จ: {err}")
             st.markdown(
                 '<div class="lrc-footer">Version 2026.04 &nbsp;•&nbsp; Support: '
                 '<a href="mailto:it@optimal.co.th">it@optimal.co.th</a></div>',
