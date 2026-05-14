@@ -1325,7 +1325,7 @@ EMPTY_DF = pd.DataFrame(columns=TEMPLATE_COLS + [
     "Region_TH", "Region", "Sub-district", "District", "Province"])
 
 for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
-               ("is_admin", False), ("user_role", "staff"), ("user_email", "")", ""), ("user_name", ""),
+               ("is_admin", False), ("user_role", "staff"), ("user_email", ""), ("user_name", ""),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
                ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                ("last_menu_logged", ""),
