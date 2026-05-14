@@ -151,7 +151,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
+    "itsupport1@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
@@ -584,30 +584,10 @@ def _build_login_url():
         prompt="select_account",
     )
 
-
-# =========================
-# MODERN MICROSOFT OAUTH
-# =========================
-def _modern_m365_login():
-    try:
-        login_url = _build_login_url()
-
-        st.link_button(
-            "🔵 Sign in with Microsoft 365",
-            login_url,
-            use_container_width=True
-        )
-
-        st.caption("✅ รองรับ MFA / Microsoft Authenticator / Enterprise Login")
-
-    except Exception as e:
-        st.error(f"OAuth initialization failed: {e}")
-
 def _login_with_password(email: str, password: str) -> dict:
     """Authenticate via MSAL ROPC flow (username + password)."""
     try:
         app = _msal_app()
-        # Legacy ROPC disabled for MFA tenants
         result = app.acquire_token_by_username_password(
             username=email.strip().lower(),
             password=password,
@@ -659,16 +639,7 @@ def _complete_login_from_query():
         redirect_uri=REDIRECT_URI,
     )
     if "access_token" not in result:
-        err_msg = str(
-            result.get("error_description",
-            result.get("error", "Unknown error"))
-        )
-
-        if "AADSTS50076" in err_msg or "MFA" in err_msg:
-            st.warning("⚠️ บัญชีนี้ต้องยืนยัน MFA ผ่าน Microsoft 365")
-        else:
-            st.error("Microsoft 365 login failed: " + err_msg)
-
+        st.error("Microsoft 365 login failed: " + str(result.get("error_description", result.get("error", "Unknown error"))))
         st.stop()
     claims = result.get("id_token_claims", {}) or {}
     email = (
@@ -699,7 +670,7 @@ def _complete_login_from_query():
     _set_persisted_login_state(email=email, name=name, auth_mode="m365")
 
 def _get_allowed_email_domains() -> list:
-    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th,optimalgroup.co.th")
+    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
     return [x.strip().lower() for x in str(raw).split(",") if x.strip()]
 
 def _get_user_email() -> str:
@@ -709,26 +680,19 @@ def _get_user_name() -> str:
     return str((st.session_state.get("auth_user") or {}).get("name", "")).strip() or "Microsoft 365 User"
 
 def _user_email_allowed() -> bool:
-    email = _get_user_email().strip().lower()
-
+    email = _get_user_email()
     if not email:
         return False
 
-    admin_emails = {str(e).strip().lower() for e in ADMIN_EMAILS}
-
+    admin_emails = {e.strip().lower() for e in ADMIN_EMAILS}
     if email in admin_emails:
         return True
 
-    domains = [str(d).strip().lower() for d in _get_allowed_email_domains() if str(d).strip()]
-
+    domains = _get_allowed_email_domains()
     if not domains:
         return True
 
-    for d in domains:
-        if email.endswith("@" + d):
-            return True
-
-    return False
+    return any(email.endswith("@" + d) for d in domains)
 
 def _get_user_groups() -> list[str]:
     token = st.session_state.get("auth_access_token", "")
@@ -764,10 +728,6 @@ def _resolve_role_and_dept(email: str | None = None, user_groups: list | None = 
 
     user_depts = [dept for dept, group_name in DEPT_GROUPS.items() if group_name in groups]
     if not user_depts:
-        # fallback สำหรับ account ที่อยู่ในบริษัทแต่ยังไม่ได้ assign group
-        allowed_domains = _get_allowed_email_domains()
-        if any(email.endswith("@" + d) for d in allowed_domains):
-            return "staff", "CO"
         return None, None
 
     head_map = {str(k).strip().lower(): str(v).strip().upper() for k, v in HEAD_EMAIL_TO_DEPT.items()}
@@ -1317,23 +1277,6 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
             })
     return json.dumps(map_points, ensure_ascii=False), json.dumps(map_points_no_coords, ensure_ascii=False)
 
-
-
-# ───────────────────────────────────────────────────────
-# AUTH BOOTSTRAP
-# ───────────────────────────────────────────────────────
-_restore_session_from_query_params()
-_restore_session_from_cookies()
-
-try:
-    _complete_login_from_query()
-except Exception as auth_exc:
-    st.error("OAuth callback error: " + str(auth_exc))
-
-if AUTH_READY and not _session_logged_in():
-    st.markdown("## 🔐 Microsoft 365 Login")
-    _modern_m365_login()
-    st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SESSION STATE INIT
@@ -2005,7 +1948,132 @@ def render_login_page(auth_ready: bool):
                                 st.error(f"❌ {err}")
                 with col_cancel:
                     if st.button("ยกเลิก", use_container_width=True, key="mfa_cancel_btn"):
-                        pass
+                        st.session_state.pop("_mfa_flow", None)
+                        st.session_state.pop("_mfa_email", None)
+                        st.rerun()
+            else:
+                # ── Step 1: ปุ่ม Sign in ────────────────────────────────────────
+                if st.button(
+                    "Sign in with Microsoft 365",
+                    use_container_width=True, type="primary", key="login_btn"
+                ):
+                    if not email_input or not password_input:
+                        st.error("กรุณากรอก Email และ Password")
+                    else:
+                        with st.spinner("กำลังตรวจสอบสิทธิ์..."):
+                            result = _login_with_password(email_input, password_input)
+                        if "access_token" in result:
+                            claims = result.get("id_token_claims", {}) or {}
+                            email  = (
+                                claims.get("preferred_username") or
+                                claims.get("email") or
+                                claims.get("upn") or
+                                email_input
+                            ).strip().lower()
+                            name = (
+                                claims.get("name") or
+                                claims.get("given_name") or
+                                email
+                            ).strip()
+                            st.session_state["auth_access_token"]    = result["access_token"]
+                            st.session_state["auth_id_token_claims"] = claims
+                            st.session_state["auth_user"]            = {"email": email, "name": name}
+                            st.session_state["auth_mode"]            = "m365"
+                            _set_auth_cookies(email=email, name=name, auth_mode="m365")
+                            st.rerun()
+                        elif "AADSTS50076" in str(result.get("error_description", "")):
+                            # MFA Required → เปิด Device Code Flow
+                            with st.spinner("กำลังสร้าง MFA code..."):
+                                flow = _login_device_code()
+                            if "user_code" in flow:
+                                st.session_state["_mfa_flow"]  = flow
+                                st.session_state["_mfa_email"] = email_input
+                                st.rerun()
+                            else:
+                                st.error("❌ ไม่สามารถสร้าง MFA session ได้")
+                        else:
+                            err = result.get("error_description") or result.get("error") or "Unknown error"
+                            if "AADSTS50126" in str(err):
+                                st.error("❌ Email หรือ Password ไม่ถูกต้อง")
+                            elif "AADSTS50034" in str(err):
+                                st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
+                            elif "AADSTS65001" in str(err):
+                                st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
+                            else:
+                                st.error(f"❌ Login ไม่สำเร็จ: {err}")
+            st.markdown(
+                '<div class="lrc-footer">Version 2026.04 &nbsp;•&nbsp; Support: '
+                '<a href="mailto:it@optimal.co.th">it@optimal.co.th</a></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(textwrap.dedent("""
+            <div class="login-auth-card">
+                <div class="auth-top">
+                    <div class="auth-kicker">Secure sign in</div>
+                    <div class="login-panel-title">ยินดีต้อนรับกลับ</div>
+                    <div class="login-panel-sub">เข้าสู่ระบบด้วย Microsoft 365 เพื่อดึงสิทธิ์และแผนกของคุณโดยอัตโนมัติ</div>
+                </div>
+                <div class="auth-bottom">
+                    <div class="login-mini-card">
+                        <div class="login-mini-head">
+                            <div class="login-mini-icon">🛡️</div>
+                            <div>
+                                <div class="login-mini-title">Role-based access</div>
+                                <div class="login-mini-text">Admin, หัวหน้าแผนก และลูกทีม จะเห็นข้อมูลตามสิทธิ์ที่กำหนด</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="login-note">ยังไม่ได้ตั้งค่า TENANT_ID / CLIENT_ID / CLIENT_SECRET / REDIRECT_URI</div>
+                    <div class="login-footer">
+                        Version 2026.04 • Support: <a href="mailto:it@optimal.co.th">it@optimal.co.th</a>
+                    </div>
+                </div>
+            </div>
+            """), unsafe_allow_html=True)
+            st.button('Microsoft 365 Not Configured', disabled=True, use_container_width=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOGIN PAGE GATE
+# ═══════════════════════════════════════════════════════════════════════════════
+auth_ready = _auth_configured()
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+_complete_login_from_query()
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+is_logged_in = _session_logged_in()
+
+if not st.session_state.dept and not (auth_ready and is_logged_in):
+    render_login_page(auth_ready)
+    st.stop()
+
+if auth_ready and is_logged_in and not _user_email_allowed():
+    st.title("⛔ ไม่ได้รับสิทธิ์เข้าใช้งาน")
+    st.error("บัญชี Microsoft 365 นี้ไม่มีสิทธิ์เข้าใช้งานระบบ")
+    st.caption("อนุญาตเฉพาะโดเมน: " + ", ".join(_get_allowed_email_domains()))
+    if st.button("🚪 Log out"):
+        _auth_logout()
+    st.stop()
+
+if auth_ready and is_logged_in:
+    st.session_state.user_email = _get_user_email()
+    st.session_state.user_name = _get_user_name()
+    if st.session_state.get("auth_access_token"):
+        user_groups = _get_user_groups()
+        resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+    else:
+        user_groups = []
+        resolved_role = st.session_state.get("user_role")
+        resolved_dept = st.session_state.get("dept")
+
+    if not resolved_role:
+        st.title("⛔ ไม่มีสิทธิ์เข้าใช้งาน")
+        st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
+        st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
+        with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
+            st.write({"email": st.session_state.user_email, "groups": user_groups})
+        if st.button("🚪 Log out"):
             _auth_logout()
         st.stop()
 
@@ -4419,9 +4487,3 @@ else:
                         file_name="all_customers.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=True)
-
-
-# =========================================================
-# MFA READY VERSION
-# Legacy password auth disabled
-# =========================================================
