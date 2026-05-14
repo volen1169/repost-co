@@ -151,7 +151,7 @@ DEPT_GROUPS = {
 
 ADMIN_EMAILS = {
     "Teerapat.Po@optimal.co.th",
-    "itsupport@poonyaruk.co.th",
+    "itsupport1@poonyaruk.co.th",
     "IT_Network@poonyaruk.co.th",
 }
 
@@ -584,11 +584,30 @@ def _build_login_url():
         prompt="select_account",
     )
 
+
+# =========================
+# MODERN MICROSOFT OAUTH
+# =========================
+def _modern_m365_login():
+    try:
+        login_url = _build_login_url()
+
+        st.link_button(
+            "🔵 Sign in with Microsoft 365",
+            login_url,
+            use_container_width=True
+        )
+
+        st.caption("✅ รองรับ MFA / Microsoft Authenticator / Enterprise Login")
+
+    except Exception as e:
+        st.error(f"OAuth initialization failed: {e}")
+
 def _login_with_password(email: str, password: str) -> dict:
     """Authenticate via MSAL ROPC flow (username + password)."""
     try:
         app = _msal_app()
-        result = app.acquire_token_by_username_password(
+        result = app.# acquire_token_by_username_password(
             username=email.strip().lower(),
             password=password,
             scopes=OIDC_SCOPES,
@@ -1968,8 +1987,7 @@ def render_login_page(auth_ready: bool):
                         st.rerun()
             else:
                 # ── Step 1: ปุ่ม Sign in ────────────────────────────────────────
-                if st.button(
-                    "Sign in with Microsoft 365",
+                if _modern_m365_login()
                     use_container_width=True, type="primary", key="login_btn"
                 ):
                     if not email_input or not password_input:
@@ -4502,3 +4520,9 @@ else:
                         file_name="all_customers.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         use_container_width=True)
+
+
+# =========================================================
+# MFA READY VERSION
+# Legacy password auth disabled
+# =========================================================
