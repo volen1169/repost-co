@@ -607,7 +607,7 @@ def _login_with_password(email: str, password: str) -> dict:
     """Authenticate via MSAL ROPC flow (username + password)."""
     try:
         app = _msal_app()
-        result = app.# acquire_token_by_username_password(
+        result = app.acquire_token_by_username_password(
             username=email.strip().lower(),
             password=password,
             scopes=OIDC_SCOPES,
@@ -658,11 +658,16 @@ def _complete_login_from_query():
         redirect_uri=REDIRECT_URI,
     )
     if "access_token" not in result:
-        err_msg = str(result.get("error_description", result.get("error", "Unknown error")))
-    if "AADSTS50076" in err_msg or "MFA" in err_msg:
-        st.warning("⚠️ บัญชีนี้ต้องยืนยัน MFA ผ่าน Microsoft 365")
-    else:
-        st.error("Microsoft 365 login failed: " + err_msg)
+        err_msg = str(
+            result.get("error_description",
+            result.get("error", "Unknown error"))
+        )
+
+        if "AADSTS50076" in err_msg or "MFA" in err_msg:
+            st.warning("⚠️ บัญชีนี้ต้องยืนยัน MFA ผ่าน Microsoft 365")
+        else:
+            st.error("Microsoft 365 login failed: " + err_msg)
+
         st.stop()
     claims = result.get("id_token_claims", {}) or {}
     email = (
@@ -1320,7 +1325,7 @@ EMPTY_DF = pd.DataFrame(columns=TEMPLATE_COLS + [
     "Region_TH", "Region", "Sub-district", "District", "Province"])
 
 for _k, _v in [("dept", None), ("sp_file", None), ("df", EMPTY_DF),
-               ("is_admin", False), ("user_role", "staff"), ("user_email", ""), ("user_name", ""),
+               ("is_admin", False), ("user_role", "staff"), ("user_email", "")", ""), ("user_name", ""),
                ("edit_mode", "edit"), ("editing_idx", None), ("confirm_delete", False),
                ("last_refresh", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                ("last_menu_logged", ""),
