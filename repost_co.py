@@ -639,7 +639,11 @@ def _complete_login_from_query():
         redirect_uri=REDIRECT_URI,
     )
     if "access_token" not in result:
-        st.error("Microsoft 365 login failed: " + str(result.get("error_description", result.get("error", "Unknown error"))))
+        err_msg = str(result.get("error_description", result.get("error", "Unknown error")))
+    if "AADSTS50076" in err_msg or "MFA" in err_msg:
+        st.warning("⚠️ บัญชีนี้ต้องยืนยัน MFA ผ่าน Microsoft 365")
+    else:
+        st.error("Microsoft 365 login failed: " + err_msg)
         st.stop()
     claims = result.get("id_token_claims", {}) or {}
     email = (
@@ -670,7 +674,7 @@ def _complete_login_from_query():
     _set_persisted_login_state(email=email, name=name, auth_mode="m365")
 
 def _get_allowed_email_domains() -> list:
-    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th")
+    raw = _get_secret("AUTH_ALLOWED_EMAIL_DOMAINS", "optimal.co.th,poonyaruk.co.th,optimalgroup.co.th")
     return [x.strip().lower() for x in str(raw).split(",") if x.strip()]
 
 def _get_user_email() -> str:
@@ -680,19 +684,26 @@ def _get_user_name() -> str:
     return str((st.session_state.get("auth_user") or {}).get("name", "")).strip() or "Microsoft 365 User"
 
 def _user_email_allowed() -> bool:
-    email = _get_user_email()
+    email = _get_user_email().strip().lower()
+
     if not email:
         return False
 
-    admin_emails = {e.strip().lower() for e in ADMIN_EMAILS}
+    admin_emails = {str(e).strip().lower() for e in ADMIN_EMAILS}
+
     if email in admin_emails:
         return True
 
-    domains = _get_allowed_email_domains()
+    domains = [str(d).strip().lower() for d in _get_allowed_email_domains() if str(d).strip()]
+
     if not domains:
         return True
 
-    return any(email.endswith("@" + d) for d in domains)
+    for d in domains:
+        if email.endswith("@" + d):
+            return True
+
+    return False
 
 def _get_user_groups() -> list[str]:
     token = st.session_state.get("auth_access_token", "")
@@ -728,6 +739,10 @@ def _resolve_role_and_dept(email: str | None = None, user_groups: list | None = 
 
     user_depts = [dept for dept, group_name in DEPT_GROUPS.items() if group_name in groups]
     if not user_depts:
+        # fallback สำหรับ account ที่อยู่ในบริษัทแต่ยังไม่ได้ assign group
+        allowed_domains = _get_allowed_email_domains()
+        if any(email.endswith("@" + d) for d in allowed_domains):
+            return "staff", "CO"
         return None, None
 
     head_map = {str(k).strip().lower(): str(v).strip().upper() for k, v in HEAD_EMAIL_TO_DEPT.items()}
