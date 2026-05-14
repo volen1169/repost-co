@@ -607,6 +607,7 @@ def _login_with_password(email: str, password: str) -> dict:
     """Authenticate via MSAL ROPC flow (username + password)."""
     try:
         app = _msal_app()
+        # Legacy ROPC disabled for MFA tenants
         result = app.acquire_token_by_username_password(
             username=email.strip().lower(),
             password=password,
@@ -1316,6 +1317,23 @@ def build_map_points(df_in: pd.DataFrame, ref_lat: float = 13.6776, ref_lng: flo
             })
     return json.dumps(map_points, ensure_ascii=False), json.dumps(map_points_no_coords, ensure_ascii=False)
 
+
+
+# ───────────────────────────────────────────────────────
+# AUTH BOOTSTRAP
+# ───────────────────────────────────────────────────────
+_restore_session_from_query_params()
+_restore_session_from_cookies()
+
+try:
+    _complete_login_from_query()
+except Exception as auth_exc:
+    st.error("OAuth callback error: " + str(auth_exc))
+
+if AUTH_READY and not _session_logged_in():
+    st.markdown("## 🔐 Microsoft 365 Login")
+    _modern_m365_login()
+    st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SESSION STATE INIT
