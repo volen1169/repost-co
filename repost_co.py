@@ -1994,7 +1994,6 @@ def render_login_page(auth_ready: bool):
                 # ── Step 1: ปุ่ม Sign in ────────────────────────────────────────
                 if _modern_m365_login()
                     use_container_width=True, type="primary", key="login_btn"
-                ):
                     if not email_input or not password_input:
                         st.error("กรุณากรอก Email และ Password")
                     else:
