@@ -857,8 +857,8 @@ def sync_current_file_version(dept: str, fname: str):
         meta = next((f for f in files if str(f.get("name", "")) == str(fname)), None)
         if not meta:
             return
-        st.session_state.get("sp_file")_last_modified = str(meta.get("lastModifiedDateTime", "") or "")
-        st.session_state.get("sp_file")_etag = str(meta.get("eTag", "") or "")
+        st.session_state.sp_file_last_modified = str(meta.get("lastModifiedDateTime", "") or "")
+        st.session_state.sp_file_etag = str(meta.get("eTag", "") or "")
         st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         pass
@@ -2126,8 +2126,8 @@ if auth_ready and is_logged_in:
         st.session_state.dept = target_dept
         st.session_state.sp_file = None
         st.session_state.df = EMPTY_DF
-        st.session_state.get("sp_file")_last_modified = ""
-        st.session_state.get("sp_file")_etag = ""
+        st.session_state.sp_file_last_modified = ""
+        st.session_state.sp_file_etag = ""
         append_audit_log("login_role_resolved", f"m365 role={resolved_role} dept={target_dept}", target_dept or "")
         st.rerun()
 
@@ -2180,8 +2180,8 @@ if auth_ready:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
-            st.session_state.get("sp_file")_last_modified = ""
-            st.session_state.get("sp_file")_etag = ""
+            st.session_state.sp_file_last_modified = ""
+            st.session_state.sp_file_etag = ""
             _set_auth_cookies(
                 email=st.session_state.get("user_email", ""),
                 name=st.session_state.get("user_name", ""),
@@ -2318,8 +2318,8 @@ if st.session_state.get("dept", ""):
 
                 st.session_state.sp_file = chosen
                 st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
-                st.session_state.get("sp_file")_last_modified = selected_modified
-                st.session_state.get("sp_file")_etag = selected_etag
+                st.session_state.sp_file_last_modified = selected_modified
+                st.session_state.sp_file_etag = selected_etag
                 st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 append_audit_log(
@@ -2335,8 +2335,8 @@ if st.session_state.get("dept", ""):
                 if st.button("🔄 รีโหลดไฟล์", use_container_width=True):
                     st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
                     st.session_state.sp_file = chosen
-                    st.session_state.get("sp_file")_last_modified = selected_modified
-                    st.session_state.get("sp_file")_etag = selected_etag
+                    st.session_state.sp_file_last_modified = selected_modified
+                    st.session_state.sp_file_etag = selected_etag
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     append_audit_log("reload_sharepoint", chosen, st.session_state.get("dept", ""))
                     st.rerun()
@@ -2345,8 +2345,8 @@ if st.session_state.get("dept", ""):
                 if st.button("🧹 Force Refresh", use_container_width=True):
                     st.session_state.df = EMPTY_DF
                     st.session_state.sp_file = chosen
-                    st.session_state.get("sp_file")_last_modified = ""
-                    st.session_state.get("sp_file")_etag = ""
+                    st.session_state.sp_file_last_modified = ""
+                    st.session_state.sp_file_etag = ""
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     append_audit_log("force_refresh_prepare", chosen, st.session_state.get("dept", ""))
                     st.rerun()
