@@ -1875,6 +1875,10 @@ def render_login_page(auth_ready: bool):
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
 
+            # hint สำหรับ autofill
+            if not email_input and not password_input:
+                st.caption("💡 ถ้าใช้ autofill กรุณาคลิกในช่องแล้วกด Tab ก่อนกด Sign in")
+
             # ── Sign in (ROPC ก่อน → fallback Device Code ถ้า MFA บังคับ) ───────
             if st.session_state.get("_mfa_flow"):
                 # ── แสดง MFA device code ────────────────────────────────────────
@@ -1954,7 +1958,7 @@ def render_login_page(auth_ready: bool):
                     use_container_width=True, type="primary", key="login_btn"
                 ):
                     if not email_input or not password_input:
-                        st.error("กรุณากรอก Email และ Password")
+                        st.error("กรุณากรอก Email และ Password — ถ้าใช้ autofill ให้คลิกในช่องก่อนแล้วกด Tab")
                     else:
                         with st.spinner("กำลังตรวจสอบสิทธิ์..."):
                             result = _login_with_password(email_input, password_input)
