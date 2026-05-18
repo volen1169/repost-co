@@ -857,8 +857,8 @@ def sync_current_file_version(dept: str, fname: str):
         meta = next((f for f in files if str(f.get("name", "")) == str(fname)), None)
         if not meta:
             return
-        st.session_state.sp_file_last_modified = str(meta.get("lastModifiedDateTime", "") or "")
-        st.session_state.sp_file_etag = str(meta.get("eTag", "") or "")
+        st.session_state.get("sp_file")_last_modified = str(meta.get("lastModifiedDateTime", "") or "")
+        st.session_state.get("sp_file")_etag = str(meta.get("eTag", "") or "")
         st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         pass
@@ -2088,7 +2088,7 @@ if auth_ready and is_logged_in:
     st.session_state.user_name = _get_user_name()
     if st.session_state.get("auth_access_token"):
         user_groups = _get_user_groups()
-        resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.user_email, user_groups)
+        resolved_role, resolved_dept = _resolve_role_and_dept(st.session_state.get("user_email"), user_groups)
     else:
         user_groups = []
         resolved_role = st.session_state.get("user_role")
@@ -2099,7 +2099,7 @@ if auth_ready and is_logged_in:
         st.error("ไม่พบอีเมลนี้ในระบบสิทธิ์ หรือบัญชีนี้ไม่ได้อยู่ใน Group แผนกที่กำหนด")
         st.caption("ตรวจสอบว่า user อยู่ใน Group แผนกของ Microsoft 365 และถ้าเป็นหัวหน้าให้เพิ่ม email ใน HEAD_EMAIL_TO_DEPT")
         with st.expander("ดูข้อมูลสำหรับตรวจสอบ"):
-            st.write({"email": st.session_state.user_email, "groups": user_groups})
+            st.write({"email": st.session_state.get("user_email"), "groups": user_groups})
         if st.button("🚪 Log out"):
             _auth_logout()
         st.stop()
@@ -2126,8 +2126,8 @@ if auth_ready and is_logged_in:
         st.session_state.dept = target_dept
         st.session_state.sp_file = None
         st.session_state.df = EMPTY_DF
-        st.session_state.sp_file_last_modified = ""
-        st.session_state.sp_file_etag = ""
+        st.session_state.get("sp_file")_last_modified = ""
+        st.session_state.get("sp_file")_etag = ""
         append_audit_log("login_role_resolved", f"m365 role={resolved_role} dept={target_dept}", target_dept or "")
         st.rerun()
 
@@ -2180,8 +2180,8 @@ if auth_ready:
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
-            st.session_state.sp_file_last_modified = ""
-            st.session_state.sp_file_etag = ""
+            st.session_state.get("sp_file")_last_modified = ""
+            st.session_state.get("sp_file")_etag = ""
             _set_auth_cookies(
                 email=st.session_state.get("user_email", ""),
                 name=st.session_state.get("user_name", ""),
@@ -2216,7 +2216,7 @@ else:
             if sel_dept:
                 st.session_state.dept = sel_dept
                 st.session_state.is_admin = (admin_pw == ADMIN_PASSWORD)
-                st.session_state.user_role = "admin" if st.session_state.is_admin else "manager"
+                st.session_state.user_role = "admin" if st.session_state.get("is_admin") else "manager"
                 st.session_state.user_name = "Local User"
                 st.session_state.user_email = ""
                 st.session_state.auth_user = {"email": LOCAL_USER_EMAIL, "name": "Local User"}
@@ -2226,9 +2226,9 @@ else:
                 _set_auth_cookies(
                     email=LOCAL_USER_EMAIL,
                     name="Local User",
-                    role=st.session_state.user_role,
+                    role=st.session_state.get("user_role"),
                     dept=sel_dept,
-                    is_admin=st.session_state.is_admin,
+                    is_admin=st.session_state.get("is_admin"),
                     auth_mode="local",
                 )
                 _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
@@ -2239,7 +2239,7 @@ else:
     else:
         st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.get("dept", ""))}**")
         st.sidebar.info(f"สิทธิ์: {_role_label()}")
-        if st.session_state.is_admin:
+        if st.session_state.get("is_admin"):
             switch = st.sidebar.selectbox("สลับแผนก", DEPARTMENTS,
                                           index=DEPARTMENTS.index(st.session_state.get("dept", "")),
                                           key="dept_switch")
@@ -2277,8 +2277,8 @@ if st.session_state.get("dept", ""):
             fnames = [f["name"] for f in files]
 
             default_idx = 0
-            if st.session_state.sp_file in fnames:
-                default_idx = fnames.index(st.session_state.sp_file)
+            if st.session_state.get("sp_file") in fnames:
+                default_idx = fnames.index(st.session_state.get("sp_file"))
 
             chosen = st.sidebar.selectbox("ไฟล์ใน SharePoint", fnames, index=default_idx, key="file_sel")
             _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=chosen)
@@ -2318,8 +2318,8 @@ if st.session_state.get("dept", ""):
 
                 st.session_state.sp_file = chosen
                 st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
-                st.session_state.sp_file_last_modified = selected_modified
-                st.session_state.sp_file_etag = selected_etag
+                st.session_state.get("sp_file")_last_modified = selected_modified
+                st.session_state.get("sp_file")_etag = selected_etag
                 st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 append_audit_log(
@@ -2335,8 +2335,8 @@ if st.session_state.get("dept", ""):
                 if st.button("🔄 รีโหลดไฟล์", use_container_width=True):
                     st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
                     st.session_state.sp_file = chosen
-                    st.session_state.sp_file_last_modified = selected_modified
-                    st.session_state.sp_file_etag = selected_etag
+                    st.session_state.get("sp_file")_last_modified = selected_modified
+                    st.session_state.get("sp_file")_etag = selected_etag
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     append_audit_log("reload_sharepoint", chosen, st.session_state.get("dept", ""))
                     st.rerun()
@@ -2345,15 +2345,15 @@ if st.session_state.get("dept", ""):
                 if st.button("🧹 Force Refresh", use_container_width=True):
                     st.session_state.df = EMPTY_DF
                     st.session_state.sp_file = chosen
-                    st.session_state.sp_file_last_modified = ""
-                    st.session_state.sp_file_etag = ""
+                    st.session_state.get("sp_file")_last_modified = ""
+                    st.session_state.get("sp_file")_etag = ""
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     append_audit_log("force_refresh_prepare", chosen, st.session_state.get("dept", ""))
                     st.rerun()
 
-            if st.session_state.sp_file:
+            if st.session_state.get("sp_file"):
                 st.sidebar.caption(
-                    f"✅ โหลดแล้ว: **{st.session_state.sp_file}** ({len(st.session_state.df):,} ราย)"
+                    f"✅ โหลดแล้ว: **{st.session_state.get("sp_file")}** ({len(st.session_state.get("df")):,} ราย)"
                 )
                 if selected_modified:
                     st.sidebar.caption(f"🕒 SharePoint modified: {selected_modified}")
@@ -2438,11 +2438,14 @@ if uploaded:
             st.session_state.sp_file = uploaded.name
             _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file=uploaded.name)
         append_audit_log("manual_upload", uploaded.name, st.session_state.get("dept", ""))
-        st.sidebar.success(f"✅ โหลดสำเร็จ ({len(st.session_state.df):,} ราย)")
+        st.sidebar.success(f"✅ โหลดสำเร็จ ({len(st.session_state.get("df")):,} ราย)")
     except Exception as e:
         st.sidebar.error(f"❌ {e}")
 
-df = st.session_state.df
+df = st.session_state.get("df")
+if df is None:
+    import pandas as pd
+    df = pd.DataFrame()
 
 if not st.session_state.get("dept", ""):
     st.title("📊 Sales Territory Dashboard")
@@ -4160,13 +4163,13 @@ else:
             "รายละเอียด": label,
             "แผนก": str(st.session_state.get("dept", "—")),
         })
-        if st.session_state.sp_file and st.session_state.get("dept", ""):
+        if st.session_state.get("sp_file") and st.session_state.get("dept", ""):
             with st.spinner("💾 กำลังบันทึกขึ้น SharePoint…"):
-                ok = sp_save(st.session_state.df,
+                ok = sp_save(st.session_state.get("df"),
                              st.session_state.get("dept", ""),
-                             st.session_state.sp_file)
+                             st.session_state.get("sp_file"))
             if ok:
-                sync_current_file_version(st.session_state.get("dept", ""), st.session_state.sp_file)
+                sync_current_file_version(st.session_state.get("dept", ""), st.session_state.get("sp_file"))
                 st.session_state.remote_changed = False
                 append_audit_log("save_sharepoint", label, st.session_state.get("dept", ""))
                 st.success(f"✅ {label} สำเร็จ! (บันทึกขึ้น SharePoint แล้ว)")
@@ -4329,27 +4332,27 @@ else:
                             if saved:
                                 clean_pc = clean_plus_code(new_pc)
                                 merged_addr = merge_address_parts(new_addr, new_pc)
-                                st.session_state.df.at[orig_i, "Customer Name"] = new_name
-                                st.session_state.df.at[orig_i, "Salesperson"]   = new_sp
-                                st.session_state.df.at[orig_i, "Industry"]      = new_ind
-                                st.session_state.df.at[orig_i, "Grade"]         = new_grade
-                                st.session_state.df.at[orig_i, "Sales/Year"]    = new_sales
-                                st.session_state.df.at[orig_i, "Plus_Code"]     = clean_pc
-                                st.session_state.df.at[orig_i, "Budget_kg"]     = new_bkg
-                                st.session_state.df.at[orig_i, "Actual_kg"]     = new_act
-                                st.session_state.df.at[orig_i, "LastYear_kg"]   = new_ly
-                                st.session_state.df.at[orig_i, "Address"]       = merged_addr
+                                st.session_state.get("df").at[orig_i, "Customer Name"] = new_name
+                                st.session_state.get("df").at[orig_i, "Salesperson"]   = new_sp
+                                st.session_state.get("df").at[orig_i, "Industry"]      = new_ind
+                                st.session_state.get("df").at[orig_i, "Grade"]         = new_grade
+                                st.session_state.get("df").at[orig_i, "Sales/Year"]    = new_sales
+                                st.session_state.get("df").at[orig_i, "Plus_Code"]     = clean_pc
+                                st.session_state.get("df").at[orig_i, "Budget_kg"]     = new_bkg
+                                st.session_state.get("df").at[orig_i, "Actual_kg"]     = new_act
+                                st.session_state.get("df").at[orig_i, "LastYear_kg"]   = new_ly
+                                st.session_state.get("df").at[orig_i, "Address"]       = merged_addr
                                 if merged_addr.strip():
                                     _sub, _dis, _prov, _reg = parse_address(merged_addr)
-                                    st.session_state.df.at[orig_i, "Sub-district"] = _sub
-                                    st.session_state.df.at[orig_i, "District"]     = _dis
-                                    st.session_state.df.at[orig_i, "Province"]     = _prov
-                                    st.session_state.df.at[orig_i, "Region"]       = _reg
+                                    st.session_state.get("df").at[orig_i, "Sub-district"] = _sub
+                                    st.session_state.get("df").at[orig_i, "District"]     = _dis
+                                    st.session_state.get("df").at[orig_i, "Province"]     = _prov
+                                    st.session_state.get("df").at[orig_i, "Region"]       = _reg
                                 else:
-                                    st.session_state.df.at[orig_i, "Sub-district"] = ""
-                                    st.session_state.df.at[orig_i, "District"]     = ""
-                                    st.session_state.df.at[orig_i, "Province"]     = ""
-                                    st.session_state.df.at[orig_i, "Region"]       = "Unknown"
+                                    st.session_state.get("df").at[orig_i, "Sub-district"] = ""
+                                    st.session_state.get("df").at[orig_i, "District"]     = ""
+                                    st.session_state.get("df").at[orig_i, "Province"]     = ""
+                                    st.session_state.get("df").at[orig_i, "Region"]       = "Unknown"
                                 st.session_state.df["Region_TH"] = (
                                     st.session_state.df["Region"].map(REGION_EN_TO_TH).fillna("ไม่ระบุ"))
                                 st.session_state.editing_idx = None
@@ -4380,7 +4383,7 @@ else:
                         if st.button("✅ ยืนยัน", type="primary",
                                      use_container_width=True, key="confirm_yes"):
                             st.session_state.df = (
-                                st.session_state.df.drop(index=sel_idxs).reset_index(drop=True))
+                                st.session_state.get("df").drop(index=sel_idxs).reset_index(drop=True))
                             st.session_state.del_checks  = []
                             st.session_state.confirm_delete = False
                             _commit_save(f"ลบ {sel_count} รายการ")
@@ -4456,7 +4459,7 @@ else:
                 }
                 new_row["Region_TH"] = REGION_EN_TO_TH.get(new_row["Region"], "ไม่ระบุ")
                 st.session_state.df = pd.concat(
-                    [st.session_state.df, pd.DataFrame([new_row])], ignore_index=True)
+                    [st.session_state.get("df"), pd.DataFrame([new_row])], ignore_index=True)
                 # ── บันทึก upload log ──
                 if "upload_log" not in st.session_state:
                     st.session_state["upload_log"] = []
@@ -4506,7 +4509,7 @@ else:
     st.divider()
     st.subheader("⬇️ Export ข้อมูลทั้งหมด")
     ec1, ec2 = st.columns(2)
-    all_c   = [c for c in TEMPLATE_COLS if c in st.session_state.df.columns]
+    all_c   = [c for c in TEMPLATE_COLS if c in st.session_state.get("df").columns]
     exp_all = st.session_state.df[all_c]
     ec1.download_button("📥 Export CSV",   data=exp_all.to_csv(index=False, encoding="utf-8-sig"),
                         file_name="all_customers.csv", mime="text/csv", use_container_width=True)
