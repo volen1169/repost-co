@@ -2115,14 +2115,14 @@ if auth_ready and is_logged_in:
         auth_mode="m365",
     )
 
-    target_dept = st.session_state.dept
+    target_dept = st.session_state.get("dept", "")
     if resolved_role == "admin":
         if not target_dept:
             target_dept = DEPARTMENTS[0]
     else:
         target_dept = resolved_dept
 
-    if st.session_state.dept != target_dept:
+    if st.session_state.get("dept", "") != target_dept:
         st.session_state.dept = target_dept
         st.session_state.sp_file = None
         st.session_state.df = EMPTY_DF
@@ -2173,10 +2173,10 @@ if auth_ready:
 
     if st.session_state.get("user_role") == "admin":
         switch = st.sidebar.selectbox("เลือกแผนก", DEPARTMENTS,
-                                      index=DEPARTMENTS.index(st.session_state.dept) if st.session_state.dept in DEPARTMENTS else 0,
+                                      index=DEPARTMENTS.index(st.session_state.get("dept", "")) if st.session_state.get("dept", "") in DEPARTMENTS else 0,
                                       key="dept_switch_auth",
                                       format_func=lambda x: DEPARTMENT_LABELS.get(x, x))
-        if switch != st.session_state.dept:
+        if switch != st.session_state.get("dept", ""):
             st.session_state.dept = switch
             st.session_state.sp_file = None
             st.session_state.df = EMPTY_DF
@@ -2193,10 +2193,10 @@ if auth_ready:
             _set_ui_cookies(menu=st.session_state.get("ui_menu") or "", sp_file="")
             append_audit_log("switch_dept", f"admin switch to {switch}", switch)
             st.rerun()
-        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.dept)}**")
+        st.sidebar.success(f"📁 แผนกที่กำลังดู: **{_dept_label(st.session_state.get("dept", ""))}**")
         st.sidebar.caption("สิทธิ์ Admin: ดูได้ทุกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.get("dept", ""))}**")
         if _can_view_dashboard():
             st.sidebar.caption("สิทธิ์หัวหน้าแผนก: ดู Team Dashboard และ Sales Action Center ของแผนกตัวเอง")
         else:
@@ -2209,7 +2209,7 @@ if auth_ready:
         _auth_logout()
 else:
     st.sidebar.subheader("🔐 เข้าสู่ระบบแผนก")
-    if not st.session_state.dept:
+    if not st.session_state.get("dept", ""):
         sel_dept = st.sidebar.selectbox("เลือกแผนก", [""] + DEPARTMENTS, key="sel_dept_sb")
         admin_pw = st.sidebar.text_input("รหัส Admin (ว่าง = ดูแลแผนกตนเอง)", type="password", key="admin_pw_sb")
         if st.sidebar.button("เข้าสู่ระบบ", type="primary", use_container_width=True):
@@ -2237,13 +2237,13 @@ else:
             else:
                 st.sidebar.warning("กรุณาเลือกแผนก")
     else:
-        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.dept)}**")
+        st.sidebar.success(f"📁 แผนก: **{_dept_label(st.session_state.get("dept", ""))}**")
         st.sidebar.info(f"สิทธิ์: {_role_label()}")
         if st.session_state.is_admin:
             switch = st.sidebar.selectbox("สลับแผนก", DEPARTMENTS,
-                                          index=DEPARTMENTS.index(st.session_state.dept),
+                                          index=DEPARTMENTS.index(st.session_state.get("dept", "")),
                                           key="dept_switch")
-            if switch != st.session_state.dept:
+            if switch != st.session_state.get("dept", ""):
                 st.session_state.dept = switch
                 st.session_state.sp_file = None
                 st.session_state.df = EMPTY_DF
@@ -2269,9 +2269,9 @@ else:
 st.sidebar.divider()
 st.sidebar.subheader("📁 จัดการไฟล์")
 
-if st.session_state.dept:
+if st.session_state.get("dept", ""):
     try:
-        files = sp_list_files(st.session_state.dept)
+        files = sp_list_files(st.session_state.get("dept", ""))
         if files:
             files = sorted(files, key=lambda f: f.get("lastModifiedDateTime", ""), reverse=True)
             fnames = [f["name"] for f in files]
@@ -2317,7 +2317,7 @@ if st.session_state.dept:
                     reason.append("df_empty")
 
                 st.session_state.sp_file = chosen
-                st.session_state.df = sp_load(st.session_state.dept, chosen)
+                st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
                 st.session_state.sp_file_last_modified = selected_modified
                 st.session_state.sp_file_etag = selected_etag
                 st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -2325,7 +2325,7 @@ if st.session_state.dept:
                 append_audit_log(
                     "load_sharepoint",
                     f"auto-load {chosen} | reason={','.join(reason) if reason else 'unknown'} | modified={selected_modified}",
-                    st.session_state.dept
+                    st.session_state.get("dept", "")
                 )
                 st.rerun()
 
@@ -2333,12 +2333,12 @@ if st.session_state.dept:
 
             with c1:
                 if st.button("🔄 รีโหลดไฟล์", use_container_width=True):
-                    st.session_state.df = sp_load(st.session_state.dept, chosen)
+                    st.session_state.df = sp_load(st.session_state.get("dept", ""), chosen)
                     st.session_state.sp_file = chosen
                     st.session_state.sp_file_last_modified = selected_modified
                     st.session_state.sp_file_etag = selected_etag
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    append_audit_log("reload_sharepoint", chosen, st.session_state.dept)
+                    append_audit_log("reload_sharepoint", chosen, st.session_state.get("dept", ""))
                     st.rerun()
 
             with c2:
@@ -2348,7 +2348,7 @@ if st.session_state.dept:
                     st.session_state.sp_file_last_modified = ""
                     st.session_state.sp_file_etag = ""
                     st.session_state.last_refresh = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    append_audit_log("force_refresh_prepare", chosen, st.session_state.dept)
+                    append_audit_log("force_refresh_prepare", chosen, st.session_state.get("dept", ""))
                     st.rerun()
 
             if st.session_state.sp_file:
@@ -2360,7 +2360,7 @@ if st.session_state.dept:
                 st.sidebar.caption(f"🕒 App refresh: {st.session_state.last_refresh}")
 
         else:
-            st.sidebar.info(f"ไม่พบไฟล์ในโฟลเดอร์ {st.session_state.dept}")
+            st.sidebar.info(f"ไม่พบไฟล์ในโฟลเดอร์ {st.session_state.get("dept", "")}")
     except Exception as e:
         st.sidebar.error(f"SharePoint error: {e}")
         with st.sidebar.expander("🔍 รายละเอียด error (คลิกเพื่อดู)"):
@@ -2444,7 +2444,7 @@ if uploaded:
 
 df = st.session_state.df
 
-if not st.session_state.dept:
+if not st.session_state.get("dept", ""):
     st.title("📊 Sales Territory Dashboard")
     st.info("👈 กรุณาเลือกแผนกและเข้าสู่ระบบก่อนใช้งาน")
     st.stop()
@@ -4160,15 +4160,15 @@ else:
             "รายละเอียด": label,
             "แผนก": str(st.session_state.get("dept", "—")),
         })
-        if st.session_state.sp_file and st.session_state.dept:
+        if st.session_state.sp_file and st.session_state.get("dept", ""):
             with st.spinner("💾 กำลังบันทึกขึ้น SharePoint…"):
                 ok = sp_save(st.session_state.df,
-                             st.session_state.dept,
+                             st.session_state.get("dept", ""),
                              st.session_state.sp_file)
             if ok:
-                sync_current_file_version(st.session_state.dept, st.session_state.sp_file)
+                sync_current_file_version(st.session_state.get("dept", ""), st.session_state.sp_file)
                 st.session_state.remote_changed = False
-                append_audit_log("save_sharepoint", label, st.session_state.dept)
+                append_audit_log("save_sharepoint", label, st.session_state.get("dept", ""))
                 st.success(f"✅ {label} สำเร็จ! (บันทึกขึ้น SharePoint แล้ว)")
             else:
                 st.warning(f"⚠️ {label} ใน session แล้ว แต่ upload SharePoint ไม่สำเร็จ — ลอง Export แทน")
