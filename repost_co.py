@@ -1455,6 +1455,20 @@ def style_rich_dataframe(df_show: pd.DataFrame, numeric_cols: list[str] | None =
     return styler
 
 
+def _login_msg(text: str, warn: bool = False):
+    """แสดง message สีขาวในหน้า login แทน st.error / st.warning"""
+    border = "rgba(251,191,36,.55)" if warn else "rgba(255,255,255,.30)"
+    bg     = "rgba(251,191,36,.12)" if warn else "rgba(255,255,255,.10)"
+    st.markdown(
+        f"<div style='"
+        f"color:#ffffff;font-size:13px;font-weight:600;line-height:1.6;"
+        f"background:{bg};border:1.5px solid {border};"
+        f"border-radius:12px;padding:12px 16px;margin-top:8px;'"
+        f">{text}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_login_page(auth_ready: bool):
     st.markdown(textwrap.dedent("""
     <style>
@@ -1877,7 +1891,12 @@ def render_login_page(auth_ready: bool):
 
             # hint สำหรับ autofill
             if not email_input and not password_input:
-                st.caption("💡 ถ้าใช้ autofill กรุณาคลิกในช่องแล้วกด Tab ก่อนกด Sign in")
+                st.markdown(
+                    "<div style='color:#ffffff;font-size:12px;margin-top:4px;opacity:.85'>"
+                    "💡 ถ้าใช้ autofill กรุณาคลิกในช่องแล้วกด Tab ก่อนกด Sign in"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
 
             # ── Sign in (ROPC ก่อน → fallback Device Code ถ้า MFA บังคับ) ───────
             if st.session_state.get("_mfa_flow"):
@@ -1943,9 +1962,9 @@ def render_login_page(auth_ready: bool):
                         else:
                             err = result.get("error_description") or result.get("error", "")
                             if "authorization_pending" in str(err):
-                                st.warning("⏳ ยังไม่ได้ยืนยัน MFA กรุณาทำที่ browser อีก tab ก่อน")
+                                _login_msg("⏳ ยังไม่ได้ยืนยัน MFA กรุณาทำที่ browser อีก tab ก่อน", warn=True)
                             else:
-                                st.error(f"❌ {err}")
+                                _login_msg(f"❌ {err}")
                 with col_cancel:
                     if st.button("ยกเลิก", use_container_width=True, key="mfa_cancel_btn"):
                         st.session_state.pop("_mfa_flow", None)
@@ -1958,7 +1977,7 @@ def render_login_page(auth_ready: bool):
                     use_container_width=True, type="primary", key="login_btn"
                 ):
                     if not email_input or not password_input:
-                        st.error("กรุณากรอก Email และ Password — ถ้าใช้ autofill ให้คลิกในช่องก่อนแล้วกด Tab")
+                        _login_msg("กรุณากรอก Email และ Password — ถ้าใช้ autofill ให้คลิกในช่องก่อนแล้วกด Tab")
                     else:
                         with st.spinner("กำลังตรวจสอบสิทธิ์..."):
                             result = _login_with_password(email_input, password_input)
@@ -1990,17 +2009,17 @@ def render_login_page(auth_ready: bool):
                                 st.session_state["_mfa_email"] = email_input
                                 st.rerun()
                             else:
-                                st.error("❌ ไม่สามารถสร้าง MFA session ได้")
+                                _login_msg("❌ ไม่สามารถสร้าง MFA session ได้")
                         else:
                             err = result.get("error_description") or result.get("error") or "Unknown error"
                             if "AADSTS50126" in str(err):
-                                st.error("❌ Email หรือ Password ไม่ถูกต้อง")
+                                _login_msg("❌ Email หรือ Password ไม่ถูกต้อง")
                             elif "AADSTS50034" in str(err):
-                                st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
+                                _login_msg("❌ ไม่พบ Email นี้ใน Microsoft 365")
                             elif "AADSTS65001" in str(err):
-                                st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
+                                _login_msg("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
                             else:
-                                st.error(f"❌ Login ไม่สำเร็จ: {err}")
+                                _login_msg(f"❌ Login ไม่สำเร็จ: {err}")
             st.markdown(
                 '<div class="lrc-footer">Version 2026.04 &nbsp;•&nbsp; Support: '
                 '<a href="mailto:it@optimal.co.th">it@optimal.co.th</a></div>',
