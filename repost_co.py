@@ -1913,7 +1913,7 @@ def render_login_page(auth_ready: bool):
                     text-align:center;">
                     <div style="color:#fbbf24;font-size:11px;font-weight:800;
                                 letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">
-                        🔐 MFA Required — กรุณาทำตามขั้นตอน
+                        🔐 ยืนยันตัวตนเพิ่มเติม — กรุณาทำตามขั้นตอน
                     </div>
                     <div style="color:#fff;font-size:13px;margin-bottom:12px;line-height:1.6">
                         เปิด Tab ใหม่ไปที่ลิงก์ด้านล่าง แล้วกรอก Code นี้
@@ -2001,15 +2001,15 @@ def render_login_page(auth_ready: bool):
                             _set_auth_cookies(email=email, name=name, auth_mode="m365")
                             st.rerun()
                         elif "AADSTS50076" in str(result.get("error_description", "")):
-                            # MFA บังคับ → เปิด Device Code Flow อัตโนมัติ
-                            with st.spinner("กำลังสร้าง MFA session..."):
+                            # MFA บังคับ → Device Code Flow
+                            with st.spinner("กำลังสร้าง session..."):
                                 flow = _login_device_code()
                             if "user_code" in flow:
                                 st.session_state["_mfa_flow"]  = flow
                                 st.session_state["_mfa_email"] = email_input
                                 st.rerun()
                             else:
-                                _login_msg("❌ ไม่สามารถสร้าง MFA session ได้")
+                                _login_msg("❌ ไม่สามารถสร้าง session ได้")
                         else:
                             err = result.get("error_description") or result.get("error") or "Unknown error"
                             if "AADSTS50126" in str(err):
@@ -2018,6 +2018,8 @@ def render_login_page(auth_ready: bool):
                                 _login_msg("❌ ไม่พบ Email นี้ใน Microsoft 365")
                             elif "AADSTS65001" in str(err):
                                 _login_msg("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
+                            elif "wstrust" in str(err) or "MEX" in str(err):
+                                _login_msg("❌ ระบบนี้รองรับเฉพาะ @optimal.co.th และ @poonyaruk.co.th เท่านั้น — ไม่รองรับ Gmail หรือ Personal account")
                             else:
                                 _login_msg(f"❌ Login ไม่สำเร็จ: {err}")
             st.markdown(
