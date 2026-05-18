@@ -565,7 +565,13 @@ def _session_logged_in() -> bool:
     return bool(st.session_state.get("auth_user"))
 
 def _auth_logout():
-    for k in ["auth_user", "auth_access_token", "auth_id_token_claims", "oauth_state"]:
+    # ลบ session state ทั้งหมดที่เกี่ยวกับ auth และ dept
+    keys_to_clear = [
+        "auth_user", "auth_access_token", "auth_id_token_claims", "oauth_state",
+        "dept", "user_email", "user_name", "user_role", "is_admin", "auth_mode",
+        "df", "sp_file", "ui_menu", "_mfa_flow", "_mfa_email",
+    ]
+    for k in keys_to_clear:
         if k in st.session_state:
             del st.session_state[k]
     _clear_auth_cookies()
@@ -2065,7 +2071,7 @@ _restore_session_from_query_params()
 _restore_session_from_cookies()
 is_logged_in = _session_logged_in()
 
-if not st.session_state.dept and not (auth_ready and is_logged_in):
+if not is_logged_in and not st.session_state.get("dept"):
     render_login_page(auth_ready)
     st.stop()
 
