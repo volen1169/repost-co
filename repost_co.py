@@ -551,9 +551,10 @@ def _restore_session_from_cookies():
         pass
 
 def _msal_app():
-    return msal.ConfidentialClientApplication(
+    # ใช้ PublicClientApplication เหมือน DocumentReportUnified
+    # เพื่อให้ ROPC flow (username+password) ทำงานได้โดยไม่ต้องมี MFA
+    return msal.PublicClientApplication(
         client_id=CLIENT_ID,
-        client_credential=CLIENT_SECRET,
         authority=AUTHORITY,
     )
 
@@ -585,34 +586,23 @@ def _build_login_url():
     )
 
 def _login_with_password(email: str, password: str) -> dict:
-    """Authenticate via MSAL ROPC flow (username + password)."""
+    """Authenticate via MSAL ROPC flow (username + password).
+    ใช้ PublicClientApplication เหมือน DocumentReportUnified — ไม่ต้อง MFA
+    """
     try:
         app = _msal_app()
         result = app.acquire_token_by_username_password(
             username=email.strip().lower(),
             password=password,
-            scopes=OIDC_SCOPES,
+            scopes=["User.Read", "email"],
         )
         return result
     except Exception as e:
         return {"error": "exception", "error_description": str(e)}
 
 
-def _login_device_code() -> dict:
-    """Initiate Device Code Flow — supports MFA."""
-    try:
-        app = _msal_app()
-        flow = app.initiate_device_flow(scopes=OIDC_SCOPES)
-        if "user_code" not in flow:
-            return {"error": "device_flow_failed",
-                    "error_description": str(flow.get("error_description", ""))}
-        return flow
-    except Exception as e:
-        return {"error": "exception", "error_description": str(e)}
-
-
 def _poll_device_code(flow: dict) -> dict:
-    """Poll until user completes auth + MFA on Microsoft side."""
+    """(Unused — kept for reference only)"""
     try:
         app = _msal_app()
         result = app.acquire_token_by_device_flow(flow)
@@ -1872,135 +1862,45 @@ def render_login_page(auth_ready: bool):
                                            placeholder="รหัสผ่าน Microsoft 365",
                                            key="login_password")
 
-            # ── Step 2: แสดง MFA device code ถ้ามีอยู่ใน session ────────────────
-            if st.session_state.get("_mfa_flow"):
-                flow     = st.session_state["_mfa_flow"]
-                msg      = flow.get("message", "")
-                code     = flow.get("user_code", "")
-                url      = flow.get("verification_uri", "https://microsoft.com/devicelogin")
-                expires  = flow.get("expires_in", 900)
-                st.markdown(f"""
-                <div style="
-                    background:linear-gradient(135deg,rgba(234,179,8,.15),rgba(251,146,60,.10));
-                    border:1.5px solid rgba(234,179,8,.45);
-                    border-radius:16px; padding:18px 20px; margin:8px 0 4px 0;
-                    text-align:center;">
-                    <div style="color:#fbbf24;font-size:11px;font-weight:800;
-                                letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">
-                        🔐 MFA Required — กรุณาทำตามขั้นตอน
-                    </div>
-                    <div style="color:#fff;font-size:13px;margin-bottom:12px;line-height:1.6">
-                        เปิด Tab ใหม่ไปที่ลิงก์ด้านล่าง แล้วกรอก Code นี้
-                    </div>
-                    <a href="{url}" target="_blank" style="
-                        display:inline-block;
-                        color:#60a5fa;font-size:13px;font-weight:700;
-                        text-decoration:underline;margin-bottom:14px">
-                        🌐 {url}
-                    </a>
-                    <div style="
-                        background:rgba(255,255,255,.12);
-                        border:1px solid rgba(255,255,255,.25);
-                        border-radius:12px; padding:12px 20px; margin:0 auto;
-                        display:inline-block;">
-                        <div style="color:#93c5fd;font-size:11px;
-                                    font-weight:700;letter-spacing:.08em;margin-bottom:4px">
-                            CODE
-                        </div>
-                        <div style="color:#fff;font-size:28px;font-weight:900;
-                                    letter-spacing:.25em;font-family:monospace">
-                            {code}
-                        </div>
-                    </div>
-                    <div style="color:#94a3b8;font-size:11px;margin-top:10px">
-                        ⏱ Code หมดอายุใน {expires//60} นาที
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                col_poll, col_cancel = st.columns([3, 1])
-                with col_poll:
-                    if st.button("✅  ยืนยัน MFA แล้ว — เข้าสู่ระบบ",
-                                 use_container_width=True, type="primary",
-                                 key="mfa_poll_btn"):
-                        with st.spinner("กำลังตรวจสอบ..."):
-                            result = _poll_device_code(flow)
-                        if "access_token" in result:
-                            claims = result.get("id_token_claims", {}) or {}
-                            _email = (claims.get("preferred_username") or
-                                      claims.get("email") or
-                                      claims.get("upn") or
-                                      st.session_state.get("_mfa_email","")).strip().lower()
-                            _name  = (claims.get("name") or
-                                      claims.get("given_name") or _email).strip()
-                            st.session_state["auth_access_token"]    = result["access_token"]
-                            st.session_state["auth_id_token_claims"] = claims
-                            st.session_state["auth_user"]            = {"email": _email, "name": _name}
-                            st.session_state["auth_mode"]            = "m365"
-                            st.session_state.pop("_mfa_flow", None)
-                            st.session_state.pop("_mfa_email", None)
-                            _set_auth_cookies(email=_email, name=_name, auth_mode="m365")
-                            st.rerun()
-                        else:
-                            err = result.get("error_description") or result.get("error","")
-                            if "authorization_pending" in str(err):
-                                st.warning("⏳ ยังไม่ได้ยืนยัน MFA กรุณาทำที่ browser อีก tab ก่อน")
-                            else:
-                                st.error(f"❌ {err}")
-                with col_cancel:
-                    if st.button("ยกเลิก", use_container_width=True, key="mfa_cancel_btn"):
-                        st.session_state.pop("_mfa_flow", None)
-                        st.session_state.pop("_mfa_email", None)
+            # ── Sign in (ROPC — ไม่ต้อง MFA เหมือน DocumentReportUnified) ──────
+            if st.button(
+                "Sign in with Microsoft 365",
+                use_container_width=True, type="primary", key="login_btn"
+            ):
+                if not email_input or not password_input:
+                    st.error("กรุณากรอก Email และ Password")
+                else:
+                    with st.spinner("กำลังตรวจสอบสิทธิ์..."):
+                        result = _login_with_password(email_input, password_input)
+                    if "access_token" in result:
+                        claims = result.get("id_token_claims", {}) or {}
+                        email  = (
+                            claims.get("preferred_username") or
+                            claims.get("email") or
+                            claims.get("upn") or
+                            email_input
+                        ).strip().lower()
+                        name = (
+                            claims.get("name") or
+                            claims.get("given_name") or
+                            email
+                        ).strip()
+                        st.session_state["auth_access_token"]    = result["access_token"]
+                        st.session_state["auth_id_token_claims"] = claims
+                        st.session_state["auth_user"]            = {"email": email, "name": name}
+                        st.session_state["auth_mode"]            = "m365"
+                        _set_auth_cookies(email=email, name=name, auth_mode="m365")
                         st.rerun()
-            else:
-                # ── Step 1: ปุ่ม Sign in ────────────────────────────────────────
-                if st.button(
-                    "Sign in with Microsoft 365",
-                    use_container_width=True, type="primary", key="login_btn"
-                ):
-                    if not email_input or not password_input:
-                        st.error("กรุณากรอก Email และ Password")
                     else:
-                        with st.spinner("กำลังตรวจสอบสิทธิ์..."):
-                            result = _login_with_password(email_input, password_input)
-                        if "access_token" in result:
-                            claims = result.get("id_token_claims", {}) or {}
-                            email  = (
-                                claims.get("preferred_username") or
-                                claims.get("email") or
-                                claims.get("upn") or
-                                email_input
-                            ).strip().lower()
-                            name = (
-                                claims.get("name") or
-                                claims.get("given_name") or
-                                email
-                            ).strip()
-                            st.session_state["auth_access_token"]    = result["access_token"]
-                            st.session_state["auth_id_token_claims"] = claims
-                            st.session_state["auth_user"]            = {"email": email, "name": name}
-                            st.session_state["auth_mode"]            = "m365"
-                            _set_auth_cookies(email=email, name=name, auth_mode="m365")
-                            st.rerun()
-                        elif "AADSTS50076" in str(result.get("error_description", "")):
-                            # MFA Required → เปิด Device Code Flow
-                            with st.spinner("กำลังสร้าง MFA code..."):
-                                flow = _login_device_code()
-                            if "user_code" in flow:
-                                st.session_state["_mfa_flow"]  = flow
-                                st.session_state["_mfa_email"] = email_input
-                                st.rerun()
-                            else:
-                                st.error("❌ ไม่สามารถสร้าง MFA session ได้")
+                        err = result.get("error_description") or result.get("error") or "Unknown error"
+                        if "AADSTS50126" in str(err):
+                            st.error("❌ Email หรือ Password ไม่ถูกต้อง")
+                        elif "AADSTS50034" in str(err):
+                            st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
+                        elif "AADSTS65001" in str(err):
+                            st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
                         else:
-                            err = result.get("error_description") or result.get("error") or "Unknown error"
-                            if "AADSTS50126" in str(err):
-                                st.error("❌ Email หรือ Password ไม่ถูกต้อง")
-                            elif "AADSTS50034" in str(err):
-                                st.error("❌ ไม่พบ Email นี้ใน Microsoft 365")
-                            elif "AADSTS65001" in str(err):
-                                st.error("❌ App ยังไม่ได้รับ consent กรุณาติดต่อ IT Admin")
-                            else:
-                                st.error(f"❌ Login ไม่สำเร็จ: {err}")
+                            st.error(f"❌ Login ไม่สำเร็จ: {err}")
             st.markdown(
                 '<div class="lrc-footer">Version 2026.04 &nbsp;•&nbsp; Support: '
                 '<a href="mailto:it@optimal.co.th">it@optimal.co.th</a></div>',
